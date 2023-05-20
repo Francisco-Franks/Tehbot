@@ -142,9 +142,32 @@
 						</OnMouseExit>
 					</Checkbox>
 					
+					<Textentry Name="LocalWatchOnlyName">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>35%</X>
+						<Y>3%</Y>
+						<Width>30%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Observer.Config.LocalWatchOnlyName}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Observer.Config:SetLocalWatchOnlyName[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText["Local Watch Bookmark name"]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText[""]
+						</OnMouseExit>
+					</Textentry>
+					
 					<Checkbox name='StationPost'>
 						<X>1%</X>
-						<Y>3%</Y>
+						<Y>8%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<Text>Watch Local Channel (in station)</Text>
@@ -167,7 +190,7 @@
 					
 					<Checkbox name='StructureWatch'>
 						<X>1%</X>
-						<Y>10%</Y>
+						<Y>15%</Y>
 						<Width>15%</Width>
 						<Height>5%</Height>
 						<Text>Observe a Structure</Text>
@@ -193,8 +216,8 @@
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
 						<BorderColor>FFFFFFFF</BorderColor>
-						<X>16%</X>
-						<Y>10%</Y>
+						<X>35%</X>
+						<Y>15%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<OnLoad>
@@ -213,7 +236,7 @@
 					
 					<Checkbox name='GridWatch'>
 						<X>1%</X>
-						<Y>14%</Y>
+						<Y>22%</Y>
 						<Width>15%</Width>
 						<Height>5%</Height>
 						<Text>Observe a Grid</Text>
@@ -239,8 +262,8 @@
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
 						<BorderColor>FFFFFFFF</BorderColor>
-						<X>16%</X>
-						<Y>14%</Y>
+						<X>35%</X>
+						<Y>22%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<OnLoad>
@@ -259,7 +282,7 @@
 
 					<Checkbox name='WormholeSystemWatch'>
 						<X>1%</X>
-						<Y>18%</Y>
+						<Y>29%</Y>
 						<Width>15%</Width>
 						<Height>5%</Height>
 						<Text>Wormhole System Observation</Text>
@@ -282,7 +305,7 @@
 					
 					<Checkbox name='GateWatch'>
 						<X>1%</X>
-						<Y>22%</Y>
+						<Y>36%</Y>
 						<Width>15%</Width>
 						<Height>5%</Height>
 						<Text>Observe a Gate</Text>
@@ -308,8 +331,8 @@
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
 						<BorderColor>FFFFFFFF</BorderColor>
-						<X>16%</X>
-						<Y>22%</Y>
+						<X>35%</X>
+						<Y>36%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<OnLoad>
@@ -328,7 +351,7 @@
 
 					<Checkbox name='RelayToChat'>
 						<X>1%</X>
-						<Y>26%</Y>
+						<Y>43%</Y>
 						<Width>15%</Width>
 						<Height>5%</Height>
 						<Text>Relay to Chat Minimode</Text>
@@ -351,7 +374,7 @@
 
 					<Checkbox name='SPORTSMode'>
 						<X>1%</X>
-						<Y>30%</Y>
+						<Y>50%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<Text>Relay Extra Info. SPORTS!</Text>
@@ -365,12 +388,97 @@
 							Script[Tehbot].VariableScope.Observer.Config:SetSPORTSMode[${This.Checked}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText["Extra info will be included in the chat relay messages. SPORTS!"]
+							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText["SPORTS! Whenever I get around to implementing it, this will cause any grid watching mode to send different chat relays from normal, with vastly more information. Possibly too much information."]
 						</OnMouseEnter>
 						<OnMouseExit>
 							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText[""]
 						</OnMouseExit>
 					</Checkbox>
+					
+					<Checkbox name='SQLiteIntegration'>
+						<X>1%</X>
+						<Y>57%</Y>
+						<Width>30%</Width>
+						<Height>5%</Height>
+						<Text>SQL Integration</Text>
+						<OnLoad>
+							if ${Script[Tehbot].VariableScope.Observer.Config.SQLiteIntegration}
+							{
+								This:SetChecked
+							}
+						</OnLoad>
+						<OnLeftClick>
+							Script[Tehbot].VariableScope.Observer.Config:SetSQLiteIntegration[${This.Checked}]
+						</OnLeftClick>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText["SQLiteIntegration, if I can figure enough out, will enable us to keep track of information over the long term. How often has someone been seen, what ship(s), etc."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText[""]
+						</OnMouseExit>
+					</Checkbox>
+
+					<Textentry Name="OrbitDistance2">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>90%</X>
+						<Y>2%</Y>
+						<Width>9%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Observer.Config.OrbitDistance}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Observer.Config:SetOrbitDistance[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText["How many meters should we orbit our observable at?"]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText[""]
+						</OnMouseExit>
+					</Textentry>
+					<Text name='OrbitDistance'>
+						<X>67%</X>
+						<Y>2%</Y>
+						<Width>23%</Width>
+						<Height>5%</Height>
+						<Alignment>Left</Alignment>
+						<Text>Orbit Distance (Meters)</Text>
+					</Text>
+					
+					<Text name='EvasiveBookmarkPrefixTitle'>
+						<X>40%</X>
+						<Y>65%</Y>
+						<Width>30%</Width>
+						<Height>5%</Height>
+						<Alignment>Center</Alignment>
+						<Text>Evasive Bookmarks Prefix</Text>
+					</Text>					
+					<Textentry Name="EvasiveBookmarkPrefix">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>40%</X>
+						<Y>69%</Y>
+						<Width>15%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Observer.Config.EvasiveBookmarkPrefix}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Observer.Config:SetEvasiveBookmarkPrefix[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText["This will be the prefix string we search for when looking for bookmarks to warp to when we become decloaked."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText[""]
+						</OnMouseExit>
+					</Textentry>			
 					
 					<Text name='HomeBaseTitle'>
 						<X>1%</X>

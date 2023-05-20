@@ -1086,7 +1086,7 @@ objectdef obj_Mining inherits obj_StateQueue
 		if ${WarpBackery.NotNULLOrEmpty}
 		{
 			This:LogInfo["Moving back to where we left off"]
-			Move:Bookmark[${WarpBackery, FALSE, ${Config.WarpInDistance}, FALSE]
+			Move:Bookmark[${WarpBackery}, FALSE, ${Config.WarpInDistance}, FALSE]
 			This:InsertState["Traveling"]
 			Script[Tehbot].VariableScope.Mining.Config:SetWarpBackToName[""]
 			This:QueueState["StartWorking", 4000]
@@ -1543,7 +1543,7 @@ objectdef obj_Mining inherits obj_StateQueue
 	{
 		if !${Config.UseWeirdNavigation}
 		{
-			Move:Bookmark["${POSBookmarkName}"]
+			Move:Bookmark["${Config.POSBookmarkName}"]
 			This:InsertState["Traveling"]
 			This:InsertState["CheckForWork", 5000]
 		}

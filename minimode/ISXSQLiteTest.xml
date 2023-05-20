@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ISUI>
+	<template name='Information.Font'>
+		<Name>Segoe</Name>
+		<Size>24</Size>
+		<Color>FFFFFFFF</Color>
+	</template>
+
+	<window name='Tehbot_ISXSQLiteTest'>
+		<Visible>1</Visible>
+		<BackGroundColor></BackGroundColor>
+		<Border>0</Border>
+		<X>200</X>
+		<Y>300</Y>
+		<Width>1600</Width>
+		<Height>1200</Height>
+		<TitleBar>
+			<Width>100%</Width>
+			<Height>40</Height>
+			<Border>0</Border>
+			<BackgroundColor>FF000000</BackgroundColor>
+			<Children>
+				<Text name='Tehbot_ISXSQLiteTest_TitleBar_Title'>
+					<X>0</X>
+					<Y>6</Y>
+					<Width>100%</Width>
+					<Height>40</Height>
+					<Alignment>Center</Alignment>
+					<Text>ISXSQLiteTest Configuration</Text>
+				</Text>
+				<button	Name='Close'>
+					<X>r80</X>
+					<Y>0</Y>
+					<Width>80</Width>
+					<Height>40</Height>
+					<Text>Close</Text>
+					<OnLeftClick>
+						ui -unload "&filepath;/ISXSQLiteTest"
+					</OnLeftClick>
+				</button>
+			</Children>
+		</TitleBar>
+		<Children name="Tehbot_ISXSQLiteTest_Children">
+			<Frame name="Tehbot_ISXSQLiteTest_Frame">
+				<X>0</X>
+				<Y>30</Y>
+				<Width>100%</Width>
+				<Height>100%</Height>
+				<BackgroundColor>FF000000</BackgroundColor>
+				<Border>1</Border>
+				<BorderColor>FFFFFFFF</BorderColor>
+				<Children name="Tehbot_ISXSQLiteTest_Frame_Children">
+					<Text name='obj_GridWatcherInformation'>
+						<Font template='Information.Font' />
+						<X>1%</X>
+						<Y>1%</Y>
+						<Width>98%</Width>
+						<Height>18%</Height>
+						<Wrap />
+						<Text>SQLite Integration.</Text>
+					</Text>
+
+					<Checkbox name='UseISXSQLite'>
+						<X>30%</X>
+						<Y>5%</Y>
+						<Width>15%</Width>
+						<Height>5%</Height>
+						<Text>Use ISXSQLite</Text>
+						<OnLoad>
+							if ${Script[Tehbot].VariableScope.ISXSQLiteTest.Config.UseISXSQLite}
+							{
+								This:SetChecked
+							}
+						</OnLoad>
+						<OnLeftClick>
+							Script[Tehbot].VariableScope.ISXSQLiteTest.Config:SetUseISXSQLite[${This.Checked}]
+						</OnLeftClick>
+					</Checkbox>				
+				
+					<Text name='SQLDBNameTitle'>
+						<X>20%</X>
+						<Y>5%</Y>
+						<Width>30%</Width>
+						<Height>6%</Height>
+						<Alignment>Left</Alignment>
+						<Text>SQL DB Name</Text>
+					</Text>
+					<Textentry Name="SQLDBName">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>1%</X>
+						<Y>5%</Y>
+						<Width>18%</Width>
+						<Height>3%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.ISXSQLiteTest.Config.SQLDBName}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.ISXSQLiteTest.Config:SetSQLDBName[${This.Text}]
+						</OnChange>
+					</Textentry>	
+				</Children>
+			</Frame>
+		</Children>
+	</window>
+
+</ISUI>

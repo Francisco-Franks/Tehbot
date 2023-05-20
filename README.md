@@ -85,3 +85,14 @@ Did you know that there is an ISXSQLite extension in existence? Not only that, i
 so we can have slightly more information available. Details aren't worked out fully yet but it will be amusing, assuming I have what it takes to code it. Anyways.
 https://github.com/isxGames/isxSQLite/releases/tag/20200812.0001  is where the extension can be found. Just download the x64 release there and drop it in the
 InnerSpace\x64\Extensions\ISXDK35 folder. Tehbot will do the rest.
+
+_______________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+May 19th, 12:30 PM. SQL integration will now be compulsory. I will try and make it worth it but as it stands some aspects of the Observer won't behave as expected because some information
+will not be available unless you take active actions in game, or we can semi-cheat that and build up our own DB to reference against.
+A new mini-mode will come into being. This minimode will get local pilots (assuming you have a local), look up a piece of information that does not get auto-populated against a table in the DB.
+If the DB has that info then it will consider that pilot done and move on to the next pilot in the list. If the DB doesn't have that information then it will open the Show Info window on the pilot
+(forcing the information to populate), and commit that information to the DB. Corp ID and Alliance ID are always populated as far as I can tell so we will also see if those match the table in the DB
+if they do not then we get to update that info.
+What other things might we be able to do with SQL? I don't know, what do you do with lots of historical information? Figure it out. We probably  could also use our DB to keep track of slightly more
+mundane things like daily increases in ISK and Loyalty Points. Possibly even going as granular as looking at each individual transaction. I like watching number go up.

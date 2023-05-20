@@ -79,7 +79,6 @@
 					<Height>40</Height>
 					<Text>Close</Text>
 					<OnLeftClick>
-						IRCUser[${Script[Tehbot].VariableScope.ChatRelay.Config.IRCUsername}]:Disconnect
 						endscript Tehbot
 					</OnLeftClick>
 				</button>

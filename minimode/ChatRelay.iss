@@ -72,27 +72,30 @@ objectdef obj_ChatRelay inherits obj_StateQueue
 		Event[IRC_PRIVMSGErrorResponse]:DetachAtom[This:IRC_PRIVMSGErrorResponse]
 		Event[IRC_JOINErrorResponse]:DetachAtom[This:IRC_JOINErrorResponse]
 		Event[IRC_UnhandledEvent]:DetachAtom[This:IRC_UnhandledEvent]
-		if ${This.IsConnected}
+	}
+	
+	method Shutdown()
+	{
+		if ${IRCUser[${Config.IRCUsername}].IsConnected}
 		{
 			IRCUser[${Config.IRCUsername}]:Disconnect
-		}
+		}	
 	}
 	
 	; Let's see how much bullshit I have to go through to make this behave in Tehbot. I'm not expecting much trouble
 	; but who the hell knows.
 	member:bool ChatRelay()
 	{
-		if ${Config.UseIRC}
+		if ${Config.UseIRC} && !${Extension[ISXIM]}
 		{
 			ext -require ISXIM
-			return FALSE
 		}
 		if !${Config.UseIRC}
 		{
 			return FALSE
 		}
 		
-		if !${IRCUser[${Config.IRCUsername}].IsConnected}
+		if ${IRC.NumUsers} < 1
 		{
 			call This.Connect
 		}
@@ -345,15 +348,13 @@ objectdef obj_ChatRelay inherits obj_StateQueue
 
 	method QueueMessage(string msg)
 	{
-#if USE_ISXIM
 		This.Buffer:Queue["${msg}"]
-#endif
 	}
 
 	; This should not be called by users of this object.
 	method SendMessage(string msg)
 	{
-		if ${This.IsConnected}
+		if ${IRCUser[${Config.IRCUsername}].IsConnected}
 		{
 			IRCUser[${Config.IRCUsername}].Channel[${Config.IRCChannel}]:Say["${msg}"]
 		}
