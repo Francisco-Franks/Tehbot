@@ -93,7 +93,15 @@ objectdef obj_Observer inherits obj_StateQueue
 	; This string will contain the name of either the bookmark we are observing or the name of the entity we are orbiting.
 	variable string LocationSet
 
+	; This string will contain Supplementary Information provided by SQL Integration for our chat messages.
+	variable string SupplementaryInfo
 	
+	; index where we place our strings for SQL execution
+	variable index:string DML
+	; might need this here again
+	variable sqlitequery GetCharacterInfoByID
+	variable sqlitequery GetCharacterInfoByName
+	variable int64 LastExecute
 	
 
 
@@ -174,6 +182,15 @@ objectdef obj_Observer inherits obj_StateQueue
 			This:LogInfo["Starting"]
 			This:QueueState["CheckForWork", 5000]
 			EVE:RefreshBookmarks
+		}
+		if ${ISXSQLite.IsReady}
+		{
+			if !${ISXSQLiteTest.TheSQLDatabase.TableExists["WatcherFiles"]}
+			{
+				echo DEBUG - Creating The Watcher Files
+				ISXSQLiteTest.TheSQLDatabase:ExecDML["create table WatcherFiles (CharID INTEGER, IncidentType TEXT, CharacterName TEXT, CorporationID INTEGER, AllianceID INTEGER, CorpName TEXT, CorpTicker TEXT, AllianceName TEXT, AllianceTicker TEXT, Timestamp DATETIME, ShipType TEXT, LocationSystem TEXT, LocationNearest TEXT);"]
+			}		
+		
 		}
 
 
@@ -429,6 +446,7 @@ objectdef obj_Observer inherits obj_StateQueue
 			{
 				This:LogInfo["Moving to ${Config.GateWatchName}"]				
 				EVE.Bookmark[${Config.GateWatchName}]:WarpTo[100000]
+				This:InsertState["CheckForWork", 5000]
 				return TRUE
 			}
 			else
@@ -463,6 +481,11 @@ objectdef obj_Observer inherits obj_StateQueue
 		{
 			This:QueueState["CheckForWork", 10000]
 			return TRUE
+		}
+		; Execute those DB inserts
+		if (${LastExecute} < ${LavishScript.RunningTime}) && ${DML.Used}
+		{
+			This:ExecuteTransactionIndex
 		}
 		; We have suddenly become decloaked while doing observation. Thats bad.
 		if !${Me.InStation}
@@ -802,6 +825,7 @@ objectdef obj_Observer inherits obj_StateQueue
 		variable index:pilot LocalPilots
 		EVE:GetLocalPilots[LocalPilots]
 		variable iterator LocalPilotsIterator
+			
 		
 		if ${LocalPilots.Used} <= 0
 		{
@@ -813,15 +837,15 @@ objectdef obj_Observer inherits obj_StateQueue
 		{
 			do
 			{
-				; This is where SQL related stuff will end up, probably.
-				if ${Config.SQLiteIntegration}
-				{
-					echo not there yet
-				}
 				; If they are a blue, we don't care to track them
 				if ${HighestLocalStandingCollection.Element[${LocalPilotsIterator.Value.ID}].AsJSON} > 0 || ${HighestOnGridStandingCollection.Element[${LocalPilotsIterator.Value.ID}].AsJSON} > 0
 				{
 					continue
+				}
+				; This is where SQL related stuff will end up, probably.
+				if ${Config.SQLiteIntegration} && !${CurrentLocalPopCollection.Element[${LocalPilotsIterator.Value.Name}](exists)}
+				{
+					This:CreateInsertStatement[${LocalPilotsIterator.Value.ID}, "Local Arrival", ${Local[${LocalPilotsIterator.Value.ID}].Name.ReplaceSubstring[','']}, ${Local[${LocalPilotsIterator.Value.ID}].Corp}, ${Local[${LocalPilotsIterator.Value.ID}].AllianceID}, ${Local[${LocalPilotsIterator.Value.ID}].Corp.Name.ReplaceSubstring[','']}, ${Local[${LocalPilotsIterator.Value.ID}].Corp.Ticker}, ${Local[${LocalPilotsIterator.Value.ID}].Alliance.ReplaceSubstring[','']}, ${Local[${LocalPilotsIterator.Value.ID}].AllianceTicker}, ${Time.Timestamp}, "Unknown", ${Universe[${Me.SolarSystemID}].Name.ReplaceSubstring[','']}, ${LocationSet.ReplaceSubstring[','']}]
 				}
 				if ${HighestLocalStandingCollection.Element[${LocalPilotsIterator.Value.ID}].AsJSON} <= 0 || ${HighestOnGridStandingCollection.Element[${LocalPilotsIterator.Value.ID}].AsJSON} <= 0
 				{
@@ -829,11 +853,18 @@ objectdef obj_Observer inherits obj_StateQueue
 					{
 						CurrentLocalPopCollection:Set[${LocalPilotsIterator.Value.Name}, ${LavishScript.RunningTime}]
 						echo ${LocalPilotsIterator.Value.Name} entered local at ${LavishScript.RunningTime}
+						
+
 						if ${Config.RelayToChat}
 						{
 							; Interesting story here, a lot of these things will not populate because they can't be populated until you A) run into someone in space or B) show info on them. Fuck!
 							This:CreateMessageLocal[${LocalPilotsIterator.Value.Name}, ${LocalPilotsIterator.Value.CharID}, ${Local[${LocalPilotsIterator.Value.CharID}].Corp.Name}, ${Local[${LocalPilotsIterator.Value.CharID}].Corp.Ticker}, ${LocalPilotsIterator.Value.Alliance}, ${LocalPilotsIterator.Value.AllianceTicker}]
 							;call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Arrival** @ <t:${Time.Timestamp}:R>: ${LocalPilotsIterator.Value.Name} - ${Local["${LocalPilotsIterator.Value.Name}"].Corp.Name} - [${LocalPilotsIterator.Value.Corp.Ticker}] - ${Local["${LocalPilotsIterator.Value.Name}"].Alliance} - ${Local["${LocalPilotsIterator.Value.Name}"].AllianceTicker} In Local"
+							if ${SupplementaryInfo.NotNULLOrEmpty}
+							{
+								call ChatRelay.Say "${SupplementaryInfo}"
+								SupplementaryInfo:Set[""]
+							}
 						}
 					}
 				}
@@ -847,10 +878,23 @@ objectdef obj_Observer inherits obj_StateQueue
 					if !${Local["${CurrentLocalPopCollection.CurrentKey}"](exists)}
 					{
 						echo ${CurrentLocalPopCollection.CurrentKey} left local at ${LavishScript.RunningTime}
+						; This is where SQL related stuff will end up, probably.
+						if ${Config.SQLiteIntegration}
+						{
+							GetCharacterInfoByName:Set[${ISXSQLiteTest.TheSQLDatabase.ExecQuery["SELECT * FROM PilotInfo where CharacterName='${CurrentLocalPopCollection.CurrentKey.ReplaceSubstring[','']}';"]}]
+							if ${GetCharacterInfoByName.NumRows} > 0
+							{
+								echo DEBUG - DB HIT
+							}
+							;if ${GetCharacterInfoByName.GetFieldValue["CorporationID",int64]} == ${LocalPilotsIterator.Value.Corp} && ${GetCharacterInfoByName.GetFieldValue["AllianceID",int64]} == ${LocalPilotsIterator.Value.AllianceID}
+							This:CreateInsertStatement[${GetCharacterInfoByName.GetFieldValue["CharID",int64]}, "Local Departure", ${CurrentLocalPopCollection.CurrentKey.ReplaceSubstring[','']}, ${GetCharacterInfoByName.GetFieldValue["CorporationID",int64]}, ${GetCharacterInfoByName.GetFieldValue["AllianceID",int64]}, ${GetCharacterInfoByName.GetFieldValue["CorpName",string].ReplaceSubstring[','']}, ${GetCharacterInfoByName.GetFieldValue["CorpTicker",string]}, ${GetCharacterInfoByName.GetFieldValue["AllianceName",string].ReplaceSubstring[','']}, ${GetCharacterInfoByName.GetFieldValue["AllianceTicker",string]}, ${Time.Timestamp}, "Unknown", ${Universe[${Me.SolarSystemID}].Name.ReplaceSubstring[','']}, ${LocationSet.ReplaceSubstring[','']}]
+							GetCharacterInfoByName:Finalize
+						}	
 						if ${Config.RelayToChat}
 						{
 							call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Departure** @ <t:${Time.Timestamp}:R>: ${CurrentLocalPopCollection.CurrentKey} From Local Present For ${Math.Calc[(((${LavishScript.RunningTime} - ${CurrentLocalPopCollection.CurrentValue}) / 1000) \\ 60)].Int}m ${Math.Calc[(((${LavishScript.RunningTime} - ${CurrentLocalPopCollection.CurrentValue}) / 1000) % 60 \\ 1)].Int}s"
 						}
+						
 						CurrentLocalPopCollection:Erase[${CurrentLocalPopCollection.CurrentKey}]						
 					}
 					else
@@ -882,26 +926,33 @@ objectdef obj_Observer inherits obj_StateQueue
 					if ${Entitiez.Value.OwnerID} >= 1 
 					{
 						This:UpdateOnGridStandingCollection[${Entitiez.Value.OwnerID},${Entitiez.Value.Corp},${Entitiez.Value.AllianceID}]
-					}
-					; This is where SQL related stuff will end up, probably.
-					if ${Config.SQLiteIntegration}
-					{
-						echo not there yet
-					}				
+					}	
 					; If they are a blue, we don't care to track them - This won't fire off for wormhole observation, because it doesn't work.
-					if ${HighestLocalStandingCollection.FirstKey(exists)}
+					; It works now, good work erekyu
+					if ${HighestLocalStandingCollection.FirstKey(exists)} 
 					{
-						if ${HighestLocalStandingCollection.Element[${Entitiez.Value.OwnerID}].AsJSON} > 0
+						if ${HighestLocalStandingCollection.Element[${Entitiez.Value.OwnerID}].AsJSON} > 0 || ${HighestOnGridStandingCollection.Element[${Entitiez.Value.OwnerID}].AsJSON} > 0
 						{
 							continue
 						}
-					}
-					if !${OnGridEntitiesCollection.Element[${Entitiez.Value.Name}](exists)} && ${Entitiez.Value.Name.NotNULLOrEmpty} 
+					}	
+					if !${OnGridEntitiesCollection.Element[${Entitiez.Value.Name}](exists)} && ${Entitiez.Value.Name.NotNULLOrEmpty} && ( ${HighestOnGridStandingCollection.Element[${Entitiez.Value.OwnerID}].AsJSON} <= 0 || \
+					${HighestLocalStandingCollection.Element[${Entitiez.Value.OwnerID}].AsJSON} <= 0 )
 					{
 						echo Detected Pilot ${Entitiez.Value.Name} Corp Ticker ${Entitiez.Value.Corp.Ticker} Flying Ship ${Entitiez.Value.Type} Near Bookmark ${LocationSet}
+						; This is where SQL related stuff will end up, probably.
+						if ${Config.SQLiteIntegration} && !${OnGridEntitiesCollection.Element[${Entitiez.Value.Name}](exists)}
+						{
+							This:CreateInsertStatement[${Entitiez.Value.OwnerID}, "Grid Arrival", ${Entitiez.Value.Name.ReplaceSubstring[','']}, ${Entitiez.Value.Corp}, ${Entitiez.Value.AllianceID}, ${Entitiez.Value.Corp.Name.ReplaceSubstring[','']}, ${Entitiez.Value.Corp.Ticker}, ${Entitiez.Value.Alliance.ReplaceSubstring[','']}, "Unknown", ${Time.Timestamp}, ${Entitiez.Value.Type.ReplaceSubstring[','']}, ${Universe[${Me.SolarSystemID}].Name.ReplaceSubstring[','']}, ${LocationSet.ReplaceSubstring[','']}]
+						}	
 						if ${Config.RelayToChat}
 						{
-							call ChatRelay.Say "Arrival @ <t:${Time.Timestamp}:R>: ${Entitiez.Value.Name} [${Entitiez.Value.Corp.Ticker}] - ${Entitiez.Value.Type} Near ${LocationSet}"
+							call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Arrival** @ <t:${Time.Timestamp}:R>: ${Entitiez.Value.Name} [${Entitiez.Value.Corp.Ticker}] - ${Entitiez.Value.Type} Near ${LocationSet}"
+							if ${SupplementaryInfo.NotNULLOrEmpty}
+							{
+								call ChatRelay.Say "${SupplementaryInfo}"
+								SupplementaryInfo:Set[""]
+							}
 						}
 						OnGridEntitiesCollection:Set[${Entitiez.Value.Name},${LavishScript.RunningTime}]
 					}
@@ -917,9 +968,21 @@ objectdef obj_Observer inherits obj_StateQueue
 			{
 				if !${Entity[Name == "${OnGridEntitiesCollection.CurrentKey}"]}
 				{
+					; This is where SQL related stuff will end up, probably.
+					if ${Config.SQLiteIntegration}
+					{
+						GetCharacterInfoByName:Set[${ISXSQLiteTest.TheSQLDatabase.ExecQuery["SELECT * FROM PilotInfo where CharacterName='${OnGridEntitiesCollection.CurrentKey.ReplaceSubstring[','']}';"]}]
+						if ${GetCharacterInfoByName.NumRows} > 0
+						{
+							echo DEBUG - DB HIT
+						}						
+						This:CreateInsertStatement[${GetCharacterInfoByName.GetFieldValue["CharID",int64]}, "Grid Departure", ${OnGridEntitiesCollection.CurrentKey.ReplaceSubstring[','']}, ${GetCharacterInfoByName.GetFieldValue["CorporationID",int64]}, ${GetCharacterInfoByName.GetFieldValue["AllianceID",int64]}, ${GetCharacterInfoByName.GetFieldValue["CorpName",string].ReplaceSubstring[','']}, ${GetCharacterInfoByName.GetFieldValue["CorpTicker",string]}, ${GetCharacterInfoByName.GetFieldValue["AllianceName",string].ReplaceSubstring[','']}, ${GetCharacterInfoByName.GetFieldValue["AllianceTicker",string]}, ${Time.Timestamp}, "Unknown", ${Universe[${Me.SolarSystemID}].Name.ReplaceSubstring[','']}, ${LocationSet.ReplaceSubstring[','']}]
+						;This:CreateInsertStatement[${Entity[Name == "${OnGridEntitiesCollection.CurrentKey}"].OwnerID}, "Grid Departure", ${OnGridEntitiesCollection.CurrentKey.ReplaceSubstring[','']}, ${Entity[Name == "${OnGridEntitiesCollection.CurrentKey}"].Corp}, ${Entity[Name == "${OnGridEntitiesCollection.CurrentKey}"].AllianceID}, ${Entity[Name == "${OnGridEntitiesCollection.CurrentKey}"].Corp.Name.ReplaceSubstring[','']}, ${Entity[Name == "${OnGridEntitiesCollection.CurrentKey}"].Corp.Ticker}, ${Entity[Name == "${OnGridEntitiesCollection.CurrentKey}"].Alliance.ReplaceSubstring[','']}, "Unknown", ${Time.Timestamp}, ${Entity[Name == "${OnGridEntitiesCollection.CurrentKey}"].Type}, ${Universe[${Me.SolarSystemID}].Name.ReplaceSubstring[','']}, ${LocationSet.ReplaceSubstring[','']}]
+						GetCharacterInfoByName:Finalize
+					}	
 					if ${Config.RelayToChat}
 					{
-						call ChatRelay.Say "Departure @ <t:${Time.Timestamp}:R>: ${OnGridEntitiesCollection.CurrentKey} Near ${LocationSet} Present For ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) \\ 60)].Int}m ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) % 60 \\ 1)].Int}s"
+						call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Departure** @ <t:${Time.Timestamp}:R>: ${OnGridEntitiesCollection.CurrentKey} Near ${LocationSet} Present For ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) \\ 60)].Int}m ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) % 60 \\ 1)].Int}s"
 					}
 					OnGridEntitiesCollection:Erase[${OnGridEntitiesCollection.CurrentKey}]
 				}
@@ -969,6 +1032,21 @@ objectdef obj_Observer inherits obj_StateQueue
 		}
 	}
 
+	; Next up insert statement stuff
+	method CreateInsertStatement(int64 CharID, string IncidentType, string CharName, int64 CorpID, int64 AllianceID, string CorpName, string CorpTicker, string AllianceName, string AllianceTicker, int64 Timestamp, string ShipType, string LocationSystem, string LocationNearest)
+	{
+		DML:Insert["insert into WatcherFiles (CharID,IncidentType,CharacterName,CorporationID,AllianceID,CorpName,CorpTicker,AllianceName,AllianceTicker,Timestamp,ShipType,LocationSystem,LocationNearest) values (${CharID}, '${IncidentType}', '${CharName}', ${CorpID}, ${AllianceID}, '${CorpName}', '${CorpTicker}', '${AllianceName}','${AllianceTicker}', ${Timestamp}, '${ShipType}', '${LocationSystem}', '${LocationNearest}');"]
+	}
+	
+	; Next up, execute the transaction index
+	method ExecuteTransactionIndex()
+	{
+		echo DEBUG - TWF Insert Exec
+		ISXSQLiteTest.TheSQLDatabase:ExecDMLTransaction[DML]
+		; 10 seconds sounds good
+		LastExecute:Set[${Math.Calc[${LavishScript.RunningTime} + 10000]}]	
+		DML:Clear
+	}
 	member:bool RefreshBookmarks()
 	{
 		This:LogInfo["Refreshing bookmarks"]
