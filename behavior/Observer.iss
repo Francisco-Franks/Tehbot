@@ -103,6 +103,8 @@ objectdef obj_Observer inherits obj_StateQueue
 	variable sqlitequery GetCharacterInfoByName
 	variable int64 LastExecute
 	
+	variable bool InWormhole = FALSE
+	
 
 
 	method Initialize()
@@ -213,6 +215,12 @@ objectdef obj_Observer inherits obj_StateQueue
 	; Where are we, whats our current state, what should we do next.
 	member:bool CheckForWork()
 	{
+		if !${InWormhole}
+		{
+			; This is a reasonable supposition
+			if ${Universe[Jita].JumpsTo} > 1000
+				InWormhole:Set[TRUE]
+		}
 		; We are in space, and in warp, return false so we can wait for the warp to end.
 		if ${Client.InSpace} && ${Me.ToEntity.Mode} == MOVE_WARPING
 		{
