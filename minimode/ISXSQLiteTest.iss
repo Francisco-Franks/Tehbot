@@ -137,7 +137,7 @@ objectdef obj_ISXSQLiteTest inherits obj_StateQueue
 	method EnsureWAL()
 	{
 		; This will be used to Set WAL. WAL is persistent but I don't know how to read our current journal state sooo.
-		TheSQLDatabase:ExecDMLTransaction["PRAGMA journal_mode=WAL;"]
+		TheSQLDatabase:ExecDML["PRAGMA journal_mode=WAL;"]
 		WalAssurance:Set[TRUE]
 	}
 	;function AddRecordsViaTransaction(string DatabaseID)

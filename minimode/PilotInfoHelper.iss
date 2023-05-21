@@ -24,6 +24,7 @@ objectdef obj_PilotInfoHelper inherits obj_StateQueue
 	variable int64 LastExecute
 	variable queue:int64 CharIDQueue
 	variable sqlitequery GetCharacterInfoByID
+	variable bool InWormhole = FALSE
 	
 	method Initialize()
 	{
@@ -73,7 +74,14 @@ objectdef obj_PilotInfoHelper inherits obj_StateQueue
 		{
 			This:ExecuteStatementIndex
 		}
-		if !${CharIDQueue.Peek}
+		
+		if !${InWormhole}
+		{
+			; This is a reasonable supposition
+			if ${Universe[Jita].JumpsTo} > 1000
+				InWormhole:Set[TRUE]
+		}
+		if !${CharIDQueue.Peek} && !${InWormhole}
 		{
 			EVE:GetLocalPilots[LocalPilots]
 			LocalPilots:GetIterator[LocalPilotsIterator]

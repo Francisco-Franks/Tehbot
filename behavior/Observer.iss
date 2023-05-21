@@ -540,7 +540,7 @@ objectdef obj_Observer inherits obj_StateQueue
 			; We should establish an orbit around the Structure.
 			if ${Entity[(CategoryID == 3 || CategoryID == 65) && Distance < 5000000](exists)} && ${Me.ToEntity.Mode} != MOVE_ORBITING
 			{
-				Move:Orbit[${Entity[(CategoryID == 3 || CategoryID == 65) && Distance < 2500000]}, ${Script[Tehbot].VariableScope.Observer.Config.OrbitDistance}]
+				Move:Orbit[${Entity[(CategoryID == 3 || CategoryID == 65) && Name =- "${Config.StructureWatchName}"]}, ${Script[Tehbot].VariableScope.Observer.Config.OrbitDistance}]
 				LocationSet:Set[${Entity[(CategoryID == 3 || CategoryID == 65) && Distance < 2500000].Name}
 			}
 			This:UpdateLocalStandingCollection
