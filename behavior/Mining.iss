@@ -1730,15 +1730,23 @@ objectdef obj_Mining inherits obj_StateQueue
 				{
 					if ${Config.MunitionStorage.Equal[Corporation Hangar]}
 					{
-						if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
+						if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)} && !${Config.HomeStructureIsCitadel}
 						{
 							EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
 							Client:Wait[2000]
 							This:LogInfo["Checkpoint 3"]
 							return FALSE
 						}
+						
+						if !${EVEWindow[Inventory].ChildWindow[StructureCorpHangar](exists)} && ${Config.HomeStructureIsCitadel}
+						{
+							EVEWindow[Inventory].ChildWindow[StructureCorpHangar]:MakeActive
+							Client:Wait[2000]
+							This:LogInfo["Checkpoint 3"]
+							return FALSE
+						}
 
-						if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
+						if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)} && !${Config.HomeStructureIsCitadel}
 						{
 
 							EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
@@ -1747,7 +1755,17 @@ objectdef obj_Mining inherits obj_StateQueue
 							return FALSE
 						}
 
-						if !${itemIterator.Value.Name.Equal[${preferredDroneType}]}
+						if !${EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}](exists)} && ${Config.HomeStructureIsCitadel}
+						{
+
+							EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
+							Client:Wait[2000]
+							This:LogInfo["Checkpoint 4"]
+							return FALSE
+						}
+						
+						
+						if !${itemIterator.Value.Name.Equal[${preferredDroneType}]} 
 						{
 							itemIterator.Value:MoveTo[MyStationCorporateHangar, StationCorporateHangar, ${itemIterator.Value.Quantity}, ${This.CorporationFolder}]
 							return FALSE
@@ -1755,9 +1773,17 @@ objectdef obj_Mining inherits obj_StateQueue
 					}
 					elseif ${Config.MunitionStorage.Equal[Personal Hangar]}
 					{
-						if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+						if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)} && !${Config.HomeStructureIsCitadel}
 						{
 							EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
+							Client:Wait[2000]
+							This:LogInfo["Checkpoint 5"]
+							return FALSE
+						}
+						
+						if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar](exists)} && ${Config.HomeStructureIsCitadel}
+						{
+							EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar]:MakeActive
 							Client:Wait[2000]
 							This:LogInfo["Checkpoint 5"]
 							return FALSE
@@ -1852,7 +1878,7 @@ objectdef obj_Mining inherits obj_StateQueue
 				{
 					if ${Config.MunitionStorage.Equal[Corporation Hangar]}
 					{
-						if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
+						if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)} && !${Config.HomeStructureIsCitadel}
 						{
 							EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
 							Client:Wait[2000]
@@ -1860,7 +1886,15 @@ objectdef obj_Mining inherits obj_StateQueue
 							return FALSE
 						}
 
-						if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
+						if !${EVEWindow[Inventory].ChildWindow[StructureCorpHangar](exists)} && ${Config.HomeStructureIsCitadel}
+						{
+							EVEWindow[Inventory].ChildWindow[StructureCorpHangars]:MakeActive
+							Client:Wait[2000]
+							This:LogInfo["Checkpoint 8"]
+							return FALSE
+						}
+						
+						if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)} && !${Config.HomeStructureIsCitadel}
 						{
 
 							EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
@@ -1869,12 +1903,21 @@ objectdef obj_Mining inherits obj_StateQueue
 							return FALSE
 						}
 
+						if !${EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}](exists)} && ${Config.HomeStructureIsCitadel}
+						{
+
+							EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
+							Client:Wait[2000]
+							This:LogInfo["Checkpoint 9"]
+							return FALSE
+						}
+						
 						itemIterator.Value:MoveTo[MyStationCorporateHangar, StationCorporateHangar, ${itemIterator.Value.Quantity}, ${This.CorporationFolder}]
 						; return FALSE
 					}
-					elseif ${Config.MunitionStorage.Equal[Personal Hangar]}
+					elseif ${Config.MunitionStorage.Equal[Personal Hangar]} 
 					{
-						if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+						if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)} && !${Config.HomeStructureIsCitadel}
 						{
 							EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
 							Client:Wait[2000]
@@ -1882,6 +1925,14 @@ objectdef obj_Mining inherits obj_StateQueue
 							return FALSE
 						}
 
+						if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar](exists)} && ${Config.HomeStructureIsCitadel}
+						{
+							EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar]:MakeActive
+							Client:Wait[2000]
+							This:LogInfo["Checkpoint 10"]
+							return FALSE
+						}
+						
 						itemIterator.Value:MoveTo[MyStationHangar, Hangar]
 						; return FALSE
 					}
@@ -1893,7 +1944,7 @@ objectdef obj_Mining inherits obj_StateQueue
 
 		if ${Config.MunitionStorage.Equal[Corporation Hangar]}
 		{
-			if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
+			if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)} !${Config.HomeStructureIsCitadel}
 			{
 				EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
 				Client:Wait[2000]
@@ -1901,27 +1952,65 @@ objectdef obj_Mining inherits obj_StateQueue
 				return FALSE
 			}
 
-			if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
+			if !${EVEWindow[Inventory].ChildWindow[StructureCorpHangar](exists)} && ${Config.HomeStructureIsCitadel}
+			{
+				EVEWindow[Inventory].ChildWindow[StructureCorpHangars]:MakeActive
+				Client:Wait[2000]
+				This:LogInfo["Checkpoint 11"]
+				return FALSE
+			}
+			
+			if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)} !${Config.HomeStructureIsCitadel}
 			{
 				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
 				Client:Wait[2000]
 				This:LogInfo["Checkpoint 12"]
 				return FALSE
 			}
-
-			EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
+			
+			if !${EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}](exists)} && ${Config.HomeStructureIsCitadel}
+			{
+				EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
+				Client:Wait[2000]
+				This:LogInfo["Checkpoint 12"]
+				return FALSE
+			}
+			
+			if !${Config.HomeStructureIsCitadel}
+			{
+				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
+			}
+			if ${Config.HomeStructureIsCitadel}
+			{
+				EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
+			}			
 		}
 		elseif ${Config.MunitionStorage.Equal[Personal Hangar]}
 		{
-			if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+			if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)} && !${Config.HomeStructureIsCitadel}
 			{
 				EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
 				Client:Wait[2000]
 				This:LogInfo["Checkpoint 13"]
 				return FALSE
 			}
-
-			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
+			
+			if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar](exists)} && ${Config.HomeStructureIsCitadel}
+			{
+				EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar]:MakeActive
+				Client:Wait[2000]
+				This:LogInfo["Checkpoint 13"]
+				return FALSE
+			}
+			
+			if !${Config.HomeStructureIsCitadel}
+			{
+				EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
+			}
+			if ${Config.HomeStructureIsCitadel}
+			{
+				EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar]:GetItems[items]
+			}
 		}
 
 		; Load ammos
@@ -2150,17 +2239,24 @@ objectdef obj_Mining inherits obj_StateQueue
 		variable iterator itemIterator
 		variable int64 dropOffContainerID = 0;
 
-		if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+		if ${Config.MunitionStorage.Equal[Corporation Hangar]} 
 		{
-			if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
+			if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)} && !${Config.HomeStructureIsCitadel}
 			{
 				EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
 				Client:Wait[2000]
 				This:LogInfo["Checkpoint 15"]
 				return FALSE
 			}
+			if !${EVEWindow[Inventory].ChildWindow[StructureCorpHangar](exists)} && ${Config.HomeStructureIsCitadel}
+			{
+				EVEWindow[Inventory].ChildWindow[StructureCorpHangars]:MakeActive
+				Client:Wait[2000]
+				This:LogInfo["Checkpoint 15"]
+				return FALSE
+			}			
 
-			if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
+			if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)} && !${Config.HomeStructureIsCitadel}
 			{
 				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
 				Client:Wait[2000]
@@ -2168,6 +2264,13 @@ objectdef obj_Mining inherits obj_StateQueue
 				return FALSE
 			}
 
+			if !${EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}](exists)} && ${Config.HomeStructureIsCitadel}
+			{
+				EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
+				Client:Wait[2000]
+				This:LogInfo["Checkpoint 16"]
+				return FALSE
+			}
 			; Bug: IsRepackable and Repackage are not working
 			; Repackage unloaded drones.
 			; EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
@@ -2188,7 +2291,14 @@ objectdef obj_Mining inherits obj_StateQueue
 			; }
 			Client:Wait[2000]
 			This:LogInfo["Checkpoint 17"]
-			EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:StackAll
+			if !${Config.HomeStructureIsCitadel}
+			{
+				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:StackAll
+			}
+			if ${Config.HomeStructureIsCitadel}
+			{
+				EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}]:StackAll
+			}
 			Client:Wait[2000]
 			This:LogInfo["Checkpoint 18"]
 			
@@ -2340,7 +2450,7 @@ objectdef obj_Mining inherits obj_StateQueue
 		{
 			if ${Config.MunitionStorage.Equal[Corporation Hangar]}
 			{
-				if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
+				if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)} && !${Config.HomeStructureIsCitadel}
 				{
 					EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
 					Client:Wait[2000]
@@ -2348,7 +2458,15 @@ objectdef obj_Mining inherits obj_StateQueue
 					return FALSE
 				}
 
-				if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
+				if !${EVEWindow[Inventory].ChildWindow[StructureCorpHangar](exists)} && ${Config.HomeStructureIsCitadel}
+				{
+					EVEWindow[Inventory].ChildWindow[StructureCorpHangar]:MakeActive
+					Client:Wait[2000]
+					This:LogInfo["Checkpoint 23"]
+					return FALSE
+				}
+
+				if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)} && !${Config.HomeStructureIsCitadel}
 				{
 
 					EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
@@ -2356,20 +2474,55 @@ objectdef obj_Mining inherits obj_StateQueue
 					This:LogInfo["Checkpoint 24"]
 					return FALSE
 				}
+
+				if !${EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}](exists)} && ${Config.HomeStructureIsCitadel}
+				{
+
+					EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
+					Client:Wait[2000]
+					This:LogInfo["Checkpoint 24"]
+					return FALSE
+				}
+				
 				Client:Wait[2000]
 				This:LogInfo["Checkpoint 25"]
-				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
+				if !${Config.HomeStructureIsCitadel}
+				{
+					EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
+				}
+				
+				if ${Config.HomeStructureIsCitadel}
+				{
+					EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
+				}
+				
 			}
 			elseif ${Config.MunitionStorage.Equal[Personal Hangar]}
 			{
-				if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+				if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)} && !${Config.HomeStructureIsCitadel}
 				{
 					EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
 					Client:Wait[2000]
 					This:LogInfo["Checkpoint 26"]
 					return FALSE
 				}
-				EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
+				if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar](exists)} && ${Config.HomeStructureIsCitadel}
+				{
+					EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar]:MakeActive
+					Client:Wait[2000]
+					This:LogInfo["Checkpoint 26"]
+					return FALSE
+				}
+				if !${Config.HomeStructureIsCitadel}
+				{
+					EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
+				}
+				
+				if ${Config.HomeStructureIsCitadel}
+				{
+					EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar]:GetItems[items]
+				}	
+				
 			}
 
 			items:GetIterator[itemIterator]
@@ -2425,19 +2578,35 @@ objectdef obj_Mining inherits obj_StateQueue
 						itemIterator.Value:MoveTo[${dropOffContainerID}, CargoHold]
 						; return FALSE
 					}
-					elseif ${Config.MunitionStorage.Equal[Corporation Hangar]}
+					elseif ${Config.MunitionStorage.Equal[Corporation Hangar]} 
 					{
-						if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
+						if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)} && !${Config.HomeStructureIsCitadel}
 						{
 							EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
 							Client:Wait[2000]
 							This:LogInfo["Checkpoint 30"]
 							return FALSE
 						}
+						
+						if !${EVEWindow[Inventory].ChildWindow[StructureCorpHangar](exists)} && ${Config.HomeStructureIsCitadel}
+						{
+							EVEWindow[Inventory].ChildWindow[StructureCorpHangar]:MakeActive
+							Client:Wait[2000]
+							This:LogInfo["Checkpoint 30"]
+							return FALSE
+						}
 
-						if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
+						if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)} && !${Config.HomeStructureIsCitadel}
 						{
 							EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
+							Client:Wait[2000]
+							This:LogInfo["Checkpoint 31"]
+							return FALSE
+						}
+
+						if !${EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}](exists)} && ${Config.HomeStructureIsCitadel}
+						{
+							EVEWindow[Inventory].ChildWindow["StructureCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
 							Client:Wait[2000]
 							This:LogInfo["Checkpoint 31"]
 							return FALSE
@@ -2448,9 +2617,16 @@ objectdef obj_Mining inherits obj_StateQueue
 					}
 					elseif ${Config.MunitionStorage.Equal[Personal Hangar]}
 					{
-						if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+						if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)} && !${Config.HomeStructureIsCitadel}
 						{
 							EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
+							Client:Wait[2000]
+							This:LogInfo["Checkpoint 32"]
+							return FALSE
+						}
+						if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar](exists)} && ${Config.HomeStructureIsCitadel}
+						{
+							EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar]:MakeActive
 							Client:Wait[2000]
 							This:LogInfo["Checkpoint 32"]
 							return FALSE

@@ -485,6 +485,10 @@ objectdef obj_Observer inherits obj_StateQueue
 		; Observe a wormhole, grid only
 		if ${Client.InSpace} && ${Config.WormholeSystemWatch}
 		{
+			if ${LocationSet.NotEqual[${MyBMAssignmentName}]}
+			{
+				LocationSet:Set[${MyBMAssignmentName}]
+			}
 			if ${Entity[GroupID == 988](exists)} && ${Entity[GroupID == 988].Distance} < ${Math.Calc[${Config.OrbitDistance} * 2]} && ${Me.ToEntity.Mode} != MOVE_ORBITING
 			{
 				Move:Orbit[${Entity[GroupID == 988]}, ${Script[Tehbot].VariableScope.Observer.Config.OrbitDistance}]
@@ -493,6 +497,7 @@ objectdef obj_Observer inherits obj_StateQueue
 			if !${Entity[GroupID == 988](exists)}
 			{
 				This:LogInfo["Wormhole @ ${LocationSet} has expired"]
+				call ChatRelay.Say "Wormhole @ ${LocationSet} has expired"											  
 				This:CreateUpdateStatementAssign[${MyBMAssignmentID}, ${Me.CharID}, TRUE]
 				This:InsertState["HoldingPattern", 5000]
 				return TRUE		
@@ -881,12 +886,27 @@ objectdef obj_Observer inherits obj_StateQueue
 						}	
 						if ${Config.RelayToChat}
 						{
-							call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Arrival** @ <t:${Time.Timestamp}:R>: ${Entitiez.Value.Name} [${Entitiez.Value.Corp.Ticker}] - ${Entitiez.Value.Type} Near ${LocationSet}"
-							if ${SupplementaryInfo.NotNULLOrEmpty}
+							if !${InWormhole}
+											 
 							{
-								call ChatRelay.Say "${SupplementaryInfo}"
-								SupplementaryInfo:Set[""]
+								call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Arrival** @ <t:${Time.Timestamp}:R>: ${Entitiez.Value.Name} [${Entitiez.Value.Corp.Ticker}] - ${Entitiez.Value.Type} Near ${LocationSet}"
+								if ${SupplementaryInfo.NotNULLOrEmpty}
+								{
+									call ChatRelay.Say "${SupplementaryInfo}"
+									SupplementaryInfo:Set[""]
+								}
 							}
+							else
+							{
+								call ChatRelay.Say "NEST **Arrival** @ <t:${Time.Timestamp}:R>: ${Entitiez.Value.Name} [${Entitiez.Value.Corp.Ticker}] - ${Entitiez.Value.Type} Near ${LocationSet}"
+								if ${SupplementaryInfo.NotNULLOrEmpty}
+								{
+									call ChatRelay.Say "${SupplementaryInfo}"
+									SupplementaryInfo:Set[""]
+								}
+							}							
+							
+							
 						}
 						OnGridEntitiesCollection:Set[${Entitiez.Value.Name},${LavishScript.RunningTime}]
 					}
@@ -916,7 +936,15 @@ objectdef obj_Observer inherits obj_StateQueue
 					}	
 					if ${Config.RelayToChat}
 					{
-						call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Departure** @ <t:${Time.Timestamp}:R>: ${OnGridEntitiesCollection.CurrentKey} Near ${LocationSet} Present For ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) \\ 60)].Int}m ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) % 60 \\ 1)].Int}s"
+						if !${InWormhole}
+						{
+							call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Departure** @ <t:${Time.Timestamp}:R>: ${OnGridEntitiesCollection.CurrentKey} Near ${LocationSet} Present For ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) \\ 60)].Int}m ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) % 60 \\ 1)].Int}s"
+						}
+						else
+						{
+							call ChatRelay.Say "NEST **Departure** @ <t:${Time.Timestamp}:R>: ${OnGridEntitiesCollection.CurrentKey} Near ${LocationSet} Present For ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) \\ 60)].Int}m ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) % 60 \\ 1)].Int}s"
+						
+						}
 					}
 					OnGridEntitiesCollection:Erase[${OnGridEntitiesCollection.CurrentKey}]
 				}
@@ -965,6 +993,7 @@ objectdef obj_Observer inherits obj_StateQueue
 			call ChatRelay.Say "${MessageToReturn}"
 		}
 	}
+
 	; WH DB Update Method
 	method WormholeDBUpdate()
 	{

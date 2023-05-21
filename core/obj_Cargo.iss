@@ -88,11 +88,20 @@ objectdef obj_Cargo inherits obj_StateQueue
 				{
 					EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationCorpHangars]:MakeActive
 				}
+				if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureCorpHangar](exists)}
+				{
+					EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureCorpHangars]:MakeActive
+				}
 				break
 			case Personal Hangar
 				if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 				{
 					EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
+				}
+				if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar](exists)}
+				{
+					EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StructureItemHangar]:MakeActive
+					Client:Wait[4000]
 				}
 				Me.Station:GetHangarItems[CargoList]
 				break
@@ -710,9 +719,13 @@ objectdef obj_Cargo inherits obj_StateQueue
 		if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
 		{
 			EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
-			return FALSE
 		}
-
+		
+		if !${EVEWindow[Inventory].ChildWindow[StructureCorpHangar](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[StructureCorpHangars]:MakeActive
+		}
+		
 		variable index:item cargo
 		if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", "Folder7"]:GetItems[cargo](exists)}
 		{
