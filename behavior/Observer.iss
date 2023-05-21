@@ -325,12 +325,10 @@ objectdef obj_Observer inherits obj_StateQueue
 		{
 			; Wormhole DB Update
 			This:WormholeDBUpdate
-
-
 		}
-		; We are doing wormholes and are NOT the wormhole commander. If we don't have a non-historical bookmark assigned to us
+		; We are doing wormholes. If we don't have a non-historical bookmark assigned to us
 		; we will go into holding pattern and return here.
-		if ${Config.WormholeSystemWatch} && !${Config.WormholeCommander}
+		if ${Config.WormholeSystemWatch}
 		{
 			; We will look for the one bookmark that has our char ID assigned to it and is NOT historical.
 			GetBookmarkAssignmentByID:Set[${ISXSQLiteTest.TheSQLDatabase.ExecQuery["SELECT * FROM WormholeXtreme WHERE CharID=${Me.CharID} AND Historical=FALSE;"]}]
@@ -374,7 +372,7 @@ objectdef obj_Observer inherits obj_StateQueue
 	{
 		if ${EVE.Bookmark[${MyBMAssignmentName}](exists)}
 		{
-			Move:Bookmark[${MyBMAssignmentName},100000]
+			Move:Bookmark[${MyBMAssignmentName},FALSE,100000,FALSE]
 			This:InsertState["BeginObservation", 5000]
 			return TRUE
 		}
@@ -408,7 +406,7 @@ objectdef obj_Observer inherits obj_StateQueue
 			return TRUE
 		}
 		; Something went wrong here
-		if !${This.AtPost} && !${InEvasion}
+		if !${This.AtPost} && !${InEvasion} && !${MyBMAssignmentID}
 		{
 			This:QueueState["CheckForWork", 10000]
 			return TRUE
