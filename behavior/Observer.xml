@@ -302,6 +302,29 @@
 							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText[""]
 						</OnMouseExit>
 					</Checkbox>
+
+					<Checkbox name='WormholeCommander'>
+						<X>37%</X>
+						<Y>29%</Y>
+						<Width>15%</Width>
+						<Height>5%</Height>
+						<Text>Wormhole COMMANDER</Text>
+						<OnLoad>
+							if ${Script[Tehbot].VariableScope.Observer.Config.WormholeCommander}
+							{
+								This:SetChecked
+							}
+						</OnLoad>
+						<OnLeftClick>
+							Script[Tehbot].VariableScope.Observer.Config:SetWormholeCommander[${This.Checked}]
+						</OnLeftClick>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText["We assign bookmarks to the other participants."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Tehbot_Observer_Frame@Tehbot_Observer]:SetText[""]
+						</OnMouseExit>
+					</Checkbox>
 					
 					<Checkbox name='GateWatch'>
 						<X>1%</X>

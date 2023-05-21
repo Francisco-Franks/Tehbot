@@ -50,6 +50,10 @@ objectdef obj_Configuration_Observer inherits obj_Configuration_Base
 	Setting(string, EvasiveBookmarkPrefix, SetEvasiveBookmarkPrefix)
 	; This bool indicates we want to use SQLite integration. More information tracking will be available and displayed. If I can figure it out.
 	Setting(bool, SQLiteIntegration, SetSQLiteIntegration)
+	; This bool indicates we are WORMHOLE COMMANDER, my new solution to wormhole observers behaving stupidly
+	; The wormhole commander will assess the wormhole bookmark situation, and assign them to participants ITSELF.
+	; No more of this collision horseshit.
+	Setting(bool, WormholeCommander, SetWormholeCommander)
 
 
 }
@@ -67,11 +71,6 @@ objectdef obj_Observer inherits obj_StateQueue
 	; This bool says we are currently in evasion mode
 	variable bool InEvasion
 	
-	; This collection will hold the bookmarks that aren't filtered out immediately. Key is label, value is BookmarkID.
-	variable collection:int64 LargeBookmarkCollection
-	; This collection will hold the bookmarks that are Claimed. Key is Bookmark ID, value is CharID
-	variable collection:int64 ClaimedBookmarkCollection
-	; This will be the timer for the holding pattern
 	variable int64 HoldingPatternTimer
 	; This will hold the entity ID of the thing we need to orbit at our observation point
 	variable int64 EntityIDToOrbit
@@ -95,17 +94,24 @@ objectdef obj_Observer inherits obj_StateQueue
 
 	; This string will contain Supplementary Information provided by SQL Integration for our chat messages.
 	variable string SupplementaryInfo
-	
+
+	; index where we place our string for SQL execution but its wormhole bookmarks
+	variable index:string WXT
 	; index where we place our strings for SQL execution
 	variable index:string DML
 	; might need this here again
 	variable sqlitequery GetCharacterInfoByID
 	variable sqlitequery GetCharacterInfoByName
+	variable sqlitequery GetBookmarkAssignmentByID
 	variable int64 LastExecute
+	variable int64 CommanderUpdateTime
+	
+	variable collection:int64 CurrentParticipants
 	
 	variable bool InWormhole = FALSE
 	
-
+	variable string MyBMAssignmentName
+	variable int64 MyBMAssignmentID
 
 	method Initialize()
 	{
@@ -123,14 +129,11 @@ objectdef obj_Observer inherits obj_StateQueue
 		LavishScript:RegisterEvent[Tehbot_ScheduleResume]
 		Event[Tehbot_ScheduleResume]:AttachAtom[This:ScheduleResume]
 		
-		LavishScript:RegisterEvent[ClaimBookmark]
-		Event[ClaimBookmark]:AttachAtom[This:ClaimBookmarkEvent]		
-
-		LavishScript:RegisterEvent[UnClaimBookmark]
-		Event[UnClaimBookmark]:AttachAtom[This:UnClaimBookmarkEvent]
-
-		LavishScript:RegisterEvent[CurrentlyObservingBM]
-		Event[CurrentlyObservingBM]:AttachAtom[This:CurrentlyObservingBMEvent]		
+		LavishScript:RegisterEvent[WhoIsOutThere2]
+		Event[WhoIsOutThere2]:AttachAtom[This:WhoIsOutThere2Event]
+		
+		LavishScript:RegisterEvent[WhoIsDaBoss2]
+		Event[WhoIsDaBoss2]:AttachAtom[This:WhoIsDaBoss2Event]
 		
 	}
 
@@ -148,29 +151,11 @@ objectdef obj_Observer inherits obj_StateQueue
 		}
 	}
 
-	; Why did I make 2 events that do the exact same goddamn thing?
-	method ClaimBookmarkEvent(int64 ClaimKey, int64 ClaimValue)
+	; Stolen from my mining mainmode, but with a twist. If your mode isn't Wormhole System Watch then don't answer god damnit. <--- Handled at the relay, putting conditions here won't do anything.
+	method WhoIsOutThere2Event(string Name, int64 CharID)
 	{
-		ClaimedBookmarkCollection:Set[${ClaimKey},${ClaimValue}]
-	}
-	
-	method UnClaimBookmarkEvent(int64 UnClaimKey, int64 UnClaimValue)
-	{
-		ClaimedBookmarkCollection:Set[${ClaimKey},${ClaimValue}]
-	}
-	
-	method CurrentlyObservingBMEvent(int64 BMID, int64 CharacterID)
-	{
-		if ${BMID} == ${MyCurrentBMID}
-		{
-			if ${CharacterID} != ${Me.CharID}
-			{
-				if ${CharacterID} > ${Me.CharID}
-				{
-				NeedToScram:Set[TRUE]
-				}
-			}
-		}
+		echo Debug - Who Is Out There Event ${Name} is ${CharID}
+		CurrentParticipants:Set[${Name}, ${CharID}]
 	}
 	
 	
@@ -191,8 +176,12 @@ objectdef obj_Observer inherits obj_StateQueue
 			{
 				echo DEBUG - Creating The Watcher Files
 				ISXSQLiteTest.TheSQLDatabase:ExecDML["create table WatcherFiles (CharID INTEGER, IncidentType TEXT, CharacterName TEXT, CorporationID INTEGER, AllianceID INTEGER, CorpName TEXT, CorpTicker TEXT, AllianceName TEXT, AllianceTicker TEXT, Timestamp DATETIME, ShipType TEXT, LocationSystem TEXT, LocationNearest TEXT);"]
-			}		
-		
+			}
+			if !${ISXSQLiteTest.TheSQLDatabase.TableExists["WormholeXtreme"]}
+			{
+				echo DEBUG - Creating Wormhole Xtreme
+				ISXSQLiteTest.TheSQLDatabase:ExecDML["create table WormholeXtreme (BMID INTEGER PRIMARY KEY, CharID INTEGER, BMLabel TEXT, BMXCoord REAL, BMYCoord REAL, BMZCoord REAL, Historical BOOLEAN);"]
+			}
 		}
 
 
@@ -215,11 +204,20 @@ objectdef obj_Observer inherits obj_StateQueue
 	; Where are we, whats our current state, what should we do next.
 	member:bool CheckForWork()
 	{
+		if ${Config.WormholeSystemWatch}
+		{
+			relay all "Event[WhoIsOutThere2]:Execute[${Me.Name},${Me.CharID}]"
+		}
 		if !${InWormhole}
 		{
 			; This is a reasonable supposition
 			if ${Universe[Jita].JumpsTo} > 1000
 				InWormhole:Set[TRUE]
+		}
+		; Execute those DB inserts
+		if (${LastExecute} < ${LavishScript.RunningTime}) && (${DML.Used} || ${WXT.Used})
+		{
+			This:ExecuteTransactionIndex
 		}
 		; We are in space, and in warp, return false so we can wait for the warp to end.
 		if ${Client.InSpace} && ${Me.ToEntity.Mode} == MOVE_WARPING
@@ -286,6 +284,10 @@ objectdef obj_Observer inherits obj_StateQueue
 	; We will use this to get to our Observation Post
 	member:bool FindPost()
 	{	
+		if ${Config.WormholeSystemWatch}
+		{
+			relay all "Event[WhoIsOutThere2]:Execute[${Me.Name},${Me.CharID}]"
+		}
 		; We are here just to watch local and report on pilot entries and exits. If you are somewhere without local I am not doing
 		; A sanity check for that.
 		if ${Config.LocalWatchOnly}
@@ -317,135 +319,35 @@ objectdef obj_Observer inherits obj_StateQueue
 				This:Stop					
 			}
 		}
-		; We are here to watch an entire wormhole system, we will shuffle between bookmarks and watch the grids at them
-		; This is going to be substantially more complicated, or is it? So basically, we will have a large set of prefixes
-		; C1,C2,Etc. If your bookmark contains one of those and it is in your current solar system then it is put in the large
-		; bookmark collection. Then we will run the IDs of those bookmarks against a second collection which defines which
-		; client on the machine owns that bookmark (if any). If it either matches your own char ID, or is 0, we will claim it
-		; then warp to it. It will be up to other code to release claims as we go, that basically never comes up though.
-		if ${Config.WormholeSystemWatch}
+		; We are here to watch an entire wormhole system, we are the WORMHOLE COMMANDER
+		; We will place all bookmarks in the DB and then assign them to our other clients on the machine.
+		if ${Config.WormholeSystemWatch} && ${Config.WormholeCommander}
 		{
-			variable index:bookmark WormholeBookmarks
-			variable iterator BookmarkIterator
-			EVE:GetBookmarks[WormholeBookmarks]
-			
-			WormholeBookmarks:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID != "${Me.SolarSystemID}"]}, TRUE]	
-			WormholeBookmarks:Collapse
-			WormholeBookmarks:GetIterator[BookmarkIterator]
-			
-			
-			if ${BookmarkIterator:First(exists)}
+			; Wormhole DB Update
+			This:WormholeDBUpdate
+
+
+		}
+		; We are doing wormholes and are NOT the wormhole commander. If we don't have a non-historical bookmark assigned to us
+		; we will go into holding pattern and return here.
+		if ${Config.WormholeSystemWatch} && !${Config.WormholeCommander}
+		{
+			; We will look for the one bookmark that has our char ID assigned to it and is NOT historical.
+			GetBookmarkAssignmentByID:Set[${ISXSQLiteTest.TheSQLDatabase.ExecQuery["SELECT * FROM WormholeXtreme WHERE CharID=${Me.CharID} AND Historical=FALSE;"]}]
+			; This will only ever return one bookmark unless you screw around with your db manually
+			if ${GetBookmarkAssignmentByID.NumRows} > 0
 			{
-				do
-				{	
-					; We are adding all bookmarks with the genericest wormhole identifier prefixes I can think of.
-					; If these don't match what you need then change em yourself.
-					if ${BookmarkIterator.Value.Label.Find["C1"]}
-					{
-						LargeBookmarkCollection:Set[${BookmarkIterator.Value.Label},${BookmarkIterator.Value.ID}]
-						This:LogInfo["Adding Bookmark to Collection - ${BookmarkIterator.Value.Label}"]
-					}
-					if ${BookmarkIterator.Value.Label.Find["C2"]}
-					{
-						LargeBookmarkCollection:Set[${BookmarkIterator.Value.Label},${BookmarkIterator.Value.ID}]
-						This:LogInfo["Adding Bookmark to Collection - ${BookmarkIterator.Value.Label}"]
-					}
-					if ${BookmarkIterator.Value.Label.Find["C3"]}
-					{
-						LargeBookmarkCollection:Set[${BookmarkIterator.Value.Label},${BookmarkIterator.Value.ID}]
-						This:LogInfo["Adding Bookmark to Collection - ${BookmarkIterator.Value.Label}"]
-					}
-					if ${BookmarkIterator.Value.Label.Find["C4"]}
-					{
-						LargeBookmarkCollection:Set[${BookmarkIterator.Value.Label},${BookmarkIterator.Value.ID}]
-						This:LogInfo["Adding Bookmark to Collection - ${BookmarkIterator.Value.Label}"]
-					}
-					if ${BookmarkIterator.Value.Label.Find["C5"]}
-					{
-						LargeBookmarkCollection:Set[${BookmarkIterator.Value.Label},${BookmarkIterator.Value.ID}]
-						This:LogInfo["Adding Bookmark to Collection - ${BookmarkIterator.Value.Label}"]
-					}
-					if ${BookmarkIterator.Value.Label.Find["C6"]}
-					{
-						LargeBookmarkCollection:Set[${BookmarkIterator.Value.Label},${BookmarkIterator.Value.ID}]
-						This:LogInfo["Adding Bookmark to Collection - ${BookmarkIterator.Value.Label}"]
-					}
-					if ${BookmarkIterator.Value.Label.Find["C12"]}
-					{
-						LargeBookmarkCollection:Set[${BookmarkIterator.Value.Label},${BookmarkIterator.Value.ID}]
-						This:LogInfo["Adding Bookmark to Collection - ${BookmarkIterator.Value.Label}"]
-					}
-					if ${BookmarkIterator.Value.Label.Find["C13"]}
-					{
-						LargeBookmarkCollection:Set[${BookmarkIterator.Value.Label},${BookmarkIterator.Value.ID}]
-						This:LogInfo["Adding Bookmark to Collection - ${BookmarkIterator.Value.Label}"]
-					}
-					if ${BookmarkIterator.Value.Label.Find["TR"]}
-					{
-						LargeBookmarkCollection:Set[${BookmarkIterator.Value.Label},${BookmarkIterator.Value.ID}]
-						This:LogInfo["Adding Bookmark to Collection - ${BookmarkIterator.Value.Label}"]
-					}
-					if ${BookmarkIterator.Value.Label.Find["NS"]}
-					{
-						LargeBookmarkCollection:Set[${BookmarkIterator.Value.Label},${BookmarkIterator.Value.ID}]
-						This:LogInfo["Adding Bookmark to Collection - ${BookmarkIterator.Value.Label}"]
-					}
-					if ${BookmarkIterator.Value.Label.Find["NS"]}
-					{
-						LargeBookmarkCollection:Set[${BookmarkIterator.Value.Label},${BookmarkIterator.Value.ID}]
-						This:LogInfo["Adding Bookmark to Collection - ${BookmarkIterator.Value.Label}"]
-					}
-					if ${BookmarkIterator.Value.Label.Find["LS"]}
-					{
-						LargeBookmarkCollection:Set[${BookmarkIterator.Value.Label},${BookmarkIterator.Value.ID}]
-						This:LogInfo["Adding Bookmark to Collection - ${BookmarkIterator.Value.Label}"]
-					}
-				}
-				while ${BookmarkIterator:Next(exists)}
-			}			
-			; And now we will take our Large Bookmark Collection and remove anything that is claimed, but not claimed by us.
-			if ${LargeBookmarkCollection.FirstKey(exists)}
-				do
-				{
-					; I lied, first we will see if we are already sitting on a wormhole. 
-					if ${EVE.Bookmark[${LargeBookmarkCollection.CurrentKey}].ToEntity.Distance} < ${Math.Calc[${Config.OrbitDistance} * 2]}
-					{
-						This:LogInfo["We appear to already be at a Wormhole Bookmark."]
-						if ${Entity[GroupID == 988](exists)} && ${Entity[GroupID == 988].Distance} < ${Math.Calc[${Config.OrbitDistance} * 2]}
-						{
-							Move:Orbit[${Entity[GroupID == 988]},${Script[Tehbot].VariableScope.Observer.Config.OrbitDistance}]
-							This:LogInfo["Orbiting Wormhole"]
-							LocationSet:Set[${EVE.Bookmark[${LargeBookmarkCollection.CurrentKey}].Label}]
-							relay all "Event[ClaimBookmark]:Execute[${LargeBookmarkCollection.CurrentValue},${Me.CharID}]"
-							This:InsertState["CheckForWork", 5000]
-							return TRUE
-						}
-						elseif !${Entity[GroupID == 988](exists)}
-						{
-							This:LogInfo["Nothing here"]
-							; We will just have the BM be claimed by whoever char ID 9999999999999999999999999999 is. To hell with that guy.
-							relay all "Event[ClaimBookmark]:Execute[${LargeBookmarkCollection.CurrentValue},999999999999999999999999999999999999]"
-						}
-					}
-					; Heres where I get the chance to mess up this logic. If we have a bookmark in the large collection, we want to compare
-					; its current value to a key in ClaimedBookmarkCollection. If there is a match, see if the Char ID is ours, or 0. If it is
-					; then we will still go to it, otherwise we stop considering it.
-					if ${ClaimedBookmarkCollection.Element[${LargeBookmarkCollection.CurrentValue}](exists)} && (${ClaimedBookmarkCollection.Element[${LargeBookmarkCollection.CurrentValue}].AsJSON} == ${Me.CharID} || \
-					${ClaimedBookmarkCollection.Element[${LargeBookmarkCollection.CurrentValue}].AsJSON} == 0)
-					{
-						EVE.Bookmark[${LargeBookmarkCollection.CurrentKey}]:WarpTo[100000]
-						This:LogInfo["Moving to ${LargeBookmarkCollection.CurrentKey}"]
-						relay all "Event[ClaimBookmark]:Execute[${LargeBookmarkCollection.CurrentValue},${Me.CharID}]"
-						This:InsertState["CheckForWork", 5000]
-						return TRUE						
-					}
-					
-				}
-				while ${LargeBookmarkCollection.NextKey(exists)}
-			; Alright so if we ended up here, there are no BMs, or no unclaimed BMs. We will instead enter a holding pattern somewhere awaiting a new unclaimed bookmark.
+				MyBMAssignmentID:Set[${GetBookmarkAssignmentByID.GetFieldValue["BMID",int64]}]
+				MyBMAssignmentName:Set[${GetBookmarkAssignmentByID.GetFieldValue["BMLabel",string]}]
+				LocationSet:Set[${BMAssignmentName}]
+				This:InsertState["GoToWormholeBM",5000]
+				return TRUE
+			}
+			; Alright so if we ended up here we haven't been assigned a bookmark by the wormhole commander. Enter holding pattern.
 			HoldingPatternTimer:Set[${Math.Calc[${LavishScript.RunningTime} + ${Math.Rand[30000]:Inc[30000]}]}]
+			This:LogInfo["Entering Holding Pattern"]
 			This:InsertState["HoldingPattern", 5000]
-			return TRUE
+			return TRUE		
 		}
 		; We are here to watch a specific gate, and its grid. We will report on pilots on grid.
 		if ${Config.GateWatch}
@@ -467,9 +369,30 @@ objectdef obj_Observer inherits obj_StateQueue
 		return TRUE
 	}
 	
+	; Need this due to what I had to do to FindPost.
+	member:bool GoToWormholeBM()
+	{
+		if ${EVE.Bookmark[${MyBMAssignmentName}](exists)}
+		{
+			Move:Bookmark[${MyBMAssignmentName},100000]
+			This:InsertState["BeginObservation", 5000]
+			return TRUE
+		}
+		else
+		{
+			This:LogInfo["Assigned an invalid BM, Setting BM to Historical and going to Holding Pattern"]
+			This:CreateUpdateStatementAssign[${MyBMAssignmentID}, ${Me.CharID}, TRUE]
+			This:InsertState["HoldingPattern", 5000]
+			return TRUE		
+		}
+	}
 	; This is where the bulk of observer logic will go.
 	member:bool BeginObservation()
 	{
+		if ${Config.WormholeSystemWatch}
+		{
+			relay all "Event[WhoIsOutThere2]:Execute[${Me.Name},${Me.CharID}]"
+		}
 		; We are in space, and in warp, return false so we can wait for the warp to end.
 		if !${Me.InStation}
 		{
@@ -491,7 +414,7 @@ objectdef obj_Observer inherits obj_StateQueue
 			return TRUE
 		}
 		; Execute those DB inserts
-		if (${LastExecute} < ${LavishScript.RunningTime}) && ${DML.Used}
+		if (${LastExecute} < ${LavishScript.RunningTime}) && (${DML.Used} || ${WXT.Used})
 		{
 			This:ExecuteTransactionIndex
 		}
@@ -524,8 +447,11 @@ objectdef obj_Observer inherits obj_StateQueue
 		{
 			; We are on grid and not maneuvering because no need to.
 			LocationSet:Set[${Config.GridWatchName}]
-			This:UpdateLocalStandingCollection
-			This:UpdateLocalPopCollection
+			if !${InWormhole}
+			{
+				This:UpdateLocalStandingCollection
+				This:UpdateLocalPopCollection
+			}
 			This:UpdateOnGridCollection
 		}
 		; Observe a gate, local and grid
@@ -551,23 +477,33 @@ objectdef obj_Observer inherits obj_StateQueue
 				Move:Orbit[${Entity[(CategoryID == 3 || CategoryID == 65) && Name =- "${Config.StructureWatchName}"]}, ${Script[Tehbot].VariableScope.Observer.Config.OrbitDistance}]
 				LocationSet:Set[${Entity[(CategoryID == 3 || CategoryID == 65) && Distance < 2500000].Name}
 			}
-			This:UpdateLocalStandingCollection
-			This:UpdateLocalPopCollection
+			if !${InWormhole}
+			{
+				This:UpdateLocalStandingCollection
+				This:UpdateLocalPopCollection
+			}
 			This:UpdateOnGridCollection
 		}
 		; Observe a wormhole, grid only
 		if ${Client.InSpace} && ${Config.WormholeSystemWatch}
 		{
-			; Orbit should already be established
+			if ${Entity[GroupID == 988](exists)} && ${Entity[GroupID == 988].Distance} < ${Math.Calc[${Config.OrbitDistance} * 2]} && ${Me.ToEntity.Mode} != MOVE_ORBITING
+			{
+				Move:Orbit[${Entity[GroupID == 988]}, ${Script[Tehbot].VariableScope.Observer.Config.OrbitDistance}]
+			}
 			This:UpdateOnGridCollection
-			relay all "Event[CurrentlyObservingBM]:Execute[${EVE.Bookmark[${LocationSet}].ID},${Me.CharID}]"
 			if !${Entity[GroupID == 988](exists)}
 			{
 				This:LogInfo["Wormhole @ ${LocationSet} has expired"]
-				relay all "Event[UnClaimBookmark]:Execute[${EVE.Bookmark[${LocationSet}].ID},999999999999999999]"
-				LocationSet:Set[""]
-				This:InsertState["CheckForWork", 5000]
-				return TRUE
+				This:CreateUpdateStatementAssign[${MyBMAssignmentID}, ${Me.CharID}, TRUE]
+				This:InsertState["HoldingPattern", 5000]
+				return TRUE		
+			}
+			if ${Config.WormholeCommander} && ${CommanderUpdateTime} < ${LavishScript.RunningTime}
+			{
+				This:LogInfo["Periodic WH Commander Update Time"]
+				This:WormholeDBUpdate
+				CommanderUpdateTime:Set[${Math.Calc[${LavishScript.RunningTime} + ${Math.Rand[30000]:Inc[60000]}]}]
 			}
 		}
 
@@ -672,7 +608,7 @@ objectdef obj_Observer inherits obj_StateQueue
 			if ${Config.LocalWatchOnlyName.NotNULLOrEmpty}
 			{
 				; If the BM is within 1,000KM we are in position.
-				if ${EVE.Bookmark[${Config.StructureWatchName}].ToEntity.Distance} < 1000000
+				if ${EVE.Bookmark[${Config.LocalWatchOnlyName}].ToEntity.Distance} < 1000000 && ${EVE.Bookmark[${Config.LocalWatchOnlyName}].ToEntity.Distance} != NULL
 				{
 					return TRUE
 				}
@@ -693,7 +629,7 @@ objectdef obj_Observer inherits obj_StateQueue
 			if ${Config.StructureWatchName.NotNULLOrEmpty}
 			{
 				; If the BM is within 2x our orbit distance we are in position
-				if ${EVE.Bookmark[${Config.StructureWatchName}].ToEntity.Distance} < ${Math.Calc[${Config.OrbitDistance} * 2]}
+				if ${EVE.Bookmark[${Config.StructureWatchName}].ToEntity.Distance} < ${Math.Calc[${Config.OrbitDistance} * 2]} && ${EVE.Bookmark[${Config.StructureWatchName}].ToEntity.Distance} != NULL
 				{
 					return TRUE
 				}
@@ -708,18 +644,10 @@ objectdef obj_Observer inherits obj_StateQueue
 				This:Stop					
 			}
 		}
-		; Are we near a wormhole?
+		; Are we near a wormhole? We might be, but I want wormhole observers to always go through FindPost
 		if ${Config.WormholeSystemWatch}
 		{
-			if ${Entity[GroupID == 988](exists)} && ${Entity[GroupID == 988].Distance} < ${Math.Calc[${Config.OrbitDistance} * 2]}
-			{
-				return TRUE
-			}
-			if !${Entity[GroupID == 988](exists)}
-			{
-				return FALSE
-			}
-			
+			return FALSE
 		}
 		; We are here to watch a specific gate, are we near the BM defining that Gate?
 		if ${Config.GateWatch}
@@ -727,7 +655,7 @@ objectdef obj_Observer inherits obj_StateQueue
 			if ${Config.GateWatchName.NotNULLOrEmpty}
 			{
 				; If the BM is within 2x our orbit distance we are in position
-				if ${EVE.Bookmark[${Config.GateWatchName}].ToEntity.Distance} < ${Math.Calc[${Config.OrbitDistance} * 2]}
+				if ${EVE.Bookmark[${Config.GateWatchName}].ToEntity.Distance} < ${Math.Calc[${Config.OrbitDistance} * 2]} && ${EVE.Bookmark[${Config.GateWatchName}].ToEntity.Distance} != NULL
 				{
 					LocationSet:Set["${Config.GateWatchName}"]
 					return TRUE
@@ -1039,21 +967,83 @@ objectdef obj_Observer inherits obj_StateQueue
 			call ChatRelay.Say "${MessageToReturn}"
 		}
 	}
-
+	; WH DB Update Method
+	method WormholeDBUpdate()
+	{
+		variable index:bookmark WormholeBookmarks
+		variable iterator BookmarkIterator
+		EVE:GetBookmarks[WormholeBookmarks]
+			
+		WormholeBookmarks:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID != "${Me.SolarSystemID}"]}, TRUE]	
+		WormholeBookmarks:Collapse
+		WormholeBookmarks:GetIterator[BookmarkIterator]
+			
+		; We are going to cram all these bookmarks into a table on the DB
+		if ${BookmarkIterator:First(exists)}
+		{
+			do
+			{	
+				;(int64 BMID, int64 CharID, string BMLabel, float BMXCoord, float BMYCoord, float BMZCoord, bool Historical)
+				This:CreateUpsertStatementInit[${BookmarkIterator.Value.ID}, 0, ${BookmarkIterator.Value.Label.ReplaceSubstring[','']}, ${BookmarkIterator.Value.X}, ${BookmarkIterator.Value.Y}, ${BookmarkIterator.Value.Z}, FALSE]
+			}
+			while ${BookmarkIterator:Next(exists)}
+		}
+		; Time to do our initial BM assignments based on our CurrentParticipants collection
+		if ${CurrentParticipants.FirstKey(exists)}
+		{
+			do
+			{
+				GetBookmarkAssignmentByID:Set[${ISXSQLiteTest.TheSQLDatabase.ExecQuery["SELECT * FROM WormholeXtreme WHERE CharID=${CurrentParticipants.CurrentValue} AND Historical=FALSE;"]}]
+				; This should PROBABLY return only one row. Probably. Anyways it will be up to the Assigned to evaluate the situation when they get there.
+				if ${GetBookmarkAssignmentByID.NumRows} > 0
+				{
+					continue
+				}
+				GetBookmarkAssignmentByID:Finalize
+				GetBookmarkAssignmentByID:Set[${ISXSQLiteTest.TheSQLDatabase.ExecQuery["SELECT * FROM WormholeXtreme WHERE (CharID=0 AND Historical=FALSE) AND (BMLabel LIKE '%(s)%' OR BMLabel LIKE '%NS/%' OR BMLabel LIKE '%HS/%' OR BMLabel LIKE '%LS/%' OR BMLabel LIKE '%TRIG/%' OR BMLabel LIKE '%C1/%' OR BMLabel LIKE '%C2/%' OR BMLabel LIKE '%C3/%' OR BMLabel LIKE '%C4/%' OR BMLabel LIKE '%C5/%' OR BMLabel LIKE '%C6/%' OR BMLabel LIKE '%C12/%' OR BMLabel LIKE '%C3/%');"]}]
+				; Only going to care about the first row here
+				if ${GetBookmarkAssignmentByID.NumRows} > 0
+				{
+					This:CreateUpdateStatementAssign[${GetBookmarkAssignmentByID.GetFieldValue["BMID",int64]}, ${CurrentParticipants.CurrentValue}, FALSE]
+					GetBookmarkAssignmentByID:Finalize
+					This:ExecuteTransactionIndex
+				}
+					
+			}
+			while ${CurrentParticipants.NextKey(exists)}
+		}		
+	}
 	; Next up insert statement stuff
 	method CreateInsertStatement(int64 CharID, string IncidentType, string CharName, int64 CorpID, int64 AllianceID, string CorpName, string CorpTicker, string AllianceName, string AllianceTicker, int64 Timestamp, string ShipType, string LocationSystem, string LocationNearest)
 	{
 		DML:Insert["insert into WatcherFiles (CharID,IncidentType,CharacterName,CorporationID,AllianceID,CorpName,CorpTicker,AllianceName,AllianceTicker,Timestamp,ShipType,LocationSystem,LocationNearest) values (${CharID}, '${IncidentType}', '${CharName}', ${CorpID}, ${AllianceID}, '${CorpName}', '${CorpTicker}', '${AllianceName}','${AllianceTicker}', ${Timestamp}, '${ShipType}', '${LocationSystem}', '${LocationNearest}');"]
 	}
-	
+	;(BMID INTEGER PRIMARY KEY, CharID INTEGER, BMLabel TEXT, BMXCoord REAL, BMYCoord REAL, BMZCoord REAL, Historical BOOLEAN)
+	; This is our upsert for wormhole table initial inserts
+	method CreateUpsertStatementInit(int64 BMID, int64 CharID, string BMLabel, float BMXCoord, float BMYCoord, float BMZCoord, bool Historical)
+	{
+		WXT:Insert["insert into WormholeXtreme (BMID,CharID,BMLabel,BMXCoord,BMYCoord,BMZCoord,Historical) values (${BMID}, ${CharID}, '${BMLabel}', ${BMXCoord}, ${BMYCoord}, ${BMZCoord}, ${Historical}) ON CONFLICT (BMID) DO UPDATE SET BMLabel=excluded.BMLabel, BMXCoord=excluded.BMXCoord, BMYCoord=excluded.BMYCoord, BMZCoord=excluded.BMZCoord;"]
+	}
+	; this is our upsert for wormhole table entry maintenance
+	method CreateUpsertStatementMaint(int64 BMID, int64 CharID, string BMLabel, float BMXCoord, float BMYCoord, float BMZCoord, bool Historical)
+	{
+		WXT:Insert["insert into WormholeXtreme (BMID,CharID,BMLabel,BMXCoord,BMYCoord,BMZCoord,Historical) values (${BMID}, ${CharID}, '${BMLabel}', ${BMXCoord}, ${BMYCoord}, ${BMZCoord}, ${Historical}) ON CONFLICT (BMID) DO UPDATE SET CharID=excluded.CharID, BMLabel=excluded.BMLabel, BMXCoord=excluded.BMXCoord, BMYCoord=excluded.BMYCoord, BMZCoord=excluded.BMZCoord, Historical=excluded.Historical;"]
+	}
+	; this is our UPDATE statement for updating wormhole assignments
+	method CreateUpdateStatementAssign(int64 BMID, int64 CharID, bool Historical)
+	{
+		WXT:Insert["UPDATE WormholeXtreme SET CharID = ${CharID}, Historical = ${Historical} WHERE BMID=${BMID};"]
+	}	
 	; Next up, execute the transaction index
 	method ExecuteTransactionIndex()
 	{
 		echo DEBUG - TWF Insert Exec
 		ISXSQLiteTest.TheSQLDatabase:ExecDMLTransaction[DML]
+		ISXSQLiteTest.TheSQLDatabase:ExecDMLTransaction[WXT]
 		; 10 seconds sounds good
 		LastExecute:Set[${Math.Calc[${LavishScript.RunningTime} + 10000]}]	
 		DML:Clear
+		WXT:Clear
 	}
 	member:bool RefreshBookmarks()
 	{
