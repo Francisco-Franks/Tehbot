@@ -831,7 +831,7 @@ objectdef obj_Observer inherits obj_StateQueue
 						}	
 						if ${Config.RelayToChat}
 						{
-							call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Departure** @ <t:${Time.Timestamp}:R>: ${CurrentLocalPopCollection.CurrentKey} From Local Present For ${Math.Calc[(((${LavishScript.RunningTime} - ${CurrentLocalPopCollection.CurrentValue}) / 1000) \\ 60)].Int}m ${Math.Calc[(((${LavishScript.RunningTime} - ${CurrentLocalPopCollection.CurrentValue}) / 1000) % 60 \\ 1)].Int}s"
+							call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Local Departure** @ <t:${Time.Timestamp}:R>: ${CurrentLocalPopCollection.CurrentKey} From Local Present For ${Math.Calc[(((${LavishScript.RunningTime} - ${CurrentLocalPopCollection.CurrentValue}) / 1000) \\ 60)].Int}m ${Math.Calc[(((${LavishScript.RunningTime} - ${CurrentLocalPopCollection.CurrentValue}) / 1000) % 60 \\ 1)].Int}s"
 						}
 						
 						CurrentLocalPopCollection:Erase[${CurrentLocalPopCollection.CurrentKey}]						
@@ -889,7 +889,7 @@ objectdef obj_Observer inherits obj_StateQueue
 							if !${InWormhole}
 											 
 							{
-								call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Arrival** @ <t:${Time.Timestamp}:R>: ${Entitiez.Value.Name} [${Entitiez.Value.Corp.Ticker}] - ${Entitiez.Value.Type} Near ${LocationSet}"
+								call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Arrival** @ <t:${Time.Timestamp}:R>: ${Entitiez.Value.Name} - ${Entitiez.Value.Corp.Name} - [${Entitiez.Value.Corp.Ticker}] - ${Entitiez.Value.Alliance} - __${Entitiez.Value.Type}__ Near ${LocationSet}"
 								if ${SupplementaryInfo.NotNULLOrEmpty}
 								{
 									call ChatRelay.Say "${SupplementaryInfo}"
@@ -898,7 +898,7 @@ objectdef obj_Observer inherits obj_StateQueue
 							}
 							else
 							{
-								call ChatRelay.Say "NEST **Arrival** @ <t:${Time.Timestamp}:R>: ${Entitiez.Value.Name} [${Entitiez.Value.Corp.Ticker}] - ${Entitiez.Value.Type} Near ${LocationSet}"
+								call ChatRelay.Say "__NEST__ **On GridArrival** @ <t:${Time.Timestamp}:R>: ${Entitiez.Value.Name} - ${Entitiez.Value.Corp.Name} - [${Entitiez.Value.Corp.Ticker}] - ${Entitiez.Value.Alliance} - __${Entitiez.Value.Type}__ Near ${LocationSet}"
 								if ${SupplementaryInfo.NotNULLOrEmpty}
 								{
 									call ChatRelay.Say "${SupplementaryInfo}"
@@ -938,11 +938,11 @@ objectdef obj_Observer inherits obj_StateQueue
 					{
 						if !${InWormhole}
 						{
-							call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Departure** @ <t:${Time.Timestamp}:R>: ${OnGridEntitiesCollection.CurrentKey} Near ${LocationSet} Present For ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) \\ 60)].Int}m ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) % 60 \\ 1)].Int}s"
+							call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **On-Grid Departure** @ <t:${Time.Timestamp}:R>: ${OnGridEntitiesCollection.CurrentKey} Near ${LocationSet} Present For ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) \\ 60)].Int}m ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) % 60 \\ 1)].Int}s"
 						}
 						else
 						{
-							call ChatRelay.Say "NEST **Departure** @ <t:${Time.Timestamp}:R>: ${OnGridEntitiesCollection.CurrentKey} Near ${LocationSet} Present For ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) \\ 60)].Int}m ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) % 60 \\ 1)].Int}s"
+							call ChatRelay.Say "__NEST__ **On-Grid Departure** @ <t:${Time.Timestamp}:R>: ${OnGridEntitiesCollection.CurrentKey} Near ${LocationSet} Present For ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) \\ 60)].Int}m ${Math.Calc[(((${LavishScript.RunningTime} - ${OnGridEntitiesCollection.CurrentValue}) / 1000) % 60 \\ 1)].Int}s"
 						
 						}
 					}
@@ -957,7 +957,7 @@ objectdef obj_Observer inherits obj_StateQueue
 	method CreateMessageLocal(string Name, int64 CharID, string Corp, string CorpTicker, string Alliance, string AllianceTicker)
 	{
 		echo begin making message
-		variable string MessageToReturn = "__${Universe[${Me.SolarSystemID}].Name}__ **Arrival** @ <t:${Time.Timestamp}:R>: "
+		variable string MessageToReturn = "__${Universe[${Me.SolarSystemID}].Name}__ **Local Arrival** @ <t:${Time.Timestamp}:R>: "
 		variable string Sep = " "
 		; I'm not sure what circumstance could lead us here but what the hell ever.
 		if !${Name.NotNULLOrEmpty}
@@ -970,24 +970,24 @@ objectdef obj_Observer inherits obj_StateQueue
 		; Next in the message is their Corp's Name if it isn't NULL somehow.
 		if ${Corp.NotNULLOrEmpty}
 		{
-			MessageToReturn:Concat["-${Sep}${Corp}${Sep}-"]
+			MessageToReturn:Concat["-${Sep}${Corp}${Sep}-${Sep}"]
 		}
 		; Next up is their Corp Ticker surrounded with extra brackets? No idea if we have to escape that. Also it won't happen if its NULL
 		if ${CorpTicker.NotNULLOrEmpty}
 		{
-			MessageToReturn:Concat["\[${CorpTicker}\]${Sep}"]
+			MessageToReturn:Concat["\[${CorpTicker}\]${Sep}-"]
 		}
 		; Next up is the Alliance Name, null etc
 		if ${Alliance.NotNULLOrEmpty}
 		{
-			MessageToReturn:Concat["${Sep}${Alliance}${Sep}-"]
+			MessageToReturn:Concat["${Sep}${Alliance}${Sep}-${Sep}"]
 		}
 		; Next up is Alliance Ticker, null etc
 		if ${AllianceTicker.NotNULLOrEmpty}
 		{
-			MessageToReturn:Concat["\[${AllianceTicker}\]"]
+			MessageToReturn:Concat["\<${AllianceTicker}\>${Sep}-"]
 		}
-		MessageToReturn:Concat["${Sep}In Local"]
+		MessageToReturn:Concat["${Sep}No Eyes"]
 		if ${MessageToReturn.NotNULLOrEmpty}
 		{
 			call ChatRelay.Say "${MessageToReturn}"
