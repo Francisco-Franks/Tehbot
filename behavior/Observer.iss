@@ -103,7 +103,8 @@ objectdef obj_Observer inherits obj_StateQueue
 	variable sqlitequery GetCharacterInfoByID
 	variable sqlitequery GetCharacterInfoByName
 	variable sqlitequery GetBookmarkAssignmentByID
-	variable int64 LastExecute
+	variable int64 LastExecuteDML
+	variable int64 LastExecuteWXT
 	variable int64 CommanderUpdateTime
 	
 	variable collection:int64 CurrentParticipants
@@ -215,10 +216,14 @@ objectdef obj_Observer inherits obj_StateQueue
 				InWormhole:Set[TRUE]
 		}
 		; Execute those DB inserts
-		if (${LastExecute} < ${LavishScript.RunningTime}) && (${DML.Used} || ${WXT.Used})
+		if (${LastExecuteDML} < ${LavishScript.RunningTime}) && ${DML.Used}
 		{
-			This:ExecuteTransactionIndex
+			This:ExecuteTransactionIndexDML
 		}
+		if (${LastExecuteWXT} < ${LavishScript.RunningTime}) && ${WXT.Used}
+		{
+			This:ExecuteTransactionIndexWXT
+		}		
 		; We are in space, and in warp, return false so we can wait for the warp to end.
 		if ${Client.InSpace} && ${Me.ToEntity.Mode} == MOVE_WARPING
 		{
@@ -325,7 +330,10 @@ objectdef obj_Observer inherits obj_StateQueue
 		{
 			; Wormhole DB Update
 			This:WormholeDBUpdate
-			This:ExecuteTransactionIndex
+			if ${WXT.Used} && (${LastExecuteWXT} < ${LavishScript.RunningTime})
+			{
+				This:ExecuteTransactionIndexWXT
+			}
 		}
 		; We are doing wormholes. If we don't have a non-historical bookmark assigned to us
 		; we will go into holding pattern and return here.
@@ -888,7 +896,7 @@ objectdef obj_Observer inherits obj_StateQueue
 						}
 					}	
 					if !${OnGridEntitiesCollection.Element[${Entitiez.Value.Name}](exists)} && ${Entitiez.Value.Name.NotNULLOrEmpty} && ( ${HighestOnGridStandingCollection.Element[${Entitiez.Value.OwnerID}].AsJSON} <= 0 || \
-					${HighestLocalStandingCollection.Element[${Entitiez.Value.OwnerID}].AsJSON} <= 0 ) 
+					${HighestLocalStandingCollection.Element[${Entitiez.Value.OwnerID}].AsJSON} <= 0 )
 					{
 						echo Detected Pilot ${Entitiez.Value.Name} Corp Ticker ${Entitiez.Value.Corp.Ticker} Flying Ship ${Entitiez.Value.Type} Near Bookmark ${LocationSet}
 						; This is where SQL related stuff will end up, probably.
@@ -920,7 +928,6 @@ objectdef obj_Observer inherits obj_StateQueue
 							
 							
 						}
-						OnGridEntitiesCollection:Set[${Entitiez.Value.Name},${LavishScript.RunningTime}]															  
 					}
 				}
 				while ${Entitiez:Next(exists)}
@@ -1045,7 +1052,7 @@ objectdef obj_Observer inherits obj_StateQueue
 				{
 					This:CreateUpdateStatementAssign[${GetBookmarkAssignmentByID.GetFieldValue["BMID",int64]}, ${CurrentParticipants.CurrentValue}, FALSE]
 					GetBookmarkAssignmentByID:Finalize
-					This:ExecuteTransactionIndex
+					This:ExecuteTransactionIndexWXT
 				}
 					
 			}
@@ -1074,14 +1081,21 @@ objectdef obj_Observer inherits obj_StateQueue
 		WXT:Insert["UPDATE WormholeXtreme SET CharID = ${CharID}, Historical = ${Historical} WHERE BMID=${BMID};"]
 	}	
 	; Next up, execute the transaction index
-	method ExecuteTransactionIndex()
+	method ExecuteTransactionIndexDML()
 	{
-		echo DEBUG - TWF Insert Exec
+		echo DEBUG - DML Insert Exec
 		ISXSQLiteTest.TheSQLDatabase:ExecDMLTransaction[DML]
+		; 10 seconds sounds good
+		LastExecuteDML:Set[${Math.Calc[${LavishScript.RunningTime} + 10000]}]	
+		DML:Clear
+	}
+	; Next up, execute the other transaction index
+	method ExecuteTransactionIndexWXT()
+	{
+		echo DEBUG - WXT Insert Exec
 		ISXSQLiteTest.TheSQLDatabase:ExecDMLTransaction[WXT]
 		; 10 seconds sounds good
-		LastExecute:Set[${Math.Calc[${LavishScript.RunningTime} + 10000]}]	
-		DML:Clear
+		LastExecuteWXT:Set[${Math.Calc[${LavishScript.RunningTime} + 10000]}]	
 		WXT:Clear
 	}
 	member:bool RefreshBookmarks()
