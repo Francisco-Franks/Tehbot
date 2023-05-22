@@ -325,19 +325,22 @@ objectdef obj_Observer inherits obj_StateQueue
 		{
 			; Wormhole DB Update
 			This:WormholeDBUpdate
+			This:ExecuteTransactionIndex
 		}
 		; We are doing wormholes. If we don't have a non-historical bookmark assigned to us
 		; we will go into holding pattern and return here.
 		if ${Config.WormholeSystemWatch}
 		{
 			; We will look for the one bookmark that has our char ID assigned to it and is NOT historical.
-			GetBookmarkAssignmentByID:Set[${ISXSQLiteTest.TheSQLDatabase.ExecQuery["SELECT * FROM WormholeXtreme WHERE CharID=${Me.CharID} AND Historical=FALSE;"]}]
+			GetBookmarkAssignmentByID:Set[${ISXSQLiteTest.TheSQLDatabase.ExecQuery["SELECT * FROM WormholeXtreme WHERE (CharID=${Me.CharID} AND Historical=FALSE);"]}]
 			; This will only ever return one bookmark unless you screw around with your db manually
+			echo - DEBUG - GetBookmarkAssignmentByID ${GetBookmarkAssignmentByID.NumRows}
 			if ${GetBookmarkAssignmentByID.NumRows} > 0
 			{
 				MyBMAssignmentID:Set[${GetBookmarkAssignmentByID.GetFieldValue["BMID",int64]}]
 				MyBMAssignmentName:Set[${GetBookmarkAssignmentByID.GetFieldValue["BMLabel",string]}]
 				LocationSet:Set[${BMAssignmentName}]
+				GetBookmarkAssignmentByID:Finalize
 				This:InsertState["GoToWormholeBM",5000]
 				return TRUE
 			}
@@ -370,6 +373,8 @@ objectdef obj_Observer inherits obj_StateQueue
 	; Need this due to what I had to do to FindPost.
 	member:bool GoToWormholeBM()
 	{
+		echo DEBUG - ${MyBMAssignmentID} ID
+		echo DEBUG - ${MyBMAssignmentName} NAME
 		if ${EVE.Bookmark[${MyBMAssignmentName}](exists)}
 		{
 			Move:Bookmark[${MyBMAssignmentName},FALSE,100000,FALSE]
@@ -469,6 +474,10 @@ objectdef obj_Observer inherits obj_StateQueue
 		; Observe a structure, local and grid
 		if ${Client.InSpace} && ${Config.StructureWatch}
 		{
+			if !${LocationSet.NotNULLOrEmpty}
+			{
+				LocationSet:Set[${Entity[(CategoryID == 3 || CategoryID == 65) && Distance < 2500000].Name}
+			}
 			; We should establish an orbit around the Structure.
 			if ${Entity[(CategoryID == 3 || CategoryID == 65) && Distance < 5000000](exists)} && ${Me.ToEntity.Mode} != MOVE_ORBITING
 			{
@@ -499,6 +508,7 @@ objectdef obj_Observer inherits obj_StateQueue
 				This:LogInfo["Wormhole @ ${LocationSet} has expired"]
 				call ChatRelay.Say "Wormhole @ ${LocationSet} has expired"											  
 				This:CreateUpdateStatementAssign[${MyBMAssignmentID}, ${Me.CharID}, TRUE]
+				HoldingPatternTimer:Set[${Math.Calc[${LavishScript.RunningTime} + ${Math.Rand[30000]:Inc[30000]}]}]
 				This:InsertState["HoldingPattern", 5000]
 				return TRUE		
 			}
@@ -525,6 +535,8 @@ objectdef obj_Observer inherits obj_StateQueue
 		}
 		else
 		{
+			This:LogInfo["Periodic WH Commander Update Time"]
+			This:WormholeDBUpdate
 			This:InsertState["FindPost", 5000]
 			return TRUE
 		}
@@ -876,7 +888,7 @@ objectdef obj_Observer inherits obj_StateQueue
 						}
 					}	
 					if !${OnGridEntitiesCollection.Element[${Entitiez.Value.Name}](exists)} && ${Entitiez.Value.Name.NotNULLOrEmpty} && ( ${HighestOnGridStandingCollection.Element[${Entitiez.Value.OwnerID}].AsJSON} <= 0 || \
-					${HighestLocalStandingCollection.Element[${Entitiez.Value.OwnerID}].AsJSON} <= 0 )
+					${HighestLocalStandingCollection.Element[${Entitiez.Value.OwnerID}].AsJSON} <= 0 ) 
 					{
 						echo Detected Pilot ${Entitiez.Value.Name} Corp Ticker ${Entitiez.Value.Corp.Ticker} Flying Ship ${Entitiez.Value.Type} Near Bookmark ${LocationSet}
 						; This is where SQL related stuff will end up, probably.
@@ -908,7 +920,7 @@ objectdef obj_Observer inherits obj_StateQueue
 							
 							
 						}
-						OnGridEntitiesCollection:Set[${Entitiez.Value.Name},${LavishScript.RunningTime}]
+						OnGridEntitiesCollection:Set[${Entitiez.Value.Name},${LavishScript.RunningTime}]															  
 					}
 				}
 				while ${Entitiez:Next(exists)}
