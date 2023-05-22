@@ -889,7 +889,7 @@ objectdef obj_Observer inherits obj_StateQueue
 							if !${InWormhole}
 											 
 							{
-								call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **Arrival** @ <t:${Time.Timestamp}:R>: ${Entitiez.Value.Name} - ${Entitiez.Value.Corp.Name} - [${Entitiez.Value.Corp.Ticker}] - ${Entitiez.Value.Alliance} - __${Entitiez.Value.Type}__ Near ${LocationSet}"
+								call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **On-Grid Arrival** @ <t:${Time.Timestamp}:R>: ${Entitiez.Value.Name} - ${Entitiez.Value.Corp.Name} - [${Entitiez.Value.Corp.Ticker}] - ${Entitiez.Value.Alliance} - __${Entitiez.Value.Type}__ Near ${LocationSet}"
 								if ${SupplementaryInfo.NotNULLOrEmpty}
 								{
 									call ChatRelay.Say "${SupplementaryInfo}"
