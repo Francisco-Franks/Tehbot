@@ -1033,14 +1033,26 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			Drones:RefreshActiveTypes
 		}
 
-		if (${currentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0) || (!${This.JerkzPresent} && ${CommonConfig.Tehbot_Mode.Equal["Abyssal"]})
+		if ${CommonConfig.Tehbot_Mode.Equal["Abyssal"]})
 		{
-			Drones:Recall["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]
-			This:QueueState["Idle", 5000]
-			This:QueueState["DroneControl"]
-			return TRUE
+			if (${currentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0) && !${This.JerkzPresent}
+			{
+				Drones:Recall["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]
+				This:QueueState["Idle", 5000]
+				This:QueueState["DroneControl"]
+				return TRUE
+			}
 		}
-
+		else
+		{
+			if (${currentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0)
+			{
+				Drones:Recall["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]
+				This:QueueState["Idle", 5000]
+				This:QueueState["DroneControl"]
+				return TRUE
+			}		
+		}
 		return FALSE
 	}
 
