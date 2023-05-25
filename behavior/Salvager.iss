@@ -416,7 +416,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 			return TRUE
 		}
 
-		if ${Salvage.Wrecks.TargetList.Used} == 0
+		if ${Salvage.WrecksToLock.TargetList.Used} == 0
 		{
 			return TRUE
 		}

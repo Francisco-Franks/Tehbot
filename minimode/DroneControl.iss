@@ -1033,7 +1033,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			Drones:RefreshActiveTypes
 		}
 
-		if ${CommonConfig.Tehbot_Mode.Equal["Abyssal"]})
+		if ${CommonConfig.Tehbot_Mode.Equal["Abyssal"]}
 		{
 			if (${currentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0) && !${This.JerkzPresent}
 			{
