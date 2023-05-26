@@ -291,7 +291,7 @@ objectdef obj_MinerWorker inherits obj_StateQueue
 			Asteroids:AddQueryString["CategoryID = 25 && Name !~ Ice && Distance < ${Ship.ModuleList_OreMining.Range}"]
 			AsteroidsDistant:AddQueryString["CategoryID = 25 && Name !~ Ice"]
 			Ice:AddQueryString["CategoryID = 25 && Name =- Ice && Distance < ${Ship.ModuleList_IceMining.Range}"]
-			IceDistant:AddQueryString["CategoryID = 25 && Name =- Ice"]
+			IceDistant:AddQueryString["CategoryID = 25 && Name =- \"Ice\""]
 			Gas:AddQueryString["GroupID = 711 && Distance < ${Ship.ModuleList_GasMining.Range}"]
 			GasDistant:AddQueryString["GroupID = 711"]
 		}
@@ -810,7 +810,7 @@ objectdef obj_MinerWorker inherits obj_StateQueue
 				{
 					This:LogInfo["Removing Mining Bookmark"]
 					EVE.Bookmark[${Mining.MiningBookmarkQueue.Peek}]:Remove
-					Mining.MiningBookmarkQueue:DeQueue
+					Mining.MiningBookmarkQueue:Dequeue
 				}
 				if ${Mining.Config.MineAtLocalBelt} && ${Mining.BeltStack.Top}
 				{
