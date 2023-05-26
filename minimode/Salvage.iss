@@ -81,7 +81,7 @@ objectdef obj_Salvage inherits obj_StateQueue
 		WrecksToLock:ClearQueryString
 
 		variable string group = "(Group = \"Wreck\")"
-		echo ${Ship.ModuleList_TractorBeams.Count} TRACTOR BEEEEAMS
+		;echo ${Ship.ModuleList_TractorBeams.Count} TRACTOR BEEEEAMS
 		if ${Ship.ModuleList_TractorBeams.Count} >= 0
 		{
 			group:Set["(Group = \"Wreck\" || ((Group = \"Cargo Container\") && (Distance >= 2500)))"]
@@ -174,7 +174,7 @@ objectdef obj_Salvage inherits obj_StateQueue
 
 	member:bool Updated()
 	{
-		if ${WrecksToLock.Updated}&& ${WrecksNoLock.Updated}
+		if ${WrecksToLock.Updated} && ${WrecksNoLock.Updated}
 			return TRUE
 		return FALSE
 	}

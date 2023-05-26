@@ -76,7 +76,7 @@ objectdef obj_Ship inherits obj_StateQueue
 		
 		This:AddModuleList[OreMining, "ToItem.GroupID = GROUP_MININGLASER || ToItem.GroupID = GROUP_STRIPMINER || ToItem.GroupID = GROUP_FREQUENCYMININGLASER"]
 		This:AddModuleList[GasMining, "ToItem.GroupID = GROUP_GASCLOUDHARVESTER	 || ToItem.GroupID = GROUP_GASCLOUDSCOOP"]
-		This:AddModuleList[IceMining, "(ToItem.GroupID = GROUP_MININGLASER || ToItem.GroupID = GROUP_STRIPMINER) && Name =- Ice"]		
+		This:AddModuleList[IceMining, "(ToItem.GroupID = GROUP_MININGLASER || ToItem.GroupID = GROUP_STRIPMINER) && Name =- \"Ice\""]		
 		This:AddModuleList[Compressors, "ToItem.GroupID = GROUP_COMPRESSOR"]	
 		
 		This:AddModuleList[Disruptor, "ToItem.GroupID = GROUP_SCRAMBLER && Name =- Disruptor"]
