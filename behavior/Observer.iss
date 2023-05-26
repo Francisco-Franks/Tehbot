@@ -694,6 +694,27 @@ objectdef obj_Observer inherits obj_StateQueue
 				This:Stop					
 			}
 		}
+		; We are here to watch a specific grid, at a BM
+		if ${Config.GridWatch}
+		{
+			if ${Config.GridWatchName.NotNULLOrEmpty}
+			{
+				; If the BM is within 1,000KM we are in position.
+				if ${EVE.Bookmark[${Config.GridWatchName}].ToEntity.Distance} < 1000000 && ${EVE.Bookmark[${Config.GridWatchName}].ToEntity.Distance} != NULL
+				{
+					return TRUE
+				}
+				else
+				{
+					return FALSE
+				}
+			}
+			else
+			{
+				This:LogInfo["Grid Watch BM Not Found, stopping"]
+				This:Stop				
+			}
+		}
 		
 	}
 
@@ -906,8 +927,7 @@ objectdef obj_Observer inherits obj_StateQueue
 						}	
 						if ${Config.RelayToChat}
 						{
-							if !${InWormhole}
-											 
+							if !${InWormhole}				 
 							{
 								call ChatRelay.Say "__${Universe[${Me.SolarSystemID}].Name}__ **On-Grid Arrival** @ <t:${Time.Timestamp}:R>: ${Entitiez.Value.Name} - ${Entitiez.Value.Corp.Name} - [${Entitiez.Value.Corp.Ticker}] - ${Entitiez.Value.Alliance} - __${Entitiez.Value.Type}__ Near ${LocationSet}"
 								if ${SupplementaryInfo.NotNULLOrEmpty}
