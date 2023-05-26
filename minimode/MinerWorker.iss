@@ -269,29 +269,29 @@ objectdef obj_MinerWorker inherits obj_StateQueue
 		; We are using prioritization and ARE the fleetboss. Range is hardcoded for now.
 		if !${Mining.Config.JustMineIt} && ${Mining.Config.FleetBoss}
 		{
-			Asteroids:AddQueryString["CategoryID = 25 && Name !~ Ice && Distance < 40000 && (${PrioAst})"]
-			AsteroidsDistant:AddQueryString["CategoryID = 25 && Name !~ Ice && (${PrioAst})"]
-			Ice:AddQueryString["CategoryID = 25 && Name =- Ice && Distance < 40000"]
-			IceDistant:AddQueryString["CategoryID = 25 && Name =- Ice"]
+			Asteroids:AddQueryString["CategoryID = 25 && GroupID != 465 && Distance < 40000 && (${PrioAst})"]
+			AsteroidsDistant:AddQueryString["CategoryID = 25 && GroupID != 465 && (${PrioAst})"]
+			Ice:AddQueryString["CategoryID = 25 && GroupID = 465 && Distance < 40000"]
+			IceDistant:AddQueryString["CategoryID = 25 && GroupID = 465"]
 			Gas:AddQueryString["GroupID = 711 && Distance < 40000 && (${PrioGas})"]
 			GasDistant:AddQueryString["GroupID = 711 && (${PrioGas})"]
 		}
 		; We are using prioritization and aren't the fleetboss.
 		elseif !${Mining.Config.JustMineIt} && !${Mining.Config.FleetBoss}
 		{
-			Asteroids:AddQueryString["CategoryID = 25 && Name !~ Ice && Distance < ${Ship.ModuleList_OreMining.Range} && (${PrioAst})"]
-			AsteroidsDistant:AddQueryString["CategoryID = 25 && Name !~ Ice && (${PrioAst})"]
-			Ice:AddQueryString["CategoryID = 25 && Name =- Ice && Distance < ${Ship.ModuleList_IceMining.Range}"]
-			IceDistant:AddQueryString["CategoryID = 25 && Name =- Ice"]
+			Asteroids:AddQueryString["CategoryID = 25 && GroupID != 465 && Distance < ${Ship.ModuleList_OreMining.Range} && (${PrioAst})"]
+			AsteroidsDistant:AddQueryString["CategoryID = 25 && GroupID != 465 && (${PrioAst})"]
+			Ice:AddQueryString["CategoryID = 25 && GroupID = 465 && Distance < ${Ship.ModuleList_IceMining.Range}"]
+			IceDistant:AddQueryString["CategoryID = 25 && GroupID = 465"]
 			Gas:AddQueryString["GroupID = 711 && Distance < ${Ship.ModuleList_GasMining.Range} && (${PrioGas})"]
 			GasDistant:AddQueryString["GroupID = 711 && (${PrioGas})"]
 		}
 		else
 		{
-			Asteroids:AddQueryString["CategoryID = 25 && Name !~ Ice && Distance < ${Ship.ModuleList_OreMining.Range}"]
-			AsteroidsDistant:AddQueryString["CategoryID = 25 && Name !~ Ice"]
-			Ice:AddQueryString["CategoryID = 25 && Name =- Ice && Distance < ${Ship.ModuleList_IceMining.Range}"]
-			IceDistant:AddQueryString["CategoryID = 25 && Name =- \"Ice\""]
+			Asteroids:AddQueryString["CategoryID = 25 && GroupID != 465 && Distance < ${Ship.ModuleList_OreMining.Range}"]
+			AsteroidsDistant:AddQueryString["CategoryID = 25 && GroupID != 465"]
+			Ice:AddQueryString["CategoryID = 25 && GroupID = 465 && Distance < ${Ship.ModuleList_IceMining.Range}"]
+			IceDistant:AddQueryString["CategoryID = 25 && GroupID = 465"]
 			Gas:AddQueryString["GroupID = 711 && Distance < ${Ship.ModuleList_GasMining.Range}"]
 			GasDistant:AddQueryString["GroupID = 711"]
 		}
@@ -718,8 +718,12 @@ objectdef obj_MinerWorker inherits obj_StateQueue
 		This:LookAhead
 		
 		
-		echo ${Asteroids.TargetList.Used}
-		echo ${Asteroids.LockedTargetList.Used}
+		echo ${Asteroids.TargetList.Used} Asteroid Targets
+		echo ${Asteroids.LockedTargetList.Used} Locked Asteroid Targets
+		echo ${Ice.TargetList.Used} Ice Targets
+		echo ${Ice.LockedTargetList.Used} Locked Ice Targets
+		echo ${Asteroids.TargetList.Used} Distant Asteroid Targets
+		echo ${IceDistant.TargetList.Used} Distant Ice Targets
 		;Asteroids.TargetList:ForEach["echo ${Entity[${ForEach.Value}].X} ${Entity[${ForEach.Value}].Y} ${Entity[${ForEach.Value}].Z}"]
 		
 		; Alright, lets get down to business here. This minimode exists for the actual miners to do actual mining.

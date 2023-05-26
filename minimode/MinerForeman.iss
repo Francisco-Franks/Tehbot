@@ -111,8 +111,8 @@ objectdef obj_MinerForeman inherits obj_StateQueue
 		PCs:AddAllPC
 		; Ok now things get funkier. These will be query strings instead of canned TargetList stuff. For the purposes of THIS minimode
 		; We only really care about the existence of these things and how far they are.
-		Asteroids:AddQueryString["CategoryID = 25 && Name !~ Ice && Distance < 100000"]
-		Ice:AddQueryString["CategoryID = 25 && Name =- Ice && Distance < 100000"]
+		Asteroids:AddQueryString["CategoryID = 25 && Group !~ Ice && Distance < 100000"]
+		Ice:AddQueryString["CategoryID = 25 && Group == Ice && Distance < 100000"]
 		Gas:AddQueryString["GroupID = 711 && Distance < 50000"]
 		TargetQueriesCreated:Set[TRUE]
 		
