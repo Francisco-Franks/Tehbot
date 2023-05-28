@@ -908,7 +908,7 @@ objectdef obj_Observer inherits obj_StateQueue
 						This:UpdateOnGridStandingCollection[${Entitiez.Value.OwnerID},${Entitiez.Value.Corp},${Entitiez.Value.AllianceID}]
 					}	
 					; If they are a blue, we don't care to track them - This won't fire off for wormhole observation, because it doesn't work.
-					; It works now, good work erekyu
+					; It works now, good work erekyu. I lied, it doesn't work in wormholes. Fuck.
 					if ${HighestLocalStandingCollection.FirstKey(exists)} 
 					{
 						if ${HighestLocalStandingCollection.Element[${Entitiez.Value.OwnerID}].AsJSON} > 0 || ${HighestOnGridStandingCollection.Element[${Entitiez.Value.OwnerID}].AsJSON} > 0
@@ -948,6 +948,7 @@ objectdef obj_Observer inherits obj_StateQueue
 							
 							
 						}
+						OnGridEntitiesCollection:Set[${Entitiez.Value.Name},${LavishScript.RunningTime}]
 					}
 				}
 				while ${Entitiez:Next(exists)}

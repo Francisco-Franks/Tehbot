@@ -52,7 +52,6 @@ objectdef obj_ISXSQLiteTest inherits obj_StateQueue
 		
 		
 		TheSQLDatabase:Close
-		
 		This:Clear
 	}
 	
