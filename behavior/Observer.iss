@@ -895,7 +895,7 @@ objectdef obj_Observer inherits obj_StateQueue
 	{
 		variable index:entity Entities
 		variable iterator Entitiez
-		EVE:QueryEntities[Entities, "IsPC = 1 && Distance > 0 && IsOwnedByCorpMember = FALSE && IsOwnedByAllianceMember = FALSE"]
+		EVE:QueryEntities[Entities, "IsPC = 1 && Distance > 0 && IsOwnedByCorpMember = FALSE && IsOwnedByAllianceMember = FALSE && CategoryID != 65"]
 		if ${Entities.Used} > 0
 		{
 			Entities:GetIterator[Entitiez]
