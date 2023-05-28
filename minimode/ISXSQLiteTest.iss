@@ -33,7 +33,6 @@ objectdef obj_ISXSQLiteTest inherits obj_StateQueue
 		Event[isxGames_onHTTPResponse]:AttachAtom[isxGames_onHTTPResponse]
 
 		This.LogLevelBar:Set[${CommonConfig.LogLevelBar}]
-		PCs:ClearQueryString
 	}
 
 	method Start()
