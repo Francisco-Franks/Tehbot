@@ -96,9 +96,9 @@ objectdef obj_DroneControl inherits obj_StateQueue
 
 			case Cruiser
 			case BattleCruiser
-				if ${MyShip.ToEntity.Type.Find[Rattlesnake]}
+				if ${MyShip.ToEntity.Type.Find[Rattlesnake]} || ${MyShip.ToEntity.Type.Find[Ishtar]}
 				{
-					DroneType:Set[${Drones.Data.FindType["Heavy Attack Drones"]}] || ${MyShip.ToEntity.Type.Find[Ishtar]}
+					DroneType:Set[${Drones.Data.FindType["Heavy Attack Drones"]}] 
 					{
 					if ${DroneType} != -1
 						{
