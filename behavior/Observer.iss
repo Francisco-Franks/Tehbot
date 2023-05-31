@@ -588,6 +588,10 @@ objectdef obj_Observer inherits obj_StateQueue
 		}
 		else
 		{
+			if ${Me.ToEntity.IsCloaked}
+			{
+				InEvasion:Set[FALSE]
+			}
 			echo you really need to set up the prefix yo
 			variable int ShitGarbage
 			ShitGarbage:Set[${Math.Rand[5]}]
