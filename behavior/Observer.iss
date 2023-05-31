@@ -435,7 +435,7 @@ objectdef obj_Observer inherits obj_StateQueue
 			if ${Client.InSpace} && !${Me.ToEntity.IsCloaked} && !${InEvasion} 
 			{
 				InEvasion:Set[TRUE]
-				This:InsertState["GoEvasive", 1000]
+				This:QueueState["GoEvasive", 1000]
 				return TRUE
 			}
 		}
@@ -597,7 +597,7 @@ objectdef obj_Observer inherits obj_StateQueue
 			ShitGarbage:Set[${Math.Rand[5]}]
 			if ${ShitGarbage} == 0
 			{
-				Move:Entity[${Entity[Name =- "Sun"]},100000,FALSE]
+				Move:Entity[${Entity[Name =- "Star"]},100000,FALSE]
 				This:InsertState["BeginObservation", 5000]
 				return TRUE
 			}
