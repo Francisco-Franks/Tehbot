@@ -47,6 +47,7 @@
 #include behavior/MiniMode.iss
 #include behavior/Salvager.iss
 #include behavior/Mission.iss
+;#include behavior/Mission2.iss
 #include behavior/Abyssal.iss
 #include behavior/Mining.iss
 #include behavior/CombatAnoms.iss
@@ -103,6 +104,7 @@ function main(string Character="")
 	declarevariable Salvager obj_Salvager script
 	declarevariable MissionParser obj_MissionParser script
 	declarevariable Mission obj_Mission script
+	declarevariable Mission2 obj_Mission2 script
 	declarevariable Abyssal obj_Abyssal script
 	declarevariable Mining obj_Mining script
 	declarevariable CombatAnoms obj_CombatAnoms script

@@ -406,6 +406,11 @@ objectdef obj_Mining inherits obj_StateQueue
 
 	member:bool Repair()
 	{
+		if ${Config.HomeStructure.NotNULLOrEmpty}
+		{
+			This:LogInfo["We are in a citadel, bypassing repair, it is broken."]
+			return TRUE
+		}
 		if ${Me.InStation} && ${Utility.Repair}
 		{
 			This:InsertState["Repair", 5000]
@@ -540,7 +545,7 @@ objectdef obj_Mining inherits obj_StateQueue
 			}
 			StatusGreen:Set[TRUE]
 			ReturnToStation:Set[FALSE]
-			This:QueueState["Repair"]
+			This:InsertState["Repair", 2000]
 			This:QueueState["DropOffLoot", 5000]
 			This:InsertState["LoadSupplies", 3000]
 			return TRUE
@@ -1954,7 +1959,7 @@ objectdef obj_Mining inherits obj_StateQueue
 
 			if !${EVEWindow[Inventory].ChildWindow[StructureCorpHangar](exists)} && ${Config.HomeStructureIsCitadel}
 			{
-				EVEWindow[Inventory].ChildWindow[StructureCorpHangars]:MakeActive
+				EVEWindow[Inventory].ChildWindow[StructureCorpHangar]:MakeActive
 				Client:Wait[2000]
 				This:LogInfo["Checkpoint 11"]
 				return FALSE
