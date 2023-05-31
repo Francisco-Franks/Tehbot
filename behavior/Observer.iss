@@ -569,12 +569,21 @@ objectdef obj_Observer inherits obj_StateQueue
 					if ${BookmarkIterator.Value.Label.Find[${Config.EvasiveBookmarkPrefix}]}
 					{
 						EVE.Bookmark[${BookmarkIterator.Value}]:WarpTo[100000]
+						if ${Me.ToEntity.IsCloaked}
+						{
+							InEvasion:Set[FALSE]
+						}
 						This:LogInfo["Warping to Evasion BM"]
 						This:InsertState["BeginObservation", 5000]
 						return TRUE
 					}
 				}
 				while ${BookmarkIterator:Next(exists)}
+				
+				if ${Me.ToEntity.IsCloaked}
+				{
+					InEvasion:Set[FALSE]
+				}
 			}		
 		}
 		else
