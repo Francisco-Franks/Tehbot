@@ -59,7 +59,6 @@ objectdef obj_ISXSQLiteTest inherits obj_StateQueue
 	{
 		; Close our DB when we are done dontchaknow.
 		TheSQLDatabase:Close
-	
 	}
 
 	variable obj_Configuration_ISXSQLiteTest Config
