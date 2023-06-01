@@ -427,38 +427,46 @@ objectdef obj_Mission2 inherits obj_StateQueue
 				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Storyline"]} && !${Config.DoStoryline}
 				{
 					This:LogInfo["Adding to Decline List - Storyline"]
-					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
 					GetDBJournalInfo:NextRow
 					continue
 				}
 				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && !${Config.DoCourier}
 				{
 					This:LogInfo["Adding to Decline List - Courier"]
-					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
 					GetDBJournalInfo:NextRow
 					continue
 				}
 				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]} && !${Config.DoCombat}
 				{	
 					This:LogInfo["Adding to Decline List - Encounter"]
-					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
 					GetDBJournalInfo:NextRow
 					continue
 				}
 				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Storyline - Encounter"]} && !${Config.DoStorylineCombat}
 				{	
 					This:LogInfo["Adding to Decline List - Storyline Encounter"]
-					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
 					GetDBJournalInfo:NextRow
 					continue
 				}
 				if ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",float]} > 1000 ) && !${Config.CourierShipName.NotNULLOrEmpty}
 				{	
 					This:LogInfo["High Volume and No Hauler Configured - Declining"]
-					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
 					GetDBJournalInfo:NextRow
 					continue
-				}				
+				}
+				if ${BlackListedMission.Contains[${GetDBJournalInfo.GetFieldValue["MissionName",string]}]}
+				{	
+					This:LogInfo["Mission in our Avoid List - Declining"]
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+					GetDBJournalInfo:NextRow
+					continue
+				}
+				
 				GetDBJournalInfo:NextRow
 			}
 			while !${GetDBJournalInfo.LastRow}
