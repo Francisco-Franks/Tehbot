@@ -30,7 +30,7 @@ objectdef obj_Configuration_Mission2 inherits obj_Configuration_Base
 	}
 	Setting(bool, Halt, SetHalt)
 	; This bool indicates we want to repeatedly Decline missions despite the standings damage
-	; It is implied you know what you are doing with this.
+	; It is implied you know what you are doing with this. We won't be running multiple agents in this Tehbot fork.
 	Setting(bool, RepeatedlyDecline, SetRepeatedlyDecline
 	; This bool indicates we want to run Combat Missions.
 	Setting(bool, DoCombat, SetDoCombat)
@@ -118,16 +118,44 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	variable string LastAgentLocation
 	variable string LastMissionLocation
 	variable string LastExpectedItems
-	variable int LastItemUnits
-	variable float LastItemVolume
-	variable bool LastLowsec
+	variable int	LastItemUnits
+	variable float	LastItemVolume
+	variable bool	LastLowsec
 	variable string LastDropoff
 	variable string LastPickup
 	
-	; Storage variables for our Current (selected) Agent
-	variable int64 CurrentAgentID
-	variable int64 CurrentAgentIndex
+	; Storage variables for our Current (selected) Agent / Mission
+	variable int64	CurrentAgentID
+	variable int64	CurrentAgentIndex
 	variable string CurrentAgentLocation
+	variable string CurrentAgentShip
+	variable string CurrentAgentItem
+	variable int	CurrentAgentItemUnits
+	variable float	CurrentAgentVolumePer
+	variable float	CurrentAgentVolumeTotal
+	variable string CurrentAgentPickup
+	variable string CurrentAgentDropoff
+	variable string CurrentAgentDamage
+	variable string CurrentAgentDestroy
+	variable string CurrentAgentLoot
+	
+	; Storage variables for our Current Run
+	variable int	CurrentRunNumber
+	variable int	CurrentRunRoomNumber
+	variable int64	CurrentRunStartTimestamp
+	variable bool	CurrentRunKilledTarget
+	variable bool	CurrentRunVanquisher
+	variable bool	CurrentRunContainerLooted
+	variable bool	CurrentRunHaveItems
+	variable bool	CurrentRunTechnicalComplete
+	variable bool	CurrentRunTrueComplete
+	variable int64	CurrentRunFinalTimestamp
+	variable int	CurrentRunTripNumber
+	variable int	CurrentRunExpectedTrips
+	variable int	CurrentRunItemUnitsMoved
+	variable float	CurrentRunVolumeMoved
+	
+
 	
 	
 	; Recycled variables from the original
@@ -420,9 +448,20 @@ objectdef obj_Mission2 inherits obj_StateQueue
 				{
 					; We won't actually decline the ones in lowsec if we don't want to do lowsec missions.
 					; Because any lowsec storyline agent that already has an offer can't have another one. Declining it would just waste the next storyline mission.
-					This:LogInfo["Ignoring Lowsec Mission Offer"]
-					GetDBJournalInfo:NextRow
-					continue
+					; Addendum. We will want to reject lowsec offers from our Datafile Configured Agent.
+					if ${GetDBJournalInfo.GetFieldValue["AgentID",int64]} == ${EVE.Agent[${AgentList.Get[1]}].ID}
+					{
+						This:LogInfo["Declining Lowsec Offer from Primary Agent"]
+						AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+						GetDBJournalInfo:NextRow
+						continue						
+					}
+					else
+					{
+						This:LogInfo["Ignoring Lowsec Mission Offer"]
+						GetDBJournalInfo:NextRow
+						continue
+					}
 				}
 				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Storyline"]} && !${Config.DoStoryline}
 				{
@@ -521,11 +560,54 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		GetDBJournalInfo:Set${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE MissionType LIKE %Storyline%;"]}]
 		if ${GetDBJournalInfo.NumRows} > 0
 		{
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
+			{
+				This:LogInfo["Encounter - Combat Ship Needed"]
+				CurrentAgentShip:Set[${Config.CombatShipName}]
+
+			}
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",float]} > 10 )
+			{	
+				This:LogInfo["Large Courier - Hauler Needed"]
+				CurrentAgentShip:Set[${Config.CourierShipName}]
+			}
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",float]} <= 10 )
+			{
+				This:LogInfo["Small Courier - Shuttle Needed"]
+				if ${Config.FastCourierShipName.NotNULLOrEmpty}
+					CurrentAgentShip:Set[${Config.FastCourierShipName}]
+				else
+					CurrentAgentShip:Set[${Config.CourierShipName}]
+			}
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
+			{
+				This:LogInfo["Trade Mission - Hauler Needed"]
+				CurrentAgentShip:Set[${Config.CourierShipName}]
+			}
+			; Pulling our current (agent) variables back out.
+			if ${GetDBJournalInfo.GetFieldValue["ExpectedItems",string].NotNULLOrEmpty}
+				CurrentAgentItem:Set[${GetDBJournalInfo.GetFieldValue["ExpectedItems",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["ItemUnits",int]} >= 1
+				CurrentAgentItemUnits:Set[${GetDBJournalInfo.GetFieldValue["ItemUnits",int]}]
+			if ${GetDBJournalInfo.GetFieldValue["VolumePer",float]} > 0
+				CurrentAgentVolumePer:Set[${GetDBJournalInfo.GetFieldValue["VolumePer",float]}]
+			if ${GetDBJournalInfo.GetFieldValue["ItemVolume",float]} > 0
+				CurrentAgentVolumeTotal:Set[${GetDBJournalInfo.GetFieldValue["ItemVolume",float]}]				
+			if ${GetDBJournalInfo.GetFieldValue["PickupLocation",string].NotNULLOrEmpty}
+				CurrentAgentPickup:Set[${GetDBJournalInfo.GetFieldValue["PickupLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["DropoffLocation",string].NotNULLOrEmpty}
+				CurrentAgentDropoff:Set[${GetDBJournalInfo.GetFieldValue["DropoffLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["Damage2Deal",string].NotNULLOrEmpty}
+				CurrentAgentDamage:Set[${GetDBJournalInfo.GetFieldValue["Damage2Deal",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["DestroyTarget",string].NotNULLOrEmpty}
+				CurrentAgentDestroy:Set[${GetDBJournalInfo.GetFieldValue["DestroyTarget",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["LootTarget",string].NotNULLOrEmpty}
+				CurrentAgentLoot:Set[${GetDBJournalInfo.GetFieldValue["LootTarget",string]}]	
 			CurrentAgentID:Set[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
 			CurrentAgentLocation:Set[${GetDBJournalInfo.GetFieldValue["AgentLocation",string]}]
 			CurrentAgentIndex:Set[${EVE.Agent[id,${CurrentAgentID}].Index}]
 			GetDBJournalInfo:Finalize
-			This:QueueState["Go2Agent", 5000]
+			This:QueueState["MissionPrePrep", 5000]
 			return TRUE
 		}
 		GetDBJournalInfo:Finalize
@@ -533,11 +615,48 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		GetDBJournalInfo:Set${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal;"]}]
 		if ${GetDBJournalInfo.NumRows} > 0
 		{
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
+			{
+				This:LogInfo["Encounter - Combat Ship Needed"]
+				CurrentAgentShip:Set[${Config.CombatShipName}]
+			}
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",float]} > 10 )
+			{	
+				This:LogInfo["Large Courier - Hauler Needed"]
+				CurrentAgentShip:Set[${Config.CourierShipName}]
+			}
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",float]} <= 10 )
+			{
+				This:LogInfo["Small Courier - Shuttle Needed"]
+				if ${Config.FastCourierShipName.NotNULLOrEmpty}
+					CurrentAgentShip:Set[${Config.FastCourierShipName}]
+				else
+					CurrentAgentShip:Set[${Config.CourierShipName}]
+			}
+			; Pulling our current (agent) variables back out.
+			if ${GetDBJournalInfo.GetFieldValue["ExpectedItems",string].NotNULLOrEmpty}
+				CurrentAgentItem:Set[${GetDBJournalInfo.GetFieldValue["ExpectedItems",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["ItemUnits",int]} >= 1
+				CurrentAgentItemUnits:Set[${GetDBJournalInfo.GetFieldValue["ItemUnits",int]}]
+			if ${GetDBJournalInfo.GetFieldValue["VolumePer",float]} > 0
+				CurrentAgentVolumePer:Set[${GetDBJournalInfo.GetFieldValue["VolumePer",float]}]
+			if ${GetDBJournalInfo.GetFieldValue["ItemVolume",float]} > 0
+				CurrentAgentVolumeTotal:Set[${GetDBJournalInfo.GetFieldValue["ItemVolume",float]}]		
+			if ${GetDBJournalInfo.GetFieldValue["PickupLocation",string].NotNULLOrEmpty}
+				CurrentAgentPickup:Set[${GetDBJournalInfo.GetFieldValue["PickupLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["DropoffLocation",string].NotNULLOrEmpty}
+				CurrentAgentDropoff:Set[${GetDBJournalInfo.GetFieldValue["DropoffLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["Damage2Deal",string].NotNULLOrEmpty}
+				CurrentAgentDamage:Set[${GetDBJournalInfo.GetFieldValue["Damage2Deal",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["DestroyTarget",string].NotNULLOrEmpty}
+				CurrentAgentDestroy:Set[${GetDBJournalInfo.GetFieldValue["DestroyTarget",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["LootTarget",string].NotNULLOrEmpty}
+				CurrentAgentLoot:Set[${GetDBJournalInfo.GetFieldValue["LootTarget",string]}]		
 			CurrentAgentID:Set[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
 			CurrentAgentLocation:Set[${GetDBJournalInfo.GetFieldValue["AgentLocation",string]}]
 			CurrentAgentIndex:Set[${EVE.Agent[id,${CurrentAgentID}].Index}]			
 			GetDBJournalInfo:Finalize
-			This:QueueState["Go2Agent", 5000]
+			This:QueueState["MissionPrePrep", 5000]
 			return TRUE
 		}
 		else
@@ -546,9 +665,48 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			CurrentAgentID:Set[${EVE.Agent[${AgentList.Get[1]}].ID}]
 			CurrentAgentLocation:Set[${EVE.Agent[${AgentList.Get[1]}].Station}]
 			CurrentAgentIndex:Set[${EVE.Agent[${AgentList.Get[1]}].Index}]
-			This:QueueState["Go2Agent", 5000]
+			This:QueueState["MissionPrePrep", 5000]
 			return TRUE
 		}
+	}
+	; Addendum - For trade missions, you need to either have the items already there, or bring the items with you. Market interactions are toast so we won't be doing that.
+	; Ugh, more work. So we also need to ensure we are in the correct ship, with the correct needed trade item, before we travel to the agent. Pisssssss. This also means we need
+	; to code in another case for returning to our Primary Agent Station to swap back to other ships for other missions before we go to those missions.
+	; This state thus exists to ensure we have the right ship for the job, also if its a trade mission, the right ore.
+	;;;; EXTREMELY IMPORTANT NOTE - WE ARE ASSUMING YOU WILL KEEP YOUR ALTERNATE SHIPS IN YOUR PRIMARY AGENT STATION
+	;;;; THAT IS TO SAY, THE STATION WHERE YOUR MAIN MISSION AGENT IS LOCATED. PLEASE DO SO
+	member:bool MissionPrePrep()
+	{
+		GetDBJournalInfo:Set${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE AgentID=${CurrentAgentID};"]}]
+		if ${GetDBJournalInfo.NumRows} < 1
+		{
+			; This case is that we are already going back to our Primary Agent Station, and we have no valid missions in our journal. Or we could already be there, but thats outside the scope of this state.
+			; Basically we are just bypassing this state.
+			This:QueueState["Go2Agent", 5000]
+			return TRUE			
+		}
+		; We need to figure out if we are already flying what we need, and carrying what we need, if we need anything.
+		; We determined WHAT we need in the previous state.
+			if ${Me.StationID} != ${EVE.Agent[${AgentList.Get[1]}].StationID}
+			{
+				; We aren't at our Primary Agent Station. Move there.
+				Move:Agent[${EVE.Agent[${AgentList.Get[1]}].Index}]
+				This:InsertState["Traveling"]
+			}
+			if ${Me.StationID} == ${EVE.Agent[${AgentList.Get[1]}].StationID}
+			{
+				; We are already at our Primary Agent Station. Here we will A) Ensure that our ship is the ship called for in the last state and B) (optional) ensure that we have the Ore needed for a trade mission, if thats what is next.
+				if !${MyShip.Name.Find[${CurrentAgentShip}]}
+				{
+					; Ship isn't right. Let's see if we can switch our ship with isxeve still.
+					
+				
+				}
+			
+			
+			}
+	
+	
 	}
 	; This state exists to get us to wherever our agent is. We will use 3 variables about our Current Agent to make this easier, probably. Actually... We only need their location.
 	; The other 2 are for other things later. Idk, I'm tired.
@@ -559,22 +717,76 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			; This calls a state in Move, we need to call Traveling or we will start doing shit while en route. That's no good.
 			Move:Agent[${CurrentAgentIndex}]
 			This:InsertState["Traveling"]
-			This:QueueState["InitialAgentInteraction", 5000]
+		}
+		else
+		{
+			; Already there I guess. May as well open that Agent Conversation window and commence Databasification.
+			This:LogInfo["At Agent Station"]
+		}
+		GetDBJournalInfo:Set${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE AgentID=${CurrentAgentID};"]}]
+		if ${GetDBJournalInfo.NumRows} < 1
+		{
+			This:LogInfo["Begin Databasification"]
+			EVE.Agent[${CurrentAgentIndex}]:StartConversation
+			This:InsertState["Databasification", 5000]
+			This:QueueState["CurateMissions", 5000]
 			return TRUE
 		}
 		else
 		{
-			;Already there I guess.
+			GetDBJournalInfo:Finalize
 			This:QueueState["InitialAgentInteraction", 5000]
-			return TRUE		
+			return TRUE
 		}
 	}
 	; This state will be where we interact with our Agents outside of the little we did to achieve databasification. This will be the initial interaction.
 	; This state will also be where, after accepting a mission, we put our initial MissionLog entry in whatever table it belongs.
+	; As such, this is going to be a somewhat long state because we need to assemble all the pieces that go into that MissionLog table(s).
 	member:bool InitialAgentInteraction()
 	{
-	
-		if ${GetDBJournalInfo.GetFieldValue["PickupLocation",string].NotNULLOrEmpty}
+		; Open a conversation window, again.
+		if !${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
+		{
+			This:LogInfo["Opening Conversation Window."]
+			EVE.Agent[${CurrentAgentIndex}]:StartConversation
+			return FALSE
+		}
+		GetDBJournalInfo:Set${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE AgentID=${CurrentAgentID};"]}]
+		if ${GetDBJournalInfo.NumRows} < 1
+		{
+			; We somehow don't have a journal DB row for this agent, the one we are talking to RIGHT NOW, what. Kick back to initial state.
+			This:LogInfo["Something went incredibly wrong here."]
+			DatabasificationComplete:Set[FALSE]
+			This:QueueState["CheckForWork", 5000]
+			return TRUE
+		}
+		else
+		{
+			; We have a journal row, as expected. This should have already been curated, so this mission should, without fail, be one we want.
+			; Let us establish the mission parameters, so we can put it in the correct mission log table.
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]}
+			{
+			
+			
+			
+			
+			}
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
+			{
+			
+			
+			
+			
+			}
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
+			{
+			
+			
+			
+			
+			}				
+		}
+		
 	}
 	; This state will be where we prep our ship for the mission. Load ammo/drones, etc.
 	member:bool MissionPrep()
@@ -981,6 +1193,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	}
 	
 	;;;;;;;;;;;;;;;;;;;;; Below this point is stuff I just grabbed from the original Missioneer ;;;;;;;;;;;;;;;;;
+	
 	; I've always wondered why this is even here.
 	member:bool ReloadWeapons()
 	{
