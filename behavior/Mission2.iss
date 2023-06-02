@@ -48,6 +48,8 @@ objectdef obj_Configuration_Mission2 inherits obj_Configuration_Base
 	; The literal names of your combat and courier ships. In case we need to swap between them.
 	Setting(string, CombatShipName, SetCombatShipName)
 	Setting(string, CourierShipName, SetCourierShipName)
+	; Literal name of your ore hauler for trade missions
+	Setting(string, TradeShipName, SetTradeShipName)
 	; Literal name of a fast, low volume courier ship.
 	Setting(string, FastCourierShipName, SetFastCourierShipName)
 	; These will be settings taken from the original that still go on page 1 of the UIElement
@@ -155,8 +157,14 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	variable int	CurrentRunItemUnitsMoved
 	variable float	CurrentRunVolumeMoved
 	
-
+	; Some variables about our current hauler, either for courier or for trade. Whatever we are flying at the moment.
+	variable string	HaulerLargestBayType
+	variable float	HaulerLargestBayCapacity
+	variable bool	HaulerLargestBayOreLimited
 	
+
+	; Need this bool in case we go to change ships, and fail to do so.
+	variable bool	FailedToChangeShip = FALSE
 	
 	; Recycled variables from the original
 	variable string ammo
@@ -491,9 +499,16 @@ objectdef obj_Mission2 inherits obj_StateQueue
 					GetDBJournalInfo:NextRow
 					continue
 				}
-				if ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",float]} > 1000 ) && !${Config.CourierShipName.NotNULLOrEmpty}
+				if ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",float]} > 1000 ) && !${Config.CourierShipName.NotNULLOrEmpty} && !${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
 				{	
 					This:LogInfo["High Volume and No Hauler Configured - Declining"]
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+					GetDBJournalInfo:NextRow
+					continue
+				}
+				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]} && !${Config.TradeShipName.NotNULLOrEmpty}
+				{	
+					This:LogInfo["Trade Mission and No Trade Ship Configured - Declining"]
 					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
 					GetDBJournalInfo:NextRow
 					continue
@@ -581,8 +596,8 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			}
 			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
 			{
-				This:LogInfo["Trade Mission - Hauler Needed"]
-				CurrentAgentShip:Set[${Config.CourierShipName}]
+				This:LogInfo["Trade Mission - Ore Hauler Needed"]
+				CurrentAgentShip:Set[${Config.TradeShipName}]
 			}
 			; Pulling our current (agent) variables back out.
 			if ${GetDBJournalInfo.GetFieldValue["ExpectedItems",string].NotNULLOrEmpty}
@@ -677,6 +692,16 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	;;;; THAT IS TO SAY, THE STATION WHERE YOUR MAIN MISSION AGENT IS LOCATED. PLEASE DO SO
 	member:bool MissionPrePrep()
 	{
+		; Need a variable to decrement to figure out if we have enough of our trade item
+		variable int InStock
+		; Need another for loading that trade item
+		variable int TradeItemNeeded
+		
+		; Inventory variables
+		variable index:item items
+		variable iterator itemIterator
+		
+		
 		GetDBJournalInfo:Set${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE AgentID=${CurrentAgentID};"]}]
 		if ${GetDBJournalInfo.NumRows} < 1
 		{
@@ -687,26 +712,119 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		}
 		; We need to figure out if we are already flying what we need, and carrying what we need, if we need anything.
 		; We determined WHAT we need in the previous state.
-			if ${Me.StationID} != ${EVE.Agent[${AgentList.Get[1]}].StationID}
+		if ${Me.StationID} != ${EVE.Agent[${AgentList.Get[1]}].StationID}
+		{
+			; We aren't at our Primary Agent Station. Move there.
+			Move:Agent[${EVE.Agent[${AgentList.Get[1]}].Index}]
+			This:InsertState["Traveling"]
+		}
+		if ${Me.StationID} == ${EVE.Agent[${AgentList.Get[1]}].StationID}
+		{
+			; We are already at our Primary Agent Station. Here we will A) Ensure that our ship is the ship called for in the last state and B) (optional) ensure that we have the Ore needed for a trade mission, if thats what is next.
+			if !${MyShip.Name.Find[${CurrentAgentShip}]}
 			{
-				; We aren't at our Primary Agent Station. Move there.
-				Move:Agent[${EVE.Agent[${AgentList.Get[1]}].Index}]
-				This:InsertState["Traveling"]
-			}
-			if ${Me.StationID} == ${EVE.Agent[${AgentList.Get[1]}].StationID}
-			{
-				; We are already at our Primary Agent Station. Here we will A) Ensure that our ship is the ship called for in the last state and B) (optional) ensure that we have the Ore needed for a trade mission, if thats what is next.
-				if !${MyShip.Name.Find[${CurrentAgentShip}]}
+				; Ship isn't right. Let's see if we can switch our ship with isxeve still.
+				This:ActivateShip[${CurrentAgentShip}]
+				if ${FailedToChangeShip}
 				{
-					; Ship isn't right. Let's see if we can switch our ship with isxeve still.
-					
-				
+					This:LogInfo["Ship doesn't exist here, awooga, stopping"]
+					This:Stop
+					return TRUE
 				}
-			
-			
+				; Presumably, we are in the right ship now.
 			}
-	
-	
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
+			{
+				InStock:Inc[${CurrentAgentItemUnits}]
+				TradeItemNeeded:Set[${CurrentAgentItemUnits}]
+				This:LogInfo["Checking for ${CurrentAgentItem} for Trade Mission"]
+				if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+					InStock:Dec[${This.InventoryItemQuantity[${CurrentAgentItem}, "StationCorpHangar", "${Config.MunitionStorageFolder}"]}]
+				if ${Config.MunitionStorage.Equal[Personal Hangar]}
+					InStock:Dec[${This.InventoryItemQuantity[${CurrentAgentItem}, ${Me.Station.ID}, "StationItems"]}]
+				; This will reduce the number we need by the number we have, supposedly. Jury is still out on if my tampering will break it.
+				if ${InStock} > 0
+				{
+					This:LogCritical["Insufficient Quantity of ${CurrentAgentItem}, Stopping."]
+					This:Stop
+					return TRUE					
+				}
+				else
+				{
+					; We presumably have enough of the item, let us try and load it into our ship. But first, need to know some stuff about this ship.
+					This:GetHaulerDetails
+					if ${HaulerLargestBayCapacity} >= ${CurrentAgentVolumeTotal}
+					{
+						if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+						{
+							if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
+							{
+								EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
+								return FALSE
+							}
+							EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
+							items:GetIterator[itemIterator]
+							do
+							{
+								if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+								{
+									if ${itemIterator.Value.Quantity} >= ${TradeItemNeeded}
+									{
+										itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayType}, ${TradeItemNeeded}]
+										break
+									}
+									else
+									{
+										itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayType}, ${itemIterator.Value.Quantity}]
+										TradeItemNeeded:Dec[${itemIterator.Value.Quantity}]
+										continue
+									}
+								}
+							}
+							while ${itemIterator:Next(exists)}
+						}
+						if ${Config.MunitionStorage.Equal[Personal Hangar]}
+						{
+							if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+							{
+								EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
+								return FALSE
+							}
+							EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
+							items:GetIterator[itemIterator]
+							do
+							{
+								if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+								{
+									if ${itemIterator.Value.Quantity} >= ${TradeItemNeeded}
+									{
+										itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayType}, ${TradeItemNeeded}]
+										break
+									}
+									else
+									{
+										itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayType}, ${itemIterator.Value.Quantity}]
+										TradeItemNeeded:Dec[${itemIterator.Value.Quantity}]
+										continue
+									}
+								}
+							}
+							while ${itemIterator:Next(exists)}
+						}
+					}
+					else
+					{
+						This:LogCritical["Picked a ship that can't haul ${CurrentAgentVolumeTotal} ore. I suggest a Miasmos."]
+						This:Stop
+						return TRUE
+					}
+				}
+				This:LogInfo["Ore Loaded, Headed out"]
+				This:QueueState["Go2Agent",5000]
+				return TRUE
+			}
+			
+		}
 	}
 	; This state exists to get us to wherever our agent is. We will use 3 variables about our Current Agent to make this easier, probably. Actually... We only need their location.
 	; The other 2 are for other things later. Idk, I'm tired.
@@ -734,7 +852,6 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		}
 		else
 		{
-			GetDBJournalInfo:Finalize
 			This:QueueState["InitialAgentInteraction", 5000]
 			return TRUE
 		}
@@ -794,6 +911,12 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	
 	
 	}
+	; This uh, state, will be for Trade mission turnins. Its probably going to be like, 10 lines. All the work is done before here.
+	member:bool TradeMission()
+	{
+	
+	
+	}
 	; This state will be the primary logic for a Combat Mission
 	member:bool CombatMission()
 	{
@@ -801,8 +924,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	
 	
 	}
-	; This state will be the primary logic for a Courier Mission. I say courier mission, but I really mean Non-Combat Mission
-	; Trade missions will also be included here.
+	; This state will be the primary logic for a Courier Mission.
 	member:bool CourierMission()
 	{
 		GetMissionLogCourier:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCourier WHERE Historical=FALSE;"]}]
@@ -1142,6 +1264,74 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		else
 			LasItemVolume:Set[0]
 	
+	}
+	; This method will be for gathering some details about our current Hauler ship. What kind of bays does it have, how much can it carry. 
+	method GetHaulerDetails()
+	{	
+		variable float TempStorage1
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"]:MakeActive
+			{
+				if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} < 0
+				{
+					This:InsertState["Idle", 2000]
+					if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} > 0
+					{
+						HaulerLargestBayCapacity:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity}]
+						TempStorage1:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity}]
+						HaulerLargestBayType:Set["ShipCargo"]
+						HaulerLargestBayOreLimited:Set[FALSE]
+					}
+					else
+					{
+						; Something went wrong here
+					}
+				}
+			}
+		}		
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"]:MakeActive
+			{
+				if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity} < 0
+				{
+					This:InsertState["Idle", 2000]
+					if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity} > 0
+					{
+						HaulerLargestBayCapacity:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity}]
+						TempStorage1:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity}]
+						HaulerLargestBayType:Set["ShipFleetHangar"]
+						HaulerLargestBayOreLimited:Set[FALSE]
+					}
+					else
+					{
+						; Something went wrong here
+					}
+				}
+			}
+		}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"]:MakeActive
+			{
+				if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} < 0
+				{
+					This:InsertState["Idle", 2000]
+					if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} > 0 &&  (${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} > ${TempStorage1})
+					{
+						HaulerLargestBayCapacity:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity}]
+						HaulerLargestBayType:Set["ShipGeneralMiningHold"]
+						HaulerLargestBayOreLimited:Set[TRUE]
+					}
+					else
+					{
+						; Something went wrong here
+					}
+				}
+			}
+		}
+		; Now that I think about it, is there even a situation where the normal cargo hold will be larger than the fleet hangar or the ore bay if a ship has either one of those???
 	}
 	; This method will be for inserting information into the MissionJournal table. This will naturally be an Upsert.
 	; (AgentID INTEGER PRIMARY KEY, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, AgentLocation TEXT, MissionLocation TEXT, DropoffLocation TEXT, PickupLocation TEXT, Lowsec BOOLEAN, JumpDistance INTEGER, ExpectedItems TEXT, ItemUnits INTEGER, ItemVolume REAL,
@@ -1979,6 +2169,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		if !${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}](exists)} || ${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}].Capacity} < 0
 		{
 			echo must open inventory window before calling this function
+			; I really like how tehtsuo decided that if you did this wrong it should just crash the fuckin bot.
 			echo ${Math.Calc[1 / 0]}
 		}
 
@@ -2002,7 +2193,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	}
 
 
-	; I have absofuckinglutely no idea what this is or does. I'm 98% sure it is never called by anything, so let's leave it here
+	; I have absolutely no idea what this is or does. I'm 98% sure it is never called by anything, so let's leave it here
 	; to mystify future code historians.
 	method DeepCopyIndex(string From, string To)
 	{
@@ -2045,6 +2236,44 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		CharacterSQLDB:ExecDML["PRAGMA journal_mode=WAL;"]
 		SharedSQLDB:ExecDML["PRAGMA journal_mode=WAL;"]
 		WalAssurance:Set[TRUE]
+	}
+	; Stealing this function from evebot and making it into a method instead.
+	method ActivateShip(string name)
+	{
+		variable index:item hsIndex
+		variable iterator hsIterator
+		variable string shipName
+
+		if ${Me.InStation}
+		{
+			Me:GetHangarShips[hsIndex]
+			hsIndex:GetIterator[hsIterator]
+
+			shipName:Set[${MyShip.Name}]
+			if ${shipName.NotEqual[${name}]} && ${hsIterator:First(exists)}
+			{
+				do
+				{
+					if ${hsIterator.Value.Name.Equal[${name}]}
+					{
+						This:LogInfo["Switching to ship named ${hsIterator.Value.Name}."]
+						hsIterator.Value:MakeActive
+						break
+					}
+				}
+				while ${hsIterator:Next(exists)}
+				if ${shipName.NotEqual[${name}]}
+				{
+					This:LogInfo["We were unable to change to the correct ship. Failure state."]
+					FailedToChangeShip:Set[TRUE]
+				}
+			}
+			else
+			{
+				This:LogInfo["We seem to not have... Any ships? I don't think this can happen tbh"]
+				FailedToChangeShip:Set[TRUE]
+			}
+		}
 	}
 
 }
