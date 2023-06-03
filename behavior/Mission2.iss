@@ -60,7 +60,8 @@ objectdef obj_Configuration_Mission2 inherits obj_Configuration_Base
 	; This is the name of the XML in Data with your mission info in it.
 	Setting(string, MissionFile, SetMissionFile)	
 	; This bool indicates we want to stay out of Lowsec
-	Setting(bool, DeclineLowSec, SetDeclineLowSec)	
+	Setting(bool, DeclineLowSec, SetDeclineLowSec)
+
 	
 	
 	; Page 2 of the UI  Begins
@@ -85,7 +86,18 @@ objectdef obj_Configuration_Mission2 inherits obj_Configuration_Base
 	Setting(bool, DropOffToContainer, SetDropOffToContainer)	
 	Setting(string, DropOffContainerName, SetDropOffContainerName)	
 	Setting(string, MunitionStorage, SetMunitionStorage)
-	Setting(string, MunitionStorageFolder, SetMunitionStorageFolder)	
+	Setting(string, MunitionStorageFolder, SetMunitionStorageFolder)
+	; No guarantee that I will get this working but, this setting indicates that you are going to be helping a different bot with their missions
+	Setting(bool, SidekickMode, SetSidekickMode)
+	; Literal character name of whoever you are helping as a sidekick.
+	Setting(string, PrimaryName, SetPrimaryName)
+	; What is the name of the folder your salvage bookmarks should be placed in. MAKE SURE THIS EXISTS
+	; I don't remember what sanity checks exist on the isxeve side of things here, so lets assume the worst and that if you fuck this up the world will literally end.
+	Setting(string, SalvageBMFolderName, SetSalvageBMFolderName)
+
+	; This won't go in the UI anywhere, just need a persistent storage for our Run Number because I'm lazy.
+	; To be honest, mostly just need this to initialize the number the first time around. This will be incremented after each mission completion.
+	Setting(int, RunNumberInt, SetRunNumberInt)
 
 }
 
@@ -105,6 +117,8 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	variable sqlitequery GetMissionLogCombat
 	; For getting info about our current courier mission
 	variable sqlitequery GetMissionLogCourier
+	; Multi-purpose query for using less lines to do a mid-run recovery
+	variable sqlitequery GetMissionLogCombined
 
 	; This queue will store the AgentIDs of agents we need to contact to decline their missions as part of CurateMissions state.
 	variable queue:int64 AgentDeclineQueue
@@ -140,6 +154,8 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	variable string CurrentAgentDamage
 	variable string CurrentAgentDestroy
 	variable string CurrentAgentLoot
+	variable string	CurrentAgentMissionName
+	variable string CurrentAgentMissionType
 	
 	; Storage variables for our Current Run
 	variable int	CurrentRunNumber
@@ -169,11 +185,13 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	; Recycled variables from the original
 	variable string ammo
 	variable string secondaryAmmo
+	variable int	useDroneRace = 0
 	variable obj_Configuration_Mission2 Config
 	variable obj_Configuration_Agents2 Agents
 	variable obj_MissionUI2 LocalUI
-	variable bool reload = TRUE
-	variable bool halt = FALSE
+	variable bool 	reload = TRUE
+	variable bool	halt = FALSE
+
 	
 	variable index:string AgentList	
 	variable set BlackListedMission
@@ -196,7 +214,11 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		Event[Tehbot_ScheduleHalt]:AttachAtom[This:ScheduleHalt]
 		LavishScript:RegisterEvent[Tehbot_ScheduleResume]
 		Event[Tehbot_ScheduleResume]:AttachAtom[This:ScheduleResume]
-
+		; Initializing the Run Number.
+		if ${Script[Tehbot].VariableScope.Mission2.Config.RunNumberInt} < 1
+		{
+			Script[Tehbot].VariableScope.Mission2.Config.RunNumberInt:SetRunNumberInt[1]
+		}
 	}
 
 	method ScheduleHalt()
@@ -315,7 +337,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			
 			; This table is for keeping track of what we've done during our combat missions.
 			; We will use a generated integer as our primary key. Run number or some such thing. StartingTimestamp (int64)
-			; MissionName (string). MissionType (string). MissionStatus (int). Re-using those.
+			; MissionName (string). MissionType (string). Re-using those.
 			; Next up what room are we in. RoomNumber (int). 
 			; Next up combat mission specific things. Have we killed our target? KilledTarget (bool). Have we killed everything? Vanquisher (bool).
 			; Have we looted our target? ContainerLooted (bool).
@@ -326,11 +348,11 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			if !${CharacterSQLDB.TableExists["MissionLogCombat"]}
 			{
 				echo DEBUG - Creating Mission Log Combat
-				CharacterSQLDB:ExecDML["create table MissionLogCombat (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, TrueCompletion BOOLEAN, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+				CharacterSQLDB:ExecDML["create table MissionLogCombat (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, TrueCompletion BOOLEAN, FinalTimestamp DATETIME, Historical BOOLEAN);"]
 			}
 			
 			; This table is for keeping track of what we've done during our Courier/Trade missions.
-			; RunNumber (int). MissionName (string). StartingTimestamp (int64). MissionType (string). MissionStatus (int). Re-using.
+			; RunNumber (int). MissionName (string). StartingTimestamp (int64). MissionType (string). Re-using.
 			; To keep track of how many trips we have made. TripNumber (int). To keep track of how many trips we are expected to make. ExpectedTrips (int).
 			; To keep track of the dropoff location. DropoffLocation (string). And Pickup Location. PickupLocation (string).
 			; To keep track of total units to move. TotalUnits (int). Same but for volume. TotalVolume (float).
@@ -341,7 +363,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			if !${CharacterSQLDB.TableExists["MissionLogCourier"]}
 			{
 				echo DEBUG - Creating Mission Log Courier
-				CharacterSQLDB:ExecDML["create table MissionLogCourier (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, TripNumber INTEGER, ExpectedTrips INTEGER, DropoffLocation TEXT, PickupLocation TEXT,, TotalUnits INTEGER, TotalVolume REAL, UnitsMoved INTEGER, VolumeMoved REAL, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+				CharacterSQLDB:ExecDML["create table MissionLogCourier (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER, DropoffLocation TEXT, PickupLocation TEXT,, TotalUnits INTEGER, TotalVolume REAL, UnitsMoved INTEGER, VolumeMoved REAL, FinalTimestamp DATETIME, Historical BOOLEAN);"]
 			}			
 			
 			; This next table exists so that the watchdog can try and quantify whether "progress" is being made. I'm tired of bots just getting stuck in weird states. Sure it is rare, but it is also wasteful.
@@ -727,6 +749,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 				This:ActivateShip[${CurrentAgentShip}]
 				if ${FailedToChangeShip}
 				{
+					GetDBJournalInfo:Finalize
 					This:LogInfo["Ship doesn't exist here, awooga, stopping"]
 					This:Stop
 					return TRUE
@@ -745,6 +768,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 				; This will reduce the number we need by the number we have, supposedly. Jury is still out on if my tampering will break it.
 				if ${InStock} > 0
 				{
+					GetDBJournalInfo:Finalize
 					This:LogCritical["Insufficient Quantity of ${CurrentAgentItem}, Stopping."]
 					This:Stop
 					return TRUE					
@@ -760,6 +784,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 							if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
 							{
 								EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
+								GetDBJournalInfo:Finalize
 								return FALSE
 							}
 							EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
@@ -815,10 +840,12 @@ objectdef obj_Mission2 inherits obj_StateQueue
 					else
 					{
 						This:LogCritical["Picked a ship that can't haul ${CurrentAgentVolumeTotal} ore. I suggest a Miasmos."]
+						GetDBJournalInfo:Finalize
 						This:Stop
 						return TRUE
 					}
 				}
+				GetDBJournalInfo:Finalize
 				This:LogInfo["Ore Loaded, Headed out"]
 				This:QueueState["Go2Agent",5000]
 				return TRUE
@@ -852,6 +879,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		}
 		else
 		{
+			GetDBJournalInfo:Finalize
 			This:QueueState["InitialAgentInteraction", 5000]
 			return TRUE
 		}
@@ -859,6 +887,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	; This state will be where we interact with our Agents outside of the little we did to achieve databasification. This will be the initial interaction.
 	; This state will also be where, after accepting a mission, we put our initial MissionLog entry in whatever table it belongs.
 	; As such, this is going to be a somewhat long state because we need to assemble all the pieces that go into that MissionLog table(s).
+	; Addendum, I made the state shorter by calling methods further down.
 	member:bool InitialAgentInteraction()
 	{
 		; Open a conversation window, again.
@@ -866,6 +895,20 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		{
 			This:LogInfo["Opening Conversation Window."]
 			EVE.Agent[${CurrentAgentIndex}]:StartConversation
+
+			return FALSE
+		}
+		if $EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"](exists)}
+		{
+			EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"]:Press
+		}
+		if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["Request Mission"](exists)}
+		{
+			EVEWindow[AgentConversation_${CurrentAgentID}].Button["Request Mission"]:Press
+		}
+		if !${EVEWindow[AgentConversation_${CurrentAgentID}].Button["Accept"](exists)}
+		{
+			This:LogInfo["Don't see the accept button"]
 			return FALSE
 		}
 		GetDBJournalInfo:Set${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE AgentID=${CurrentAgentID};"]}]
@@ -879,54 +922,100 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		}
 		else
 		{
+			; Is this mission unconfigured, and also a combat mission? We no do that.
+			if !${DamageType.Element[${GetDBJournalInfo.GetFieldValue["MissionName",string]}](exists)} && ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
+			{
+				This:LogCritical"We have hit an unconfigured combat mission - Stopping."]
+				GetDBJournalInfo:Finalize
+				This:Stop
+				return TRUE
+			
+			}
+			; Let us accept the mission and close the window. 
+			if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["Accept"](exists)}
+			{
+				This:LogInfo["Accepting mission from Agent"]
+				EVEWindow[AgentConversation_${CurrentAgentID}].Button["Accept"]:Press
+			}
+			CurrentAgentMissionName:Set[${GetDBJournalInfo.GetFieldValue["MissionName",string]}]
+			CurrentAgentMissionType:Set[${GetDBJournalInfo.GetFieldValue["MissionType",string]}]
 			; We have a journal row, as expected. This should have already been curated, so this mission should, without fail, be one we want.
 			; Let us establish the mission parameters, so we can put it in the correct mission log table.
-			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]}
+			; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER,
+			;  DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume REAL, UnitsMoved INTEGER, VolumeMoved REAL, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} || ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
 			{
-			
-			
-			
-			
+				; Gotta do this again, we might have swapped ships going from a trade mission to a courier.
+				This:GetHaulerDetails
+				; The following method is basically just to initialize our Current Run stats.
+				; First argument on this will be the capacity of our largest bay, second argument will be the total volume of mission
+				This:SetCurrentRunDetails[${HaulerLargestBayCapacity},${CurrentAgentTotalVolume}]
+				This:MissionLogCourierUpsert[${CurrentRunNumber},${CurrentStartTimestamp},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType},${CurrentRunTripNumber},${CurrentRunExpectedTrips},${CurrentAgentDropoff},${CurrentAgentPickup},${CurrentAgentItemUnits},${CurrentAgentTotalVolume},${CurrentRunItemUnitsMoved},${CurrentRunVolumeMoved},${CurrentRunFinalTimestamp},FALSE]
+				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
+				{
+					GetDBJournalInfo:Finalize
+					EVEWindow[AgentConversation_${CurrentAgentID}]:Close
+					This:QueueState["TradeMission",5000]
+					return TRUE
+				}
+				else
+				{
+					GetDBJournalInfo:Finalize
+					EVEWindow[AgentConversation_${CurrentAgentID}]:Close
+					This:QueueState["CourierMission",5000]
+					return TRUE
+				}
 			}
+			; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, 
+			;   TrueCompletion BOOLEAN, FinalTimestamp DATETIME, Historical BOOLEAN);"]
 			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
 			{
-			
-			
-			
-			
+				; Don't ask, no idea why I did this.
+				This:GetHaulerDetails
+				; Do know why I did this.
+				This:SetCurrentRunDetails[${HaulerLargestBayCapacity},${CurrentAgentTotalVolume}]
+				This:MissionLogCombatUpsert[${CurrentRunNumber},${CurrentStartTimestamp},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${CurrentRunFinalTimestamp},FALSE]
+				GetDBJournalInfo:Finalize
+				EVEWindow[AgentConversation_${CurrentAgentID}]:Close
+				This:QueueState["MissionPrep",5000]
+				return TRUE
 			}
-			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
-			{
-			
-			
-			
-			
-			}				
 		}
-		
 	}
-	; This state will be where we prep our ship for the mission. Load ammo/drones, etc.
+	; This state will be where we prep our ship for the mission. Load ammo/drones, etc. This will be bypassed for Courier and Trade missions.
+	; Courier missions will do their own loading, trade missions have already done their loading. 
 	member:bool MissionPrep()
 	{
-	
-	
-	}
-	; This uh, state, will be for Trade mission turnins. Its probably going to be like, 10 lines. All the work is done before here.
-	member:bool TradeMission()
-	{
+		; First up, we need to establish exactly what damage type, and hence ammo and drones, we need.
+		This:ResolveDamageType[${CurrentAgentDamage.Lower}]
+		; Queue up the state that handles station inventory management for this scenario.
+		This:InsertState["ReloadAmmoAndDrones", 4000]
 	
 	
 	}
 	; This state will be the primary logic for a Combat Mission
 	member:bool CombatMission()
 	{
+		; We may have gotten here via a mid-mission bot launch, lets check that and if true then set our Current Agent/Mission Variables
+		if !${CurrentAgentMissionType.NotNULLOrEmpty} && !${CurrentAgentMissionName.NotNULLOrEmpty}
+			This:MidRunRecovery["Combat"]
+			
 		GetMissionLogCombat:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCombat WHERE Historical=FALSE;"]}]
+	
+	
+	}
+	; This uh, state, will be for Trade mission turnins. Its probably going to be like, 10 lines. Most of the work is done before here.
+	member:bool TradeMission()
+	{
 	
 	
 	}
 	; This state will be the primary logic for a Courier Mission.
 	member:bool CourierMission()
 	{
+		if !${CurrentAgentMissionType.NotNULLOrEmpty} && !${CurrentAgentMissionName.NotNULLOrEmpty}
+			This:MidRunRecovery["Noncombat"]
+			
 		GetMissionLogCourier:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCourier WHERE Historical=FALSE;"]}]
 	
 	
@@ -934,7 +1023,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	; This state will be where we do our finishing interaction with our Agent. This comes at mission completion.
 	; This is also where we, when we turn in the mission, do our final MissionLog entry in whatever table it belongs to.
 	; We will set that row to Historical, update any final details that need to be updated, clean up any variables that need cleaning up.
-	member:bool FinishAgentInteraction()
+	member:bool FinishingAgentInteraction()
 	{
 	
 	
@@ -1262,8 +1351,133 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			}			
 		}
 		else
-			LasItemVolume:Set[0]
+			LastItemVolume:Set[0]
 	
+	}
+	; This method will be for resolving our damage type. So we know what ammo and drones to load for a combat mission.
+	method ResolveDamageType(string DmgType)
+	{
+		switch ${damageType}
+		{
+			case kinetic
+				ammo:Set[${Config.KineticAmmo}]
+				if ${Config.UseSecondaryAmmo}
+					secondaryAmmo:Set[${Config.KineticAmmoSecondary}]
+				else
+					secondaryAmmo:Set[""]
+				useDroneRace:Set[DRONE_RACE_CALDARI]
+				break
+			case em
+				ammo:Set[${Config.EMAmmo}]
+				if ${Config.UseSecondaryAmmo}
+					secondaryAmmo:Set[${Config.EMAmmoSecondary}]
+				else
+					secondaryAmmo:Set[""]
+				useDroneRace:Set[DRONE_RACE_AMARR]
+				break
+			case thermal
+				ammo:Set[${Config.ThermalAmmo}]
+				if ${Config.UseSecondaryAmmo}
+					secondaryAmmo:Set[${Config.ThermalAmmoSecondary}]
+				else
+					secondaryAmmo:Set[""]
+				useDroneRace:Set[DRONE_RACE_GALLENTE]
+				break
+			case explosive
+				ammo:Set[${Config.ExplosiveAmmo}]
+				if ${Config.UseSecondaryAmmo}
+					secondaryAmmo:Set[${Config.ExplosiveAmmoSecondary}]
+				else
+					secondaryAmmo:Set[""]
+				useDroneRace:Set[DRONE_RACE_MINMATAR]
+				break
+			default
+				ammo:Set[${Config.KineticAmmo}]
+				if ${Config.UseSecondaryAmmo}
+					secondaryAmmo:Set[${Config.KineticAmmoSecondary}]
+				else
+					secondaryAmmo:Set[""]
+				break
+		}
+	Ship.ModuleList_Weapon:ConfigureAmmo[${ammo}, ${secondaryAmmo}]	
+	}
+	; This method will be for a Mid-Run Information Recovery. Client crashed / you disconnected / etc. This will be called to set the CurrentRun and CurrentAgent variables from values stored in the DBs
+	method MidRunRecovery(string Case)
+	{
+			if ${Case.Equal[Combat]}
+				GetMissionLogCombined:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCombat WHERE Historical=FALSE;"]}]
+			if ${Case.Equal[Noncombat]}
+				GetMissionLogCombined:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCourier WHERE Historical=FALSE;"]}]
+			; Pulling our current (run) variables back out. There is no way for this to not return a row, or we wouldn't have gotten here.
+			if ${GetMissionLogCombined.NumRows} > 0
+			{
+				${GetMissionLogCombined.GetFieldValue["RoomNumber",int]}
+				CurrentRunNumber:Set[${GetMissionLogCombined.GetFieldValue["RunNumber",int]}]
+				CurrentRunRoomNumber:Set[${GetMissionLogCombined.GetFieldValue["RoomNumber",int]}]
+				CurrentRunStartTimestamp:Set[${GetMissionLogCombined.GetFieldValue["StartingTimestamp",int]}]
+				CurrentRunKilledTarget:Set[${GetMissionLogCombined.GetFieldValue["KilledTarget",bool]}]
+				CurrentRunVanquisher:Set[${GetMissionLogCombined.GetFieldValue["Vanquisher",bool]}]
+				CurrentRunContainerLooted:Set[${GetMissionLogCombined.GetFieldValue["ContainerLooted",bool]}]
+				CurrentRunHaveItems:Set[${GetMissionLogCombined.GetFieldValue["HaveItems",bool]}]
+				CurrentRunTechnicalComplete:Set[${GetMissionLogCombined.GetFieldValue["TechnicalCompletionr",bool]}]
+				CurrentRunTrueComplete:Set[${GetMissionLogCombined.GetFieldValue["TrueCompletion",bool]}]
+				CurrentRunTripNumber:Set[${GetMissionLogCombined.GetFieldValue["TripNumber",int]}]
+				CurrentRunExpectedTrips:Set[${GetMissionLogCombined.GetFieldValue["ExpectedTrips",int]}]
+				CurrentRunItemUnitsMoved:Set[${GetMissionLogCombined.GetFieldValue["UnitsMoved",int]}]
+				CurrentRunVolumeMoved:Set[${GetMissionLogCombined.GetFieldValue["VolumeMoved",float]}]
+			}	
+		; Presumably you will only have one active mission at a time. But lets make sure the mission names are the same.
+		GetDBJournalInfo:Set${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE MissionStatus=2 AND MissionName='${GetDBJournalInfo.GetFieldValue["MissionName",string]}';"]}]
+		if ${GetDBJournalInfo.NumRows} > 0
+		{
+			; Pulling our current (agent) variables back out.
+			if ${GetDBJournalInfo.GetFieldValue["ExpectedItems",string].NotNULLOrEmpty}
+				CurrentAgentItem:Set[${GetDBJournalInfo.GetFieldValue["ExpectedItems",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["ItemUnits",int]} >= 1
+				CurrentAgentItemUnits:Set[${GetDBJournalInfo.GetFieldValue["ItemUnits",int]}]
+			if ${GetDBJournalInfo.GetFieldValue["VolumePer",float]} > 0
+				CurrentAgentVolumePer:Set[${GetDBJournalInfo.GetFieldValue["VolumePer",float]}]
+			if ${GetDBJournalInfo.GetFieldValue["ItemVolume",float]} > 0
+				CurrentAgentVolumeTotal:Set[${GetDBJournalInfo.GetFieldValue["ItemVolume",float]}]		
+			if ${GetDBJournalInfo.GetFieldValue["PickupLocation",string].NotNULLOrEmpty}
+				CurrentAgentPickup:Set[${GetDBJournalInfo.GetFieldValue["PickupLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["DropoffLocation",string].NotNULLOrEmpty}
+				CurrentAgentDropoff:Set[${GetDBJournalInfo.GetFieldValue["DropoffLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["Damage2Deal",string].NotNULLOrEmpty}
+				CurrentAgentDamage:Set[${GetDBJournalInfo.GetFieldValue["Damage2Deal",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["DestroyTarget",string].NotNULLOrEmpty}
+				CurrentAgentDestroy:Set[${GetDBJournalInfo.GetFieldValue["DestroyTarget",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["LootTarget",string].NotNULLOrEmpty}
+				CurrentAgentLoot:Set[${GetDBJournalInfo.GetFieldValue["LootTarget",string]}]		
+			CurrentAgentID:Set[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+			CurrentAgentLocation:Set[${GetDBJournalInfo.GetFieldValue["AgentLocation",string]}]
+			CurrentAgentIndex:Set[${EVE.Agent[id,${CurrentAgentID}].Index}]
+			CurrentAgentMissionName:Set[${GetDBJournalInfo.GetFieldValue["MissionName",string]}]
+			CurrentAgentMissionType:Set[${GetDBJournalInfo.GetFieldValue["MissionType",string]}]
+		}		
+	GetMissionLogCombined:Finalize	
+	GetDBJournalInfo:Finalize
+	}
+	; This method will Set/Reset our Current Run information (the crap that goes into the mission log db entries). Initial entry basically.
+	method SetCurrentRunDetails(float OurCapacity, float TotalVolume)
+	{
+		CurrentRunNumber:Set[${Config.RunNumberInt}]
+		CurrentRunRoomNumber:Set[0]
+		CurrentRunStartTimestamp:Set[${Time.Timestamp}]
+		CurrentRunKilledTarget:Set[FALSE]
+		CurrentRunVanquisher:Set[FALSE]
+		CurrentRunContainerLooted:Set[FALSE]
+		CurrentRunHaveItems:Set[FALSE]
+		CurrentRunTechnicalComplete:Set[FALSE]
+		CurrentRunTrueComplete:Set[FALSE]
+		CurrentRunFinalTimestamp:Set[0]
+		CurrentRunTripNumber:Set[0]
+		if ${OurCapacity} > 0
+			CurrentRunExpectedTrips:Set[${Math.Calc[${TotalVolume}/${OurCapacity}].Ceil}]
+		else
+			CurrentRunExpectedTrips:Set[-1]
+		CurrentRunItemUnitsMoved:Set[0]
+		CurrentRunVolumeMoved:Set[0]
 	}
 	; This method will be for gathering some details about our current Hauler ship. What kind of bays does it have, how much can it carry. 
 	method GetHaulerDetails()
@@ -1338,48 +1552,55 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	;   VolumePer REAL, DestroyTarget TEXT, LootTarget TEXT, Damage2Deal TEXT);"]
 	method MissionJournalUpsert(int64 AgentID, string MissionName, string MissionType, int MissionStatus, string AgentLocation, string MissionLocation, string DropoffLocation, string PickupLocation, bool Lowsec, int JumpDistance, string ExpectedItems, int ItemUnits, float ItemVolume, float VolumePer, string DestroyTarget, string LootTarget, string Damage2Deal)
 	{
-		DML:Insert["insert into MissionJournal (AgentID,MissionName,MissionType,MissionStatus,AgentLocation,MissionLocation,DropoffLocation,PickupLocation,Lowsec,JumpDistance,ExpectedItems,ItemUnits,ItemVolume,VolumePer,DestroyTarget,LootTarget,Damage2Deal) values (${AgentID}, '${MissionName}', '${MissionType}', ${MissionStatus}, '${AgentLocation}', '${MissionLocation}', '${DropoffLocation}', '${PickupLocation}', ${Lowsec}, ${JumpDistance}, '${ExpectedItems}', ${ItemUnits}, ${ItemVolume}, ${VolumePer}, '${DestroyTarget}','${Damage2Deal}') ON CONFLICT (AgentID) DO UPDATE SET MissionName=excluded.MissionName, MissionType=excluded.MissionType, MissionStatus=excluded.MissionStatus, AgentLocation=excluded.AgentLocation, MissionLocation=excluded.MissionLocation, DropoffLocation=excluded.DropoffLocation, PickupLocation=excluded.PickupLocation, Lowsec=excluded.Lowsec, Jumpdistance=excluded.JumpDistance, ExpectedItems=excluded.ExpectedItems, ItemUnits=excluded.ItemUnits, ItemVolume=excluded.ItemVolume, VolumePer=excluded.VolumePer, DestroyTarget=excluded.DestroyTarget, LootTarget=excluded.LootTarget, Damage2Deal=excluded.Damage2Deal;"]
-		; Execute transaction 
-		CharacterSQLDB:ExecDMLTransaction[DML]	
+		CharacterSQLDB:ExecDMLTransaction["insert into MissionJournal (AgentID,MissionName,MissionType,MissionStatus,AgentLocation,MissionLocation,DropoffLocation,PickupLocation,Lowsec,JumpDistance,ExpectedItems,ItemUnits,ItemVolume,VolumePer,DestroyTarget,LootTarget,Damage2Deal) values (${AgentID}, '${MissionName}', '${MissionType}', ${MissionStatus}, '${AgentLocation}', '${MissionLocation}', '${DropoffLocation}', '${PickupLocation}', ${Lowsec}, ${JumpDistance}, '${ExpectedItems}', ${ItemUnits}, ${ItemVolume}, ${VolumePer}, '${DestroyTarget}','${Damage2Deal}') ON CONFLICT (AgentID) DO UPDATE SET MissionName=excluded.MissionName, MissionType=excluded.MissionType, MissionStatus=excluded.MissionStatus, AgentLocation=excluded.AgentLocation, MissionLocation=excluded.MissionLocation, DropoffLocation=excluded.DropoffLocation, PickupLocation=excluded.PickupLocation, Lowsec=excluded.Lowsec, Jumpdistance=excluded.JumpDistance, ExpectedItems=excluded.ExpectedItems, ItemUnits=excluded.ItemUnits, ItemVolume=excluded.ItemVolume, VolumePer=excluded.VolumePer, DestroyTarget=excluded.DestroyTarget, LootTarget=excluded.LootTarget, Damage2Deal=excluded.Damage2Deal;"]
 	}
 	; This method will be for inserting information into the MissionLogCombat table. This will also be an upsert.
-	; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, 
+	; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, 
 	;   TrueCompletion BOOLEAN, FinalTimestamp DATETIME, Historical BOOLEAN);"]
-	method MissionLogCombatUpsert()
+	method MissionLogCombatUpsert(int RunNumber, int64 StartingTimestamp, string MissionName, string MissionType, int RoomNumber, bool KilledTarget, bool Vanquisher, bool ContainerLooted, bool HaveItems, bool TechnicalCompletion, bool TrueCompletion, int64 FinalTimestamp, bool Historical)
 	{
-	
-	
+		CharacterSQLDB:ExecDMLTransaction["insert into MissionLogCombat (RunNumber,StartingTimestamp,MissionName,MissionType,RoomNumber,KilledTarget,Vanquisher,ContainerLooted,HaveItems,TechnicalCompletion,TrueCompletion,FinalTimestamp,Historical) values (${RunNumber},${StartingTimestamp},'${MissionName}','${MissionType}',${RoomNumber},${KilledTarget},${Vanquisher},${ContainerLooted},${HaveItems},${TechnicalCompletion},${TrueCompletion},${FinalTimestamp},${Historical}) ON CONFLICT (RunNumber) DO UPDATE SET StartingTimestamp=excluded.StartingTimestamp, MissionName=excluded.MissionName, MissionType=excluded.MissionType, RoomNumber=excluded.RoomNumber, KilledTarget=excluded.KilledTarget, Vanquisher=excluded.Vanquisher, ContainerLooted=excluded.ContainerLooted, HaveItems=excluded.HaveItems, TechnicalCompletion=excluded.TechnicalCompletion, TrueCompletion=excluded.TrueCompletion, FinalTimestamp=excluded.FinalTimestamp, Historical=excluded.Historical;"]
+	}
+	; This method will be for Mid-Combat-Mission Updates
+	method MissionLogCombatUpdate(int RunNumber, int RoomNumber, bool KilledTarget, bool Vanquisher, bool ContainerLooted, bool HaveItems, bool TechnicalCompletion, bool TrueCompletion, int64 FinalTimestamp, bool Historical)
+	{
+		CharacterSQLDB:ExecDMLTransaction["update MissionLogCombat SET RoomNumber=${RoomNumber}, KilledTarget=${KilledTarget}, Vanquisher=${Vanquisher}, ContainerLooted=${ContainerLooted}, HaveItems=${HaveItems}, TechnicalCompletion=${TechnicalCompletion}, TrueCompletion=${TrueCompletion}, FinalTimestamp=${FinalTimestamp}, Historical=${Historical} WHERE RunNumber=${CurrentRunNumber};"]
 	}
 	; This method will be for inserting information into the MissionLogCourier table. This will also be an upsert.
-	; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, TripNumber INTEGER, ExpectedTrips INTEGER,
+	; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER,
 	;  DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume REAL, UnitsMoved INTEGER, VolumeMoved REAL, FinalTimestamp DATETIME, Historical BOOLEAN);"]
-	method MissionLogCourierUpsert()
+	method MissionLogCourierUpsert(int RunNumber, int64 StartingTimestamp, string MissionName, string MissionType, int TripNumber, int ExpectedTrips, string DropoffLocation, string PickupLocation, int TotalUnits, float TotalVolume, int UnitsMoved, float VolumeMoved, int64 FinalTimestamp, bool Historical)
 	{
-	
-	
+		CharacterSQLDB:ExecDMLTransaction["insert into MissionLogCourier (RunNumber,StartingTimestamp,MissionName,MissionType,TripNumber,ExpectedTrips,DropoffLocation,PickupLocation,TotalUnits,TotalVolume,UnitsMoved,VolumeMoved,FinalTimestamp,Historical) values (${RunNumber},${StartingTimestamp},'${MissionName}','${MissionType}',${TripNumber},${ExpectedTrips},'${DropoffLocation}','${PickupLocation}',${TotalUnits},${TotalVolume},${UnitsMoved},${VolumeMoved},${FinalTimestamp},${Historical}) ON CONFLICT (RunNumber) DO UPDATE SET StartingTimestamp=excluded.StartingTimestamp, MissionName=excluded.MissionName, MissionType=excluded.MissionType, TripNumber=excluded.TripNumber, ExpectedTrips=excluded.ExpectedTrips, DropoffLocation=excluded.DropoffLocation, PickupLocation=excluded.PickupLocation, TotalUnits=excluded.TotalUnits, TotalVolume=excluded.TotalVolume, UnitsMoved=excluded.UnitsMoved, VolumeMoved=excluded.VolumeMoved, FinalTimestamp=excluded.FinalTimestamp, Historical=excluded.Historical;"]
+	}
+	; This method will be for Mid-CourierMission Updates
+	method MissionLogCourierUpdate(int RunNumber, int TripNumber, int UnitsMoved, float VolumeMoved, int64 FinalTimestamp, bool Historical)
+	{
+		CharacterSQLDB:ExecDMLTransaction["update MissionLogCourier SET TripNumber=${TripNumber}, UnitsMoved=${UnitsMoved}, VolumeMoved=${VolumeMoved}, FinalTimestamp=${FinalTimestamp}, Historical=${Historical} WHERE RunNumber=${CurrentRunNumber};"]
 	}
 	; This method will be for inserting information into the WatchDogMonitoring table. This will also be an upsert.
 	; (CharID INTEGER PRIMARY KEY, RunNumber INTEGER, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, TripNumber INTEGER, TimeStamp DATETIME, CurrentTarget INTEGER, CurrentDestination TEXT, UnitsMoved INTEGER);"]
-	method WatchDogMonitoringUpsert()
+	method WatchDogMonitoringUpsert(int64 CharID, int RunNumber, string MissionName, string MissionType, int RoomNumber, int TripNumber, int64 TimeStamp, int64 CurrentTarget, string CurrentDestination, int UnitsMoved)
 	{
-	
-	
-	
+		SharedSQLDB:ExecDMLTransaction["insert into WatchDogMonitoring (CharID,RunNumber,MissionName,MissionType,RoomNumber,TripNumber,Timestamp,CurrentTarget,CurrentDestination,UnitsMoved) values (${CharID},${RunNumber},'${MissionName}','${MissionType}',${RoomNumber},${TripNumber},${Timestamp},${CurrentTarget},'${CurrentDestination}',${UnitsMoved})  ON CONFLICT (CharID) DO UPDATE SET RunNumber=excluded.RunNumber, MissionName=excluded.MissionName, MissionType=excluded.MissionType, RoomNumber=excluded.RoomNumber, TripNumber=excluded.TripNumber, Timestamp=excluded.Timestamp, CurrentTarget=excluded.CurrentTarget, CurrentDestination=excluded.CurrentDestination, UnitsMoved=excluded.UnitsMoved;"]
 	}
 	; This method will be for inserting information into the MissioneerStats table. This will be a normal insert, no upserts here.
 	; (Timestamp DATETIME, CharName TEXT, CharID INTEGER, RunNumber INTEGER, RoomNumber INTEGER, TripNumber INTEGER, MissionName TEXT, MissionType TEXT, EventType TEXT, RoomBounties REAL, RoomFactionSpawn BOOLEAN,
 	;   RoomDuration DATETIME, RunLP INTEGER, RunISK REAL, RunDuration DATETIME, ShipType TEXT);"]
-	method MissioneerStatsInsert()
+	method MissioneerStatsInsert(int64 Timestamp, string CharName, int64 CharID, int RunNumber, int RoomNumber, int TripNumber, string MissionName, string MissionType, string EventType, float RoomBounties, bool RoomFactionSpawn, int64 RoomDuration, int RunLP, float RunISK, int64 RunDuration, string ShipType)
 	{
-	
-	
+		SharedSQLDB:ExecDMLTransaction["insert into MissioneerStats (CharName,CharID,RunNumber,RoomNumber,TripNumber,MissionName,MissionType,EventType,RoomBounties,RoomFactionSpawn,RoomDuration,RunLP,RunISK,RunDuration,ShipType) values ('${CharName}',${CharID},${RunNumber},${RoomNumber},${TripNumber},'${MissionName}','${MissionType}','${EventType}',${RoomBounties},${RoomFactionSpawn},${RoomDuration},${RunLP},${RunISK},${RunDuration},'${ShipType}')
 	}
 	; This method will be for inserting information into the SalvageBMTable table. I don't anticipate this ever needing to be an Upsert.
 	; (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
-	method SalvageBMTableInser()
+	method SalvageBMTableInsert(int64 BMID, string BMName, int WreckCount, string BMSystem, int64 ExpectedExpiration, int64 ClaimedByCharID, int64 SalvageTime, bool Historical)
 	{
-	
-	
+		SharedSQLDB:ExecDMLTransaction["insert into SalvageBMTable (BMID,BMName,WreckCount,BMSystem,ExpectedExpiration,ClaimedByCharID,SalvageTime,Historical) values (${BMID},'${BMName}',${WreckCount},'${BMSystem}',${ExpectedExpiration},${ClaimedByCharID},${SalvageTime},${Historical};"]
+	}
+	; This method is just so a salvager can claim a salvage BM. If you have more than one salvager it is kinda needed.
+	method SalvageBMTableClaim(int64 CharID, int64 BMID)
+	{
+		CharacterSQLDB:ExecDMLTransaction["update SalvageBMTable SET ClaimedByCharID=${CharID} WHERE BMID=${BMID};"]
 	}
 	
 	;;;;;;;;;;;;;;;;;;;;; Below this point is stuff I just grabbed from the original Missioneer ;;;;;;;;;;;;;;;;;
