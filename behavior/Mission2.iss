@@ -925,7 +925,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			; Is this mission unconfigured, and also a combat mission? We no do that.
 			if !${DamageType.Element[${GetDBJournalInfo.GetFieldValue["MissionName",string]}](exists)} && ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
 			{
-				This:LogCritical"We have hit an unconfigured combat mission - Stopping."]
+				This:LogCritical["We have hit an unconfigured combat mission - Stopping."]
 				GetDBJournalInfo:Finalize
 				This:Stop
 				return TRUE
@@ -955,6 +955,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 				{
 					GetDBJournalInfo:Finalize
 					EVEWindow[AgentConversation_${CurrentAgentID}]:Close
+					CurrentRunTripNumber:Inc[1]
 					This:QueueState["TradeMission",5000]
 					return TRUE
 				}
@@ -990,8 +991,48 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		This:ResolveDamageType[${CurrentAgentDamage.Lower}]
 		; Queue up the state that handles station inventory management for this scenario.
 		This:InsertState["ReloadAmmoAndDrones", 4000]
-	
-	
+		This:QueueState["Go2Mission",4000]
+		return TRUE
+	}
+	; This state will take us to our Mission Bookmark
+	member:bool Go2Mission()
+	{
+		variable index:agentmission missions
+		variable iterator missionIterator	
+		EVE:GetAgentMissions[missions]
+		missions:GetIterator[missionIterator]
+		if ${missionIterator:First(exists)}
+		{
+			if ${missionIterator.Value.AgentID} != ${CurrentAgentID}
+			{
+				continue
+			}
+			do
+			{		
+				variable index:bookmark missionBookmarks
+				variable iterator bookmarkIterator
+				missionIterator.Value:GetBookmarks[missionBookmarks]
+				missionBookmarks:GetIterator[bookmarkIterator]
+				if ${bookmarkIterator:First(exists)}
+				{
+					do
+					{
+						if ${bookmarkIterator.Value.LocationType.Equal[dungeon]}
+						{
+							Move:AgentBookmark[${bookmarkIterator.Value.ID}]
+							;ActiveNPCs.AutoLock:Set[FALSE]
+							;NPCs.AutoLock:Set[FALSE]
+							This:InsertState["Traveling", 5000]
+							reload:Set[TRUE]
+							This:QueueState["CombatMission", 4000]
+							return TRUE
+						}
+					}
+					while ${bookmarkIterator:Next(exists)}
+				}	
+			}
+			while ${missionIterator:Next(exists)}
+		}
 	}
 	; This state will be the primary logic for a Combat Mission
 	member:bool CombatMission()
@@ -1004,11 +1045,20 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	
 	
 	}
-	; This uh, state, will be for Trade mission turnins. Its probably going to be like, 10 lines. Most of the work is done before here.
+	; This uh, state, will be for Trade mission turnins. Its probably going to be like, 3 lines. Most of the work is done before here.
 	member:bool TradeMission()
 	{
-	
-	
+		; We SHOULD already have our items. We should also already be at the dropoff station, because that is the agent's location...
+		; Guess we will just verify we are in the right place. Also, can you do the turnin with the items in an ore bay or ship fleet hangar? Dunno. Guess we will find out.
+		if ${Me.StationID} != ${EVE.Agent[${CurrentAgentIndex}].StationID}
+		{
+			This:LogCritical["Something went wrong with this trade mission - Stopping"]
+			This:Stop
+			return TRUE			
+		}
+		; MissionLogCourierUpdate(int RunNumber, int TripNumber, int UnitsMoved, float VolumeMoved, int64 FinalTimestamp, bool Historical)
+		This:MissionLogCourierUpdate[${CurrentRunNumber},${CurrentRunTripNumber},${CurrentAgentItemUnits},${CurrentAgentVolumeTotal},${Time.Timestamp},FALSE}]
+		This:QueueState["FinishingAgentInteraction",5000]
 	}
 	; This state will be the primary logic for a Courier Mission.
 	member:bool CourierMission()
@@ -1025,8 +1075,40 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	; We will set that row to Historical, update any final details that need to be updated, clean up any variables that need cleaning up.
 	member:bool FinishingAgentInteraction()
 	{
-	
-	
+		; Open a conversation window, again.
+		if !${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
+		{
+			This:LogInfo["Opening Conversation Window."]
+			EVE.Agent[${CurrentAgentIndex}]:StartConversation
+			return FALSE
+		}	
+		if $EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"](exists)}
+		{
+			EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"]:Press
+			return FALSE
+		}
+		if $EVEWindow[AgentConversation_${CurrentAgentID}].Button["Complete Mission"](exists)}
+		{
+			EVEWindow[AgentConversation_${CurrentAgentID}].Button["Complete Mission"]:Press
+			return FALSE
+		}
+		if $EVEWindow[AgentConversation_${CurrentAgentID}].Button["Request Mission"](exists)}
+		{
+			;We can be fairly sure the mission completed correctly.
+			if !${CurrentAgentMissionType.Find[Encounter]}
+			{
+				This:MissionLogCourierUpdate[${CurrentRunNumber},${CurrentRunTripNumber},${CurrentAgentItemUnits},${CurrentAgentVolumeTotal},${Time.Timestamp},TRUE}]
+				This:LogInfo["Mission complete - Finalizing Log Entry"]
+			}
+			else
+			{
+				; MissionLogCombatUpdate(int RunNumber, int RoomNumber, bool KilledTarget, bool Vanquisher, bool ContainerLooted, bool HaveItems, bool TechnicalCompletion, bool TrueCompletion, int64 FinalTimestamp, bool Historical)
+				This:MissionLogCourierUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},TRUE}]
+				This:LogInfo["Mission complete - Finalizing Log Entry"]				
+			}
+		}
+		This:QueueState["BeginCleanup",5000]
+		return TRUE
 	}
 	; This state will be where we kick off our station interaction stuff. Repairs, loot dropoff, etc.
 	; After this state we should go back to CheckForWork.
@@ -1034,6 +1116,8 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	{
 	
 	
+		This:QueueState["CheckForWork",4000]
+		return TRUE
 	}
 	
 	; This is a great name for a state. Anyways, here in Databasification we will take our Mission Journal, go through all of the missions
@@ -1354,6 +1438,18 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			LastItemVolume:Set[0]
 	
 	}
+	; This method will be to help us generate appropriate Status Reports for WatchDogMonitoring
+	method UpdateWatchDog()
+	{
+	
+	
+	}
+	; This method will help us generate an appropriate Missioneer Stats entry.
+	method UpdateMissioneerStats()
+	{
+	
+	
+	}
 	; This method will be for resolving our damage type. So we know what ammo and drones to load for a combat mission.
 	method ResolveDamageType(string DmgType)
 	{
@@ -1404,28 +1500,28 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	; This method will be for a Mid-Run Information Recovery. Client crashed / you disconnected / etc. This will be called to set the CurrentRun and CurrentAgent variables from values stored in the DBs
 	method MidRunRecovery(string Case)
 	{
-			if ${Case.Equal[Combat]}
-				GetMissionLogCombined:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCombat WHERE Historical=FALSE;"]}]
-			if ${Case.Equal[Noncombat]}
-				GetMissionLogCombined:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCourier WHERE Historical=FALSE;"]}]
-			; Pulling our current (run) variables back out. There is no way for this to not return a row, or we wouldn't have gotten here.
-			if ${GetMissionLogCombined.NumRows} > 0
-			{
-				${GetMissionLogCombined.GetFieldValue["RoomNumber",int]}
-				CurrentRunNumber:Set[${GetMissionLogCombined.GetFieldValue["RunNumber",int]}]
-				CurrentRunRoomNumber:Set[${GetMissionLogCombined.GetFieldValue["RoomNumber",int]}]
-				CurrentRunStartTimestamp:Set[${GetMissionLogCombined.GetFieldValue["StartingTimestamp",int]}]
-				CurrentRunKilledTarget:Set[${GetMissionLogCombined.GetFieldValue["KilledTarget",bool]}]
-				CurrentRunVanquisher:Set[${GetMissionLogCombined.GetFieldValue["Vanquisher",bool]}]
-				CurrentRunContainerLooted:Set[${GetMissionLogCombined.GetFieldValue["ContainerLooted",bool]}]
-				CurrentRunHaveItems:Set[${GetMissionLogCombined.GetFieldValue["HaveItems",bool]}]
-				CurrentRunTechnicalComplete:Set[${GetMissionLogCombined.GetFieldValue["TechnicalCompletionr",bool]}]
-				CurrentRunTrueComplete:Set[${GetMissionLogCombined.GetFieldValue["TrueCompletion",bool]}]
-				CurrentRunTripNumber:Set[${GetMissionLogCombined.GetFieldValue["TripNumber",int]}]
-				CurrentRunExpectedTrips:Set[${GetMissionLogCombined.GetFieldValue["ExpectedTrips",int]}]
-				CurrentRunItemUnitsMoved:Set[${GetMissionLogCombined.GetFieldValue["UnitsMoved",int]}]
-				CurrentRunVolumeMoved:Set[${GetMissionLogCombined.GetFieldValue["VolumeMoved",float]}]
-			}	
+		if ${Case.Equal[Combat]}
+			GetMissionLogCombined:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCombat WHERE Historical=FALSE;"]}]
+		if ${Case.Equal[Noncombat]}
+			GetMissionLogCombined:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCourier WHERE Historical=FALSE;"]}]
+		; Pulling our current (run) variables back out. There is no way for this to not return a row, or we wouldn't have gotten here.
+		if ${GetMissionLogCombined.NumRows} > 0
+		{
+			${GetMissionLogCombined.GetFieldValue["RoomNumber",int]}
+			CurrentRunNumber:Set[${GetMissionLogCombined.GetFieldValue["RunNumber",int]}]
+			CurrentRunRoomNumber:Set[${GetMissionLogCombined.GetFieldValue["RoomNumber",int]}]
+			CurrentRunStartTimestamp:Set[${GetMissionLogCombined.GetFieldValue["StartingTimestamp",int]}]
+			CurrentRunKilledTarget:Set[${GetMissionLogCombined.GetFieldValue["KilledTarget",bool]}]
+			CurrentRunVanquisher:Set[${GetMissionLogCombined.GetFieldValue["Vanquisher",bool]}]
+			CurrentRunContainerLooted:Set[${GetMissionLogCombined.GetFieldValue["ContainerLooted",bool]}]
+			CurrentRunHaveItems:Set[${GetMissionLogCombined.GetFieldValue["HaveItems",bool]}]
+			CurrentRunTechnicalComplete:Set[${GetMissionLogCombined.GetFieldValue["TechnicalCompletionr",bool]}]
+			CurrentRunTrueComplete:Set[${GetMissionLogCombined.GetFieldValue["TrueCompletion",bool]}]
+			CurrentRunTripNumber:Set[${GetMissionLogCombined.GetFieldValue["TripNumber",int]}]
+			CurrentRunExpectedTrips:Set[${GetMissionLogCombined.GetFieldValue["ExpectedTrips",int]}]
+			CurrentRunItemUnitsMoved:Set[${GetMissionLogCombined.GetFieldValue["UnitsMoved",int]}]
+			CurrentRunVolumeMoved:Set[${GetMissionLogCombined.GetFieldValue["VolumeMoved",float]}]
+		}	
 		; Presumably you will only have one active mission at a time. But lets make sure the mission names are the same.
 		GetDBJournalInfo:Set${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE MissionStatus=2 AND MissionName='${GetDBJournalInfo.GetFieldValue["MissionName",string]}';"]}]
 		if ${GetDBJournalInfo.NumRows} > 0
@@ -1454,9 +1550,10 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			CurrentAgentIndex:Set[${EVE.Agent[id,${CurrentAgentID}].Index}]
 			CurrentAgentMissionName:Set[${GetDBJournalInfo.GetFieldValue["MissionName",string]}]
 			CurrentAgentMissionType:Set[${GetDBJournalInfo.GetFieldValue["MissionType",string]}]
-		}		
+		}
 	GetMissionLogCombined:Finalize	
 	GetDBJournalInfo:Finalize
+	This:GetHaulerDetails
 	}
 	; This method will Set/Reset our Current Run information (the crap that goes into the mission log db entries). Initial entry basically.
 	method SetCurrentRunDetails(float OurCapacity, float TotalVolume)
