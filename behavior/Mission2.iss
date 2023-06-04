@@ -57,6 +57,9 @@ objectdef obj_Configuration_Mission2 inherits obj_Configuration_Base
 	; This is just what we name our Salvage BMs. If we are going to use the new salvager that I am supposedly making
 	; this is kinda superfluous. But whatever. Maybe its good for backwards compat.
 	Setting(string, SalvagePrefix, SetSalvagePrefix)	
+	; What is the name of the folder your salvage bookmarks should be placed in. MAKE SURE THIS EXISTS
+	; I don't remember what sanity checks exist on the isxeve side of things here, so lets assume the worst and that if you fuck this up the world will literally end.
+	Setting(string, SalvageBMFolderName, SetSalvageBMFolderName)
 	; This is the name of the XML in Data with your mission info in it.
 	Setting(string, MissionFile, SetMissionFile)	
 	; This bool indicates we want to stay out of Lowsec
@@ -91,9 +94,6 @@ objectdef obj_Configuration_Mission2 inherits obj_Configuration_Base
 	Setting(bool, SidekickMode, SetSidekickMode)
 	; Literal character name of whoever you are helping as a sidekick.
 	Setting(string, PrimaryName, SetPrimaryName)
-	; What is the name of the folder your salvage bookmarks should be placed in. MAKE SURE THIS EXISTS
-	; I don't remember what sanity checks exist on the isxeve side of things here, so lets assume the worst and that if you fuck this up the world will literally end.
-	Setting(string, SalvageBMFolderName, SetSalvageBMFolderName)
 
 	; This won't go in the UI anywhere, just need a persistent storage for our Run Number because I'm lazy.
 	; To be honest, mostly just need this to initialize the number the first time around. This will be incremented after each mission completion.
@@ -119,6 +119,8 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	variable sqlitequery GetMissionLogCourier
 	; Multi-purpose query for using less lines to do a mid-run recovery
 	variable sqlitequery GetMissionLogCombined
+	; RoomNPCInfo lookup query
+	variable sqlitequery GetRoomNPCInfo
 
 	; This queue will store the AgentIDs of agents we need to contact to decline their missions as part of CurateMissions state.
 	variable queue:int64 AgentDeclineQueue
@@ -139,6 +141,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	variable bool	LastLowsec
 	variable string LastDropoff
 	variable string LastPickup
+	variable string LastLPReward
 	
 	; Storage variables for our Current (selected) Agent / Mission
 	variable int64	CurrentAgentID
@@ -156,6 +159,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	variable string CurrentAgentLoot
 	variable string	CurrentAgentMissionName
 	variable string CurrentAgentMissionType
+	variable int	CurrentAgentLPReward
 	
 	; Storage variables for our Current Run
 	variable int	CurrentRunNumber
@@ -172,15 +176,27 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	variable int	CurrentRunExpectedTrips
 	variable int	CurrentRunItemUnitsMoved
 	variable float	CurrentRunVolumeMoved
+	variable float	CurrentRunISKReward
+
+	
+	; Some variable for our current room
+	variable int64	CurrentRoomStartTime
+	variable int64	CurrentRoomEndTime
 	
 	; Some variables about our current hauler, either for courier or for trade. Whatever we are flying at the moment.
 	variable string	HaulerLargestBayType
 	variable float	HaulerLargestBayCapacity
 	variable bool	HaulerLargestBayOreLimited
 	
-
+	; Need an index of strings so we can handle the NPC databasification more easily.
+	variable index:string NPCDBDML
 	; Need this bool in case we go to change ships, and fail to do so.
 	variable bool	FailedToChangeShip = FALSE
+
+	; Two more variables so we can record our wallet just BEFORE we complete a mission, and again just AFTER.
+	; Doing this so we can get the isk reward for the mission quantified without dealing with parsing HTML.
+	variable float ISKBeforeCompletion
+	variable float ISKAfterCompletion
 	
 	; Recycled variables from the original
 	variable string ammo
@@ -198,7 +214,11 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	variable collection:string DamageType
 	variable collection:string TargetToDestroy
 	variable collection:string ContainerToLoot
-	variable collection:float64 CapacityRequired	
+	variable collection:float64 CapacityRequired
+	
+	; Target list(s)
+	; TargetList for DatabasifyNPCs method.
+	variable obj_TargetList DatabasifyNPC
 	
 	method Initialize()
 	{
@@ -329,10 +349,11 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			; Next up will be target specific information. DestroyTarget (string) for what must die. LootTarget (string) for what must be looted.
 			; Lastly, Damage type info. Damage2Deal (string). Think that covers anything, you may note that the last 3 things are all from the mission data xml. I may or may not
 			; get absurdly ambitious with this.
+			; Addendum, tacking on LP reward for the mission because I need to be able to recover it later if we crash or whatever. Ugh.
 			if !${CharacterSQLDB.TableExists["MissionJournal"]}
 			{
 				echo DEBUG - Creating Mission Journal Table
-				CharacterSQLDB:ExecDML["create table MissionJournal (AgentID INTEGER PRIMARY KEY, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, AgentLocation TEXT, MissionLocation TEXT, DropoffLocation TEXT, PickupLocation TEXT, Lowsec BOOLEAN, JumpDistance INTEGER, ExpectedItems TEXT, ItemUnits INTEGER, ItemVolume REAL, VolumePer REAL, DestroyTarget TEXT, LootTarget TEXT, Damage2Deal TEXT);"]
+				CharacterSQLDB:ExecDML["create table MissionJournal (AgentID INTEGER PRIMARY KEY, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, AgentLocation TEXT, MissionLocation TEXT, DropoffLocation TEXT, PickupLocation TEXT, Lowsec BOOLEAN, JumpDistance INTEGER, ExpectedItems TEXT, ItemUnits INTEGER, ItemVolume REAL, MissionLPReward INTEGER, VolumePer REAL, DestroyTarget TEXT, LootTarget TEXT, Damage2Deal TEXT);"]
 			}
 			
 			; This table is for keeping track of what we've done during our combat missions.
@@ -363,9 +384,18 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			if !${CharacterSQLDB.TableExists["MissionLogCourier"]}
 			{
 				echo DEBUG - Creating Mission Log Courier
-				CharacterSQLDB:ExecDML["create table MissionLogCourier (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER, DropoffLocation TEXT, PickupLocation TEXT,, TotalUnits INTEGER, TotalVolume REAL, UnitsMoved INTEGER, VolumeMoved REAL, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+				CharacterSQLDB:ExecDML["create table MissionLogCourier (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER, DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume REAL, UnitsMoved INTEGER, VolumeMoved REAL, FinalTimestamp DATETIME, Historical BOOLEAN);"]
 			}			
-			
+
+			; This table is so we can databasify a few things about the NPCs in a given combat mission room. I need this, ultimately, to get the bounties from them.
+			; Primary key will be EntityID (int64).
+			; Then we record the RunNumber (int). RoomNumber (int).
+			; Then the NPCName (string), NPCGroup (string), NPCBounty (float). Fairly simple stuff tbh.
+			if !${CharacterSQLDB.TableExists["RoomNPCInfo"]}
+			{
+				echo DEBUG - Creating Per Room NPC Info Table
+				CharacterSQLDB:ExecDML["create table RoomNPCInfo (EntityID INTEGER PRIMARY KEY, RunNumber INTEGER, RoomNumber INTEGER, NPCName TEXT, NPCGroup TEXT, NPCBounty REAL);"]
+			}				
 			; This next table exists so that the watchdog can try and quantify whether "progress" is being made. I'm tired of bots just getting stuck in weird states. Sure it is rare, but it is also wasteful.
 			; Integer Primary Key shall be Character ID. Then RunNumber (int). Then we shall have CharName (string). Then MissionName (string). MissionType (string). RoomNumber (int). TripNumber (int). All re-used from before.
 			; We will have a timestamp, this is basically just when the last update from that client was. TimeStamp (int64)
@@ -387,12 +417,12 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			; Next up, did we see a faction spawn (cruiser, battlecruiser, or battleship) in this room? RoomFactionSpawn (bool).
 			; Next up we will have a Duration for the time it took to complete the room. RoomDuration (int64).
 			; Next up we will have a mission turnin LP/ISK value to put on a Run completion EventType. RunLP (int) and RunISK (float) respectively.
-			; Next up, Duration for time to complete the entire run. RunDuration (int64).
+			; Next up, Duration for time to complete the entire run. RunDuration (int64). Also, total bounties for the entire run.
 			; Last meaningful thing I can think to put here, what ship are we in? ShipType (string).
 			if !${SharedSQLDB.TableExists["MissioneerStats"]}
 			{
 				echo DEBUG - Creating Missioner Stats Table
-				SharedSQLDB:ExecDML["create table MissioneerStats (Timestamp DATETIME, CharName TEXT, CharID INTEGER, RunNumber INTEGER, RoomNumber INTEGER, TripNumber INTEGER, MissionName TEXT, MissionType TEXT, EventType TEXT, RoomBounties REAL, RoomFactionSpawn BOOLEAN, RoomDuration DATETIME, RunLP INTEGER, RunISK REAL, RunDuration DATETIME, ShipType TEXT);"]
+				SharedSQLDB:ExecDML["create table MissioneerStats (Timestamp DATETIME, CharName TEXT, CharID INTEGER, RunNumber INTEGER, RoomNumber INTEGER, TripNumber INTEGER, MissionName TEXT, MissionType TEXT, EventType TEXT, RoomBounties REAL, RoomFactionSpawn BOOLEAN, RoomDuration DATETIME, RunLP INTEGER, RunISK REAL, RunDuration DATETIME, RunTotalBounties REAL, ShipType TEXT);"]
 			}			
 			
 			; I lied, one more shared table remains. The shared table that the Salvagers will use.
@@ -1075,6 +1105,8 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	; We will set that row to Historical, update any final details that need to be updated, clean up any variables that need cleaning up.
 	member:bool FinishingAgentInteraction()
 	{
+		; Storing our wallet just before we hit complete button.
+		ISKBeforeCompletion:Set[${Me.Wallet.Balance}]
 		; Open a conversation window, again.
 		if !${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
 		{
@@ -1092,6 +1124,11 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			EVEWindow[AgentConversation_${CurrentAgentID}].Button["Complete Mission"]:Press
 			return FALSE
 		}
+		This:InsertState["Idle", 2000]
+		; Storing our wallet just after we hit the complete button.
+		ISKAfterCompletion:Set[${Me.Wallet.Balance}]
+		; Mission Completion MissioneerStats Update
+		This:UpdateMissioneerStats["RunComplete"]
 		if $EVEWindow[AgentConversation_${CurrentAgentID}].Button["Request Mission"](exists)}
 		{
 			;We can be fairly sure the mission completed correctly.
@@ -1154,6 +1191,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		variable string PickupLocation
 		variable string DropoffLocation
 		variable bool Lowsec
+		variable int LPReward
 		; These will be derived from the above.
 		; JumpDistance is how many jumps to the Agent from where we are, then from the agent to the mission location. Volume per is just total volume / units.
 		; Aaaactually, I can't think of a great way to get JumpDistance, the pathing won't behave correctly. It ignores autopilot settings and whatnot.
@@ -1212,13 +1250,14 @@ objectdef obj_Mission2 inherits obj_StateQueue
 				PickupLocation:Set[${LastPickup}]
 				DropoffLocation:Set[${LastDropoff}]
 				Lowsec:Set[${LastLowsec}]
+				LPReward:Set[${LastLPReward}]
 				; Derived information
 				if ${LastItemUnits} > 0
 					VolumePer:Set[${Math.Calc[${LastItemVolume} / ${LastItemUnits}]}]
 				; Assemble information and prepare to Insert into Table
-				; (AgentID INTEGER PRIMARY KEY, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, AgentLocation TEXT, MissionLocation TEXT, DropoffLocation TEXT, PickupLocation TEXT, Lowsec BOOLEAN, JumpDistance INTEGER, ExpectedItems TEXT, ItemUnits INTEGER, ItemVolume REAL,
+				; (AgentID INTEGER PRIMARY KEY, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, AgentLocation TEXT, MissionLocation TEXT, DropoffLocation TEXT, PickupLocation TEXT, Lowsec BOOLEAN, JumpDistance INTEGER, ExpectedItems TEXT, ItemUnits INTEGER, ItemVolume REAL, MissionLPReward INTEGER
 				;   VolumePer REAL, DestroyTarget TEXT, LootTarget TEXT, Damage2Deal TEXT);"]
-				This:MissionJournalUpsert[${AgentID},${MissionName.ReplaceSubstring[','']}, ${MissionType}, ${MissionStatus}, ${AgentLocation.ReplaceSubstring[','']}, ${MissionLocation.ReplaceSubstring[','']}, ${DropoffLocation.ReplaceSubstring[','']}, ${PickupLocation.ReplaceSubstring[','']}, ${Lowsec},${JumpDistance}, ${ExpectedItems.ReplaceSubstring[','']}, ${ItemUnits}, ${ItemVolume}]
+				This:MissionJournalUpsert[${AgentID},${MissionName.ReplaceSubstring[','']}, ${MissionType}, ${MissionStatus}, ${AgentLocation.ReplaceSubstring[','']}, ${MissionLocation.ReplaceSubstring[','']}, ${DropoffLocation.ReplaceSubstring[','']}, ${PickupLocation.ReplaceSubstring[','']}, ${Lowsec},${JumpDistance}, ${ExpectedItems.ReplaceSubstring[','']}, ${ItemUnits}, ${ItemVolume}, ${LPReward}, ${DestroyTarget.ReplaceSubstring[','']},${LootTarget.ReplaceSubstring[','']},${Damage2Deal}]
 				if ${EVEWindow[AgentConversation_${AgentID}](exists)}
 				{
 					This:LogInfo["Entry Processed, closing window"]
@@ -1231,8 +1270,7 @@ objectdef obj_Mission2 inherits obj_StateQueue
 			; So we know we've completed this.
 			DatabasificationComplete:Set[TRUE]
 		}
-		
-	
+
 	}
 	; This method will be used to do our Agent Conversation HTML parsing. Because the existing stuff is just too damn easy.
 	; We will also be using Agent ID instead of Index, because I'm a rebel. This can't possibly come back to haunt me.
@@ -1307,6 +1345,15 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		; Find the m3
 		variable int Findm3A
 		variable int Findm3B
+		; Our last deal, we need to get the Loyalty Point reward from this garbage fire.
+		; Find "Loyalty Points"
+		variable int FindLP
+		; Storage substring
+		variable string JSONObjectiveString8
+		; Find the > again
+		variable int FindPointyThing3
+		; Last storage substring I hope
+		variable string JSONOBjectiveString8B
 
 		; Lets make sure the agent conversation window actually opened... I doubt this will actually work as a recovery method...
 		if !${EVEWindow[AgentConversation_${AgentID}](exists)}
@@ -1436,19 +1483,170 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		}
 		else
 			LastItemVolume:Set[0]
-	
+		; Final goddamn thing, we need to parse the LP reward for this mission.
+		if ${JSONObjective.AsJSON.Find["Loyalty Points"]}
+		{
+			FindLP:Set[${Math.Calc[${JSONObjective.AsJSON.Find["Loyalty Points"]} - 10]}]
+			JSONObjectiveString8:Set[${JSONObjective.AsJSON.Mid[${FindLP},10].AsJSON]
+			FindPointyThing3:Set[${Math.Calc[${JSONObjectiveString8.AsJSON.Find[2>]} + 2]}]
+			JSONObjectiveString8B:Set[${JSONObjectiveString8.AsJSON.Mid[${FindPointyThing3},10].AsJSON}]
+			LastLPReward:Set[${JSONObjectiveString8B.ReplaceSubstring[\",].Trim}]
+		
+		}
+		else
+			LastLPReward:Set[0]
+	}
+	; This method will be used to databasify NPCs in a mission room, or when new NPCs appear during a mission.
+	;	 RoomNPCInfoInsert(int64 EntityID, int RunNumber, int RoomNumber, string NPCName, string NPCGroup, float NPCBounty)
+	method DatabasifyNPCs()
+	{
+		
+		variable iterator DBNPC
+		; Lets just use TargetList to make this easier.
+		DatabasifyNPC:AddAllNPCs
+		if ${DatabasifyNPC.TargetList.Used} > 0
+		{
+			DatabasifyNPC.TargetList:GetIterator[DBNPC]
+			if ${DBNPC:First(exists)}
+			{
+				do
+				{
+					GetRoomNPCInfo:Set${CharacterSQLDB.ExecQuery["SELECT * FROM RoomNPCInfo WHERE EntityID=${DBNPC.Value} AND RoomNumber=${CurrentRoomNumber} AND RunNumber=${CurrentRunNumber};"]}]
+					if ${GetRoomNPCInfo.NumRows} > 0
+					{
+						GetRoomNPCInfo:Finalize
+						continue
+					}
+					This:RoomNPCInfoInsert[${DBNPC.Value},${CurrentRunNumber},${CurrentRunRoomNumber},'${Entity[${DBNPC.Value}].Name.ReplaceSubstring[','']}','${Entity[${DBNPC.Value}].Group.ReplaceSubstring[','']}',${Entity[${DBNPC.Value}].Bounty}]
+				}
+				while ${DBNPC:Next(exists)}
+			}
+			CharacterSQLDB:ExecDMLTransaction[NPCDBDML]
+		}
 	}
 	; This method will be to help us generate appropriate Status Reports for WatchDogMonitoring
+	;	WatchDogMonitoringUpsert(int64 CharID, int RunNumber, string MissionName, string MissionType, int RoomNumber, int TripNumber, int64 TimeStamp, int64 CurrentTarget, string CurrentDestination, int UnitsMoved)	
 	method UpdateWatchDog()
 	{
-	
+		variable int64 CT
+		variable int64 CD
+		variable index:int WaypointIndex
+		EVE:GetWaypoints[WaypointIndex]
+		
+		if ${Client.InSpace}
+		{
+			if ${Entity[IsActiveTarget = TRUE](exists)}
+				CT:Set[${Entity[IsActiveTarget = TRUE]}]
+			else
+				CT:Set[-1]
+		}
+		else
+			CT:Set[-1]
+			
+		if ${WaypointIndex.Get[1]} != NULL
+			CD:Set[${WaypointIndex.Get[1]}]
+		else
+			CD:Set[-1]
+
+		This:WatchDogMonitoringUpsert[${Me.CharID},${CurrentRunNumber},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType.ReplaceSubstring[','']},${CurrentRunRoomNumber},${CurrentRunTripNumber},${Time.Timestamp},${CT},${CD},${CurrentRunItemUnitsMoved}]
 	
 	}
 	; This method will help us generate an appropriate Missioneer Stats entry.
-	method UpdateMissioneerStats()
+	;	MissioneerStatsInsert(int64 Timestamp, string CharName, int64 CharID, int RunNumber, int RoomNumber, int TripNumber, string MissionName, string MissionType, string EventType, float RoomBounties, bool RoomFactionSpawn, int64 RoomDuration,
+	;		 					int RunLP, float RunISK, int64 RunDuration, float RunTotalBounties, string ShipType)
+	method UpdateMissioneerStats(string EventType)
 	{
+		; ISK, LP, Total Duration
+		variable float 	CRISK = 0
+		variable int 	CRLP = 0
+		variable int64 	CRTD = 0
+		variable float	CRTB = 0
+		
+		variable string ST
+		if ${Client.InSpace}
+			ST:Set[${MyShip.ToEntity.Type}]
+		else
+			ST:Set[${MyShip.ToItem.Type}]
+		
+		; So we don't record the mission ISK/LP reward over and over and over and over. We will record this only on mission completion I guess.
+		if ${EventType.Equal[RunComplete]}
+		{
+			CRISK:Set[${This.RunISK}]
+			CRLP:Set[${CurrentAgentLPReward}]
+			CRTD:Set[${This.RunDuration}]
+			CRTB:Set[${This.TotalBounties}]
+		}
+		This:MissioneerStatsInsert[${Time.TimeStamp},${Me.Name.ReplaceSubstring[','']},${Me.CharID},${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunTripNumber},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType.ReplaceSubstring[','']},${EventType},${This.RoomBounties},${This.RoomFactionSpawn},${This.RoomDuration},${CRISK},${CRLP},${CRTD},${CRTB},${ST.ReplaceSubstring[','']}]
+	}
+	; These members will be for the MissionerStatsInsert, just to make getting the information simpler.
+	; First member will be for tallying up the total Bounties in a mission room/area. This will return a Float.
+	; HMMM, I forgot something, some rooms the enemies show up in waves. This is gonna get rather complicated.
+	member:float RoomBounties()
+	{
+		; No bounties in the station, yo.
+		if ${Me.InStation}
+			return 0
+			
+		GetRoomNPCInfo:Set[${CharacterSQLDB.ExecQuery["SELECT Total(NPCBounty) FROM RoomNPCInfo WHERE RunNumber=${CurrentRunNumber} AND RoomNumber=${CurrentRoomNumber};"]}]
+		if ${GetRoomNPCInfo.NumRows} > 0
+		{
+			GetRoomNPCInfo:Finalize
+			return ${GetRoomNPCInfo.GetFieldValue["Total",float]}
+		}
+		else
+			return 0
+	}
+	; Second member will be for identifying whether there has been a faction spawn or not. Going to limit these to faction spawns that are cruiser or larger. A few missions
+	; have things that are technically faction spawns but literally never have anything good, and those are generally frigates. This will return a bool.
+	member:bool RoomFactionSpawn()
+	{
+		GetRoomNPCInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM RoomNPCInfo WHERE (RunNumber=${CurrentRunNumber} AND RoomNumber=${CurrentRoomNumber}) AND (NPCGroup LIKE '%Commander Cruiser%' OR NPCGroup LIKE '%Commander Battlecruiser%' OR NPCGroup LIKE '%Commander Battleship%');"]}]
+		if ${GetRoomNPCInfo.NumRows} > 0
+		{
+			GetRoomNPCInfo:Finalize
+			return TRUE
+		}
+		else
+			return FALSE
+
+	}
+	; Third member will be for how long the current room has lasted. This will return a number of milliseconds as an int64.
+	member:int64 RoomDuration()
+	{
+		; I technically could restore this variable from DB information but meh.
+		if ${CurrentRoomStartTime} == 0
+			return 0
+		else
+			return ${Math.Calc[${CurrentRoomEndTime}-${CurrentRoomStartTime}]}
+	}
+	; Fourth member will be for getting the ISK reward for doing this mission. Reward + bonus. Returns a float.
+	; This will also include parsing HTML so fuckin kill me now.
+	; Addendum, we can do this without parsing. Record wallet balance just before mission completion and then again just after. Boom, isk difference was the mission reward, probably.
+	member:float RunISK()
+	{
+		return ${Math.Calc[${ISKAfterCompletion}-${ISKBeforeCompletion}]}
+	}
+	; Fifth and final member in this area will be for returning how long the entire run has taken, beginning to end. Returns milliseconds as an int64.
+	member:int64 RunDuration()
+	{
+		; This shouldn't come up, because this variable IS restored from DB.
+		if ${CurrentRunStartTimestamp} == 0
+			return 0
+		else
+			return ${Math.Calc[${CurrentRunFinalTimestamp}-${CurrentRunStartTimestamp}]}		
 	
-	
+	}
+	; Sixth and actual final member in this area will be for the total bounties for the entire run.
+	member:float TotalBounties()
+	{
+		GetRoomNPCInfo:Set[${CharacterSQLDB.ExecQuery["SELECT Total(NPCBounty) FROM RoomNPCInfo WHERE RunNumber=${CurrentRunNumber};"]}]
+		if ${GetRoomNPCInfo.NumRows} > 0
+		{
+			GetRoomNPCInfo:Finalize
+			return ${GetRoomNPCInfo.GetFieldValue["Total",float]}
+		}
+		else
+			return 0	
 	}
 	; This method will be for resolving our damage type. So we know what ammo and drones to load for a combat mission.
 	method ResolveDamageType(string DmgType)
@@ -1507,7 +1705,6 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		; Pulling our current (run) variables back out. There is no way for this to not return a row, or we wouldn't have gotten here.
 		if ${GetMissionLogCombined.NumRows} > 0
 		{
-			${GetMissionLogCombined.GetFieldValue["RoomNumber",int]}
 			CurrentRunNumber:Set[${GetMissionLogCombined.GetFieldValue["RunNumber",int]}]
 			CurrentRunRoomNumber:Set[${GetMissionLogCombined.GetFieldValue["RoomNumber",int]}]
 			CurrentRunStartTimestamp:Set[${GetMissionLogCombined.GetFieldValue["StartingTimestamp",int]}]
@@ -1527,6 +1724,8 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		if ${GetDBJournalInfo.NumRows} > 0
 		{
 			; Pulling our current (agent) variables back out.
+			if ${GetDBJournalInfo.GetFieldValue["MissionLPReward",int]} > 0
+				CurrentAgentLPReward:Set[${GetDBJournalInfo.GetFieldValue["MissionLPReward",int]}]
 			if ${GetDBJournalInfo.GetFieldValue["ExpectedItems",string].NotNULLOrEmpty}
 				CurrentAgentItem:Set[${GetDBJournalInfo.GetFieldValue["ExpectedItems",string]}]
 			if ${GetDBJournalInfo.GetFieldValue["ItemUnits",int]} >= 1
@@ -1645,11 +1844,11 @@ objectdef obj_Mission2 inherits obj_StateQueue
 		; Now that I think about it, is there even a situation where the normal cargo hold will be larger than the fleet hangar or the ore bay if a ship has either one of those???
 	}
 	; This method will be for inserting information into the MissionJournal table. This will naturally be an Upsert.
-	; (AgentID INTEGER PRIMARY KEY, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, AgentLocation TEXT, MissionLocation TEXT, DropoffLocation TEXT, PickupLocation TEXT, Lowsec BOOLEAN, JumpDistance INTEGER, ExpectedItems TEXT, ItemUnits INTEGER, ItemVolume REAL,
+	; (AgentID INTEGER PRIMARY KEY, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, AgentLocation TEXT, MissionLocation TEXT, DropoffLocation TEXT, PickupLocation TEXT, Lowsec BOOLEAN, JumpDistance INTEGER, ExpectedItems TEXT, ItemUnits INTEGER, ItemVolume REAL, MissionLPReward int
 	;   VolumePer REAL, DestroyTarget TEXT, LootTarget TEXT, Damage2Deal TEXT);"]
-	method MissionJournalUpsert(int64 AgentID, string MissionName, string MissionType, int MissionStatus, string AgentLocation, string MissionLocation, string DropoffLocation, string PickupLocation, bool Lowsec, int JumpDistance, string ExpectedItems, int ItemUnits, float ItemVolume, float VolumePer, string DestroyTarget, string LootTarget, string Damage2Deal)
+	method MissionJournalUpsert(int64 AgentID, string MissionName, string MissionType, int MissionStatus, string AgentLocation, string MissionLocation, string DropoffLocation, string PickupLocation, bool Lowsec, int JumpDistance, string ExpectedItems, int ItemUnits, float ItemVolume, int MissionLPReward, float VolumePer, string DestroyTarget, string LootTarget, string Damage2Deal)
 	{
-		CharacterSQLDB:ExecDMLTransaction["insert into MissionJournal (AgentID,MissionName,MissionType,MissionStatus,AgentLocation,MissionLocation,DropoffLocation,PickupLocation,Lowsec,JumpDistance,ExpectedItems,ItemUnits,ItemVolume,VolumePer,DestroyTarget,LootTarget,Damage2Deal) values (${AgentID}, '${MissionName}', '${MissionType}', ${MissionStatus}, '${AgentLocation}', '${MissionLocation}', '${DropoffLocation}', '${PickupLocation}', ${Lowsec}, ${JumpDistance}, '${ExpectedItems}', ${ItemUnits}, ${ItemVolume}, ${VolumePer}, '${DestroyTarget}','${Damage2Deal}') ON CONFLICT (AgentID) DO UPDATE SET MissionName=excluded.MissionName, MissionType=excluded.MissionType, MissionStatus=excluded.MissionStatus, AgentLocation=excluded.AgentLocation, MissionLocation=excluded.MissionLocation, DropoffLocation=excluded.DropoffLocation, PickupLocation=excluded.PickupLocation, Lowsec=excluded.Lowsec, Jumpdistance=excluded.JumpDistance, ExpectedItems=excluded.ExpectedItems, ItemUnits=excluded.ItemUnits, ItemVolume=excluded.ItemVolume, VolumePer=excluded.VolumePer, DestroyTarget=excluded.DestroyTarget, LootTarget=excluded.LootTarget, Damage2Deal=excluded.Damage2Deal;"]
+		CharacterSQLDB:ExecDMLTransaction["insert into MissionJournal (AgentID,MissionName,MissionType,MissionStatus,AgentLocation,MissionLocation,DropoffLocation,PickupLocation,Lowsec,JumpDistance,ExpectedItems,ItemUnits,ItemVolume,MissionLPReward,VolumePer,DestroyTarget,LootTarget,Damage2Deal) values (${AgentID}, '${MissionName}', '${MissionType}', ${MissionStatus}, '${AgentLocation}', '${MissionLocation}', '${DropoffLocation}', '${PickupLocation}', ${Lowsec}, ${JumpDistance}, '${ExpectedItems}', ${ItemUnits}, ${ItemVolume}, ${MissionLPReward}, ${VolumePer}, '${DestroyTarget}','${Damage2Deal}') ON CONFLICT (AgentID) DO UPDATE SET MissionName=excluded.MissionName, MissionType=excluded.MissionType, MissionStatus=excluded.MissionStatus, AgentLocation=excluded.AgentLocation, MissionLocation=excluded.MissionLocation, DropoffLocation=excluded.DropoffLocation, PickupLocation=excluded.PickupLocation, Lowsec=excluded.Lowsec, Jumpdistance=excluded.JumpDistance, ExpectedItems=excluded.ExpectedItems, ItemUnits=excluded.ItemUnits, ItemVolume=excluded.ItemVolume, MissionLPReward=excluded.MissionLPReward, VolumePer=excluded.VolumePer, DestroyTarget=excluded.DestroyTarget, LootTarget=excluded.LootTarget, Damage2Deal=excluded.Damage2Deal;"]
 	}
 	; This method will be for inserting information into the MissionLogCombat table. This will also be an upsert.
 	; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, 
@@ -1675,6 +1874,12 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	{
 		CharacterSQLDB:ExecDMLTransaction["update MissionLogCourier SET TripNumber=${TripNumber}, UnitsMoved=${UnitsMoved}, VolumeMoved=${VolumeMoved}, FinalTimestamp=${FinalTimestamp}, Historical=${Historical} WHERE RunNumber=${CurrentRunNumber};"]
 	}
+	; This method will be for filling out our RoomNPCInfo table. Just an insert, none of the values will ever change.
+	; (EntityID INTEGER PRIMARY KEY, RunNumber INTEGER, RoomNumber INTEGER, NPCName TEXT, NPCGroup TEXT, NPCBounty REAL)
+	method RoomNPCInfoInsert(int64 EntityID, int RunNumber, int RoomNumber, string NPCName, string NPCGroup, float NPCBounty)
+	{
+		NPCDBDML:Insert["insert into RoomNPCInfo (EntityID,RunNumber,RoomNumber,NPCName,NPCGroup,NPCBounty) values (${EntityID},${RunNumber},${RoomNumber},'${NPCName}','${NPCGroup}',${NPCBounty});"]
+	}
 	; This method will be for inserting information into the WatchDogMonitoring table. This will also be an upsert.
 	; (CharID INTEGER PRIMARY KEY, RunNumber INTEGER, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, TripNumber INTEGER, TimeStamp DATETIME, CurrentTarget INTEGER, CurrentDestination TEXT, UnitsMoved INTEGER);"]
 	method WatchDogMonitoringUpsert(int64 CharID, int RunNumber, string MissionName, string MissionType, int RoomNumber, int TripNumber, int64 TimeStamp, int64 CurrentTarget, string CurrentDestination, int UnitsMoved)
@@ -1683,16 +1888,16 @@ objectdef obj_Mission2 inherits obj_StateQueue
 	}
 	; This method will be for inserting information into the MissioneerStats table. This will be a normal insert, no upserts here.
 	; (Timestamp DATETIME, CharName TEXT, CharID INTEGER, RunNumber INTEGER, RoomNumber INTEGER, TripNumber INTEGER, MissionName TEXT, MissionType TEXT, EventType TEXT, RoomBounties REAL, RoomFactionSpawn BOOLEAN,
-	;   RoomDuration DATETIME, RunLP INTEGER, RunISK REAL, RunDuration DATETIME, ShipType TEXT);"]
-	method MissioneerStatsInsert(int64 Timestamp, string CharName, int64 CharID, int RunNumber, int RoomNumber, int TripNumber, string MissionName, string MissionType, string EventType, float RoomBounties, bool RoomFactionSpawn, int64 RoomDuration, int RunLP, float RunISK, int64 RunDuration, string ShipType)
+	;   RoomDuration DATETIME, RunLP INTEGER, RunISK REAL, RunDuration DATETIME, RunTotalBounties REAL, ShipType TEXT);"]
+	method MissioneerStatsInsert(int64 Timestamp, string CharName, int64 CharID, int RunNumber, int RoomNumber, int TripNumber, string MissionName, string MissionType, string EventType, float RoomBounties, bool RoomFactionSpawn, int64 RoomDuration, int RunLP, float RunISK, int64 RunDuration, float RunTotalBounties, string ShipType)
 	{
-		SharedSQLDB:ExecDMLTransaction["insert into MissioneerStats (CharName,CharID,RunNumber,RoomNumber,TripNumber,MissionName,MissionType,EventType,RoomBounties,RoomFactionSpawn,RoomDuration,RunLP,RunISK,RunDuration,ShipType) values ('${CharName}',${CharID},${RunNumber},${RoomNumber},${TripNumber},'${MissionName}','${MissionType}','${EventType}',${RoomBounties},${RoomFactionSpawn},${RoomDuration},${RunLP},${RunISK},${RunDuration},'${ShipType}')
+		SharedSQLDB:ExecDMLTransaction["insert into MissioneerStats (CharName,CharID,RunNumber,RoomNumber,TripNumber,MissionName,MissionType,EventType,RoomBounties,RoomFactionSpawn,RoomDuration,RunLP,RunISK,RunDuration,RunTotalBounties,ShipType) values ('${CharName}',${CharID},${RunNumber},${RoomNumber},${TripNumber},'${MissionName}','${MissionType}','${EventType}',${RoomBounties},${RoomFactionSpawn},${RoomDuration},${RunLP},${RunISK},${RunDuration},${RunTotalBounties},'${ShipType}')
 	}
 	; This method will be for inserting information into the SalvageBMTable table. I don't anticipate this ever needing to be an Upsert.
 	; (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
 	method SalvageBMTableInsert(int64 BMID, string BMName, int WreckCount, string BMSystem, int64 ExpectedExpiration, int64 ClaimedByCharID, int64 SalvageTime, bool Historical)
 	{
-		SharedSQLDB:ExecDMLTransaction["insert into SalvageBMTable (BMID,BMName,WreckCount,BMSystem,ExpectedExpiration,ClaimedByCharID,SalvageTime,Historical) values (${BMID},'${BMName}',${WreckCount},'${BMSystem}',${ExpectedExpiration},${ClaimedByCharID},${SalvageTime},${Historical};"]
+		SharedSQLDB:ExecDMLTransaction["insert into SalvageBMTable (BMID,BMName,WreckCount,BMSystem,ExpectedExpiration,ClaimedByCharID,SalvageTime,Historical) values (${BMID},'${BMName}',${WreckCount},'${BMSystem}',${ExpectedExpiration},${ClaimedByCharID},${SalvageTime},${Historical});"]
 	}
 	; This method is just so a salvager can claim a salvage BM. If you have more than one salvager it is kinda needed.
 	method SalvageBMTableClaim(int64 CharID, int64 BMID)

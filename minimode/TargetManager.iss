@@ -221,11 +221,6 @@ objectdef obj_TargetManager inherits obj_StateQueue
 
 		ActiveNPCs:AddQueryString["IsNPC && !IsMoribund && (${groups})"]
 		ActiveNPCs:AddQueryString["IsNPC && !IsMoribund && IsWarpScramblingMe"]
-		;ActiveNPCs:AddQueryString["IsNPC && !IsMoribund && Name =-\"Plateforger\""]
-		;ActiveNPCs:AddQueryString["IsNPC && !IsMoribund && Name =-\"Renewing\""]
-		;ActiveNPCs:AddQueryString["IsNPC && !IsMoribund && Name =-\"Fieldweaver\""]
-		;ActiveNPCs:AddQueryString["IsNPC && !IsMoribund && ArmorPct < 90"]		
-		;ActiveNPCs:AddQueryString["IsNPC && !IsMoribund && StructurePct < 99"]	
 
 		; Add potential jammers.
 		seperator:Set[""]
