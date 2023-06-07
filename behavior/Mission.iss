@@ -623,11 +623,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		if ${AgentDeclineQueue.Peek}
 		{
 			EVE.Agent[id,${AgentDeclineQueue.Peek}]:StartConversation
-			if !${EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}](exists)}
-			{
-				This:LogInfo["Waiting on Conversation Window"]
-				return FALSE
-			}
 			if ${EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}].Button["View Mission"](exists)}
 			{
 				EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}].Button["View Mission"]:Press
@@ -1031,7 +1026,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			; The following method is basically just to initialize our Current Run stats.
 			; First argument on this will be the capacity of our largest bay, second argument will be the total volume of mission
 			This:SetCurrentRunDetails[${HaulerLargestBayCapacity},${CurrentAgentVolumeTotal}]
-			This:MissionLogCourierUpsert[${CurrentRunNumber},${CurrentStartTimestamp},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType},${CurrentRunTripNumber},${CurrentRunExpectedTrips},${CurrentAgentDropoff},${CurrentAgentPickup},${CurrentAgentItemUnits},${CurrentAgentVolumeTotal},${CurrentRunItemUnitsMoved},${CurrentRunVolumeMoved},${CurrentRunFinalTimestamp},FALSE]
+			This:MissionLogCourierUpsert[${CurrentRunNumber},${Time.Timestamp},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType},${CurrentRunTripNumber},${CurrentRunExpectedTrips},${CurrentAgentDropoff},${CurrentAgentPickup},${CurrentAgentItemUnits},${CurrentAgentVolumeTotal},${CurrentRunItemUnitsMoved},${CurrentRunVolumeMoved},${CurrentRunFinalTimestamp},FALSE]
 			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
 			{
 				GetDBJournalInfo:Finalize
@@ -1062,7 +1057,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			This:InsertState["GetHaulerDetails",5000]
 			; Do know why I did this.
 			This:SetCurrentRunDetails[${HaulerLargestBayCapacity},${CurrentAgentVolumeTotal}]
-			This:MissionLogCombatUpsert[${CurrentRunNumber},${CurrentStartTimestamp},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${CurrentRunFinalTimestamp},FALSE]
+			This:MissionLogCombatUpsert[${CurrentRunNumber},${Time.Timestamp},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${CurrentRunFinalTimestamp},FALSE]
 			GetDBJournalInfo:Finalize
 			EVEWindow[AgentConversation_${CurrentAgentID}]:Close
 			This:QueueState["MissionPrep",5000]
