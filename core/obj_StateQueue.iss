@@ -65,7 +65,7 @@ objectdef obj_StateQueue inherits obj_Logger
 					CurState:Set[${States.Peek.Name}, ${States.Peek.Frequency}, "${States.Peek.Args.Escape}"]
 					if ${ReportIdle}
 					{
-						UI:Log["${This(type)} State Change: ${States.Peek.Name}", TRUE]
+						This:LogInfo["${This(type)} State Change: ${States.Peek.Name}", TRUE]
 					}
 					States:Dequeue
 				}

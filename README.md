@@ -96,3 +96,24 @@ If the DB has that info then it will consider that pilot done and move on to the
 if they do not then we get to update that info.
 What other things might we be able to do with SQL? I don't know, what do you do with lots of historical information? Figure it out. We probably  could also use our DB to keep track of slightly more
 mundane things like daily increases in ISK and Loyalty Points. Possibly even going as granular as looking at each individual transaction. I like watching number go up.
+
+_______________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+June 7th, 7:45 AM. My god what hubris this has all been. Observers work quite well, have rather gigantic DBs full of pilot sightings.
+Set your main mode of the bot to Observer.
+Choose what your Observer will be watching, set the name of the bookmark if applicable, and set the Orbit Distance if it is a mode that Orbits.
+Activate the minimodes ISXSQLiteTest, LavishNavTest, AutoModule (make sure you have a cloak or you will go evasive)[it is set up to dart around the system if decloaked].
+Also, use the chat relay option and minimode if you want to relay your sightings to IRC, and then use a bot to relay that to discord! Or, after seeing how easy Discord integration
+is, wait for me to implement that as an option. It is literally like 3 lines of code, ridiculous.
+
+Onwards. Mission mainmode is being totally reworked. I want to be able to do Combat missions, Courier Missions, Storyline Combat/Courier/Trade missions. Tired
+of watching those pile up in my journal. Also tired of breaking mission chains due to one simple easy courier in the middle.
+
+AS OF RIGHT NOW - Courier missions are operational, I need to do a lot of testing to verify that, but it seems to be workable.
+Combat missions are not re-implemented yet.
+Trade missions should theoretically work.
+
+Coming up in the future: Finishing the Missioneer 2.0 rewrite. Implementing better use of the statistics the missioneers will be generating. Setting up
+a new and better watchdog to help you get unstuck, using those stats we are gathering.
+
+Sidenote: I have been pouring shitloads of time into this, but we can't stop now. Be patientish and it will pay off. Or maybe this will all be trash in the end idk.

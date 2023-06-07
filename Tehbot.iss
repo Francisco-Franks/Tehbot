@@ -104,7 +104,7 @@ function main(string Character="")
 	declarevariable Salvager obj_Salvager script
 	declarevariable MissionParser obj_MissionParser script
 	declarevariable Mission obj_Mission script
-	declarevariable Mission2 obj_Mission2 script
+	;declarevariable Mission2 obj_Mission2 script
 	declarevariable Abyssal obj_Abyssal script
 	declarevariable Mining obj_Mining script
 	declarevariable CombatAnoms obj_CombatAnoms script

@@ -614,7 +614,7 @@ objectdef obj_Move inherits obj_StateQueue
 							if ${Me.StationID} == ${b.Value.ItemID}
 							{
 								Logger:Log["Move", "Docked", "o"]
-								Logger:Log["Move", " ${Me.Station.Name]}", "-g"]
+								Logger:Log["Move", " ${Me.Station.Name}", "-g"]
 								This.Traveling:Set[FALSE]
 								return TRUE
 							}

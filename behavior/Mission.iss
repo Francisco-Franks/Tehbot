@@ -13,82 +13,8 @@ objectdef obj_Configuration_Agents inherits obj_Configuration_Base
 	method Set_Default_Values()
 	{
 		ConfigManager.ConfigRoot:AddSet[${This.SetName}]
-		This.ConfigRef:AddSet["Fykalia Adaferid"]
-		This.AgentRef["Fykalia Adaferid"]:AddSetting[AgentIndex, 9591]
-		This.AgentRef["Fykalia Adaferid"]:AddSetting[AgentID, 3018920]
-		This.AgentRef["Fykalia Adaferid"]:AddSetting[NextDeclineableTime, ${Utility.EVETimestamp}]
 	}
 
-	member:int AgentIndex(string name)
-	{
-		Logger:Log["obj_Configuration_Agents: AgentIndex ${name}"]
-		return ${This.AgentRef[${name}].FindSetting[AgentIndex, 9494]}
-	}
-
-	method SetAgentIndex(string name, int value)
-	{
-		Logger:Log["obj_Configuration_Agents: SetAgentIndex ${name} ${value}"]
-		if !${This.ConfigRef.FindSet[${name}](exists)}
-		{
-			This.ConfigRef:AddSet[${name}]
-		}
-
-		This.AgentRef[${name}]:AddSetting[AgentIndex, ${value}]
-	}
-
-	member:int AgentID(string name)
-	{
-		Logger:Log["obj_Configuration_Agents: AgentID ${name}"]
-		return ${This.AgentRef[${name}].FindSetting[AgentID, 3012267]}
-	}
-
-	method SetAgentID(string name, int value)
-	{
-		Logger:Log["obj_Configuration_Agents: SetAgentID ${name} ${value}"]
-		if !${This.ConfigRef.FindSet[${name}](exists)}
-		{
-			This.ConfigRef:AddSet[${name}]
-		}
-
-		This.AgentRef[${name}]:AddSetting[AgentID, ${value}]
-	}
-
-	member:int NextDeclineableTime(string name)
-	{
-		Logger:Log["obj_Configuration_Agents", "NextDeclineableTime ${name} ${This.AgentRef[${name}].FindSetting[NextDeclineableTime, 0]}", "", LOG_DEBUG]
-		return ${This.AgentRef[${name}].FindSetting[NextDeclineableTime, 0]}
-	}
-
-	member:int SecondsTillDeclineable(string name)
-	{
-		; Logger:Log["obj_Configuration_Agents", "SecondsTillDeclineable ${name}", "", LOG_DEBUG]
-		if ${This.NextDeclineableTime[${name}]} < ${Utility.EVETimestamp}
-		{
-			return 0
-		}
-		return ${Math.Calc[${This.NextDeclineableTime[${name}]} - ${Utility.EVETimestamp}]}
-	}
-
-	member:bool CanDeclineMission(string name)
-	{
-		; Logger:Log["obj_Configuration_Agents", "CanDeclineMission ${name}", "", LOG_DEBUG]
-		if ${This.NextDeclineableTime[${name}]} < ${Utility.EVETimestamp}
-		{
-			return TRUE
-		}
-		return FALSE
-	}
-
-	method SetNextDeclineableTime(string name, int value)
-	{
-		; Logger:Log["obj_Configuration_Agents", "SetNextDeclineableTime ${name} ${value}", "", LOG_DEBUG]
-		if !${This.ConfigRef.FindSet[${name}](exists)}
-		{
-			This.ConfigRef:AddSet[${name}]
-		}
-
-		This.AgentRef[${name}]:AddSetting[NextDeclineableTime, ${value}]
-	}
 }
 
 objectdef obj_Configuration_Mission inherits obj_Configuration_Base
@@ -101,32 +27,51 @@ objectdef obj_Configuration_Mission inherits obj_Configuration_Base
 	method Set_Default_Values()
 	{
 		ConfigManager.ConfigRoot:AddSet[${This.SetName}]
-		This.ConfigRef:AddSetting[AmmoAmountToLoad, 100]
-		This.ConfigRef:AddSetting[BatteryToBring, ""]
-		This.ConfigRef:AddSetting[BatteryAmountToBring, 0]
-		This.ConfigRef:AddSetting[DeclineLowSec, TRUE]
-		This.ConfigRef:AddSetting[AggressiveMode, FALSE]
-		This.ConfigRef:AddSetting[IgnoreNPCSentries, FALSE]
-		This.ConfigRef:AddSetting[OverloadThrust, FALSE]
-		This.ConfigRef:AddSetting[DeactivateSiegeModuleEarly, FALSE]
-		This.ConfigRef:AddSetting[SalvagePrefix, "Salvage: "]
-		This.ConfigRef:AddSetting[LogLevelBar, LOG_INFO]
+		This.ConfigRef:AddSetting[RunNumberInt, 1]
 	}
-
 	Setting(bool, Halt, SetHalt)
+	; This bool indicates we want to repeatedly Decline missions despite the standings damage
+	; It is implied you know what you are doing with this. We won't be running multiple agents in this Tehbot fork.
+	Setting(bool, RepeatedlyDecline, SetRepeatedlyDecline)
+	; This bool indicates we want to run Combat Missions.
+	Setting(bool, DoCombat, SetDoCombat)
+	; This bool indicates we want to run courier Missions. If the above is selected as well
+	; then it is implied you are running combat missions and also the occasional courier missions that crop up.
+	Setting(bool, DoCourier, SetDoCourier)
+	; This bool indicates we want to do Storyline missions that meet our other set criteria.
+	; This implies you want to do Combat missions (if selected), Courier Missions (if selected), and Trade Mission Turnins (no selection) of the Storyline type.
+	; If a combat mission isn't configured, but selected, we will just ignore it. If courier is selected, be damn well sure you have a ship that can do it efficiently.
+	; If you have this checked, and since trade missions are implied, you SHOULD have a hauler of some type configured. If you have no hauler configured then Trade type storylines will be ignored.
+	; If we are set to avoid lowsec, and there is lowsec at the source, destination, or anywhere in between, we will ignore the storyline.
+	Setting(bool, DoStoryline, SetDoStoryline)
+	; Do storyline combat missions
+	Setting(bool, DoStorylineCombat, SetDoStorylineCombat)
+	; The literal names of your combat and courier ships. In case we need to swap between them.
+	Setting(string, CombatShipName, SetCombatShipName)
+	Setting(string, CourierShipName, SetCourierShipName)
+	; Literal name of your ore hauler for trade missions
+	Setting(string, TradeShipName, SetTradeShipName)
+	; Literal name of a fast, low volume courier ship.
+	Setting(string, FastCourierShipName, SetFastCourierShipName)
+	; These will be settings taken from the original that still go on page 1 of the UIElement
+	Setting(bool, IgnoreNPCSentries, SetIgnoreNPCSentries)
+	; This is just what we name our Salvage BMs. If we are going to use the new salvager that I am supposedly making
+	; this is kinda superfluous. But whatever. Maybe its good for backwards compat.
+	Setting(string, SalvagePrefix, SetSalvagePrefix)	
+	; What is the name of the folder your salvage bookmarks should be placed in. MAKE SURE THIS EXISTS
+	; I don't remember what sanity checks exist on the isxeve side of things here, so lets assume the worst and that if you fuck this up the world will literally end.
+	Setting(string, SalvageBMFolderName, SetSalvageBMFolderName)
+	; This is the name of the XML in Data with your mission info in it.
+	Setting(string, MissionFile, SetMissionFile)	
+	; This bool indicates we want to stay out of Lowsec
+	Setting(bool, DeclineLowSec, SetDeclineLowSec)
+
+	
+	
+	; Page 2 of the UI  Begins
+	; Ammo and drone stuff
 	Setting(bool, UseSecondaryAmmo, SetSecondary)
 	Setting(bool, UseDrones, SetDrones)
-	Setting(bool, RangeLimit, SetRangeLimit)
-	Setting(bool, DeclineLowSec, SetDeclineLowSec)
-	Setting(bool, DropOffToContainer, SetDropOffToContainer)
-	Setting(bool, AggressiveMode, SetAggressiveMode)
-	Setting(bool, IgnoreNPCSentries, SetIgnoreNPCSentries)
-	Setting(bool, OverloadThrust, SetOverloadThrust)
-	Setting(bool, DeactivateSiegeModuleEarly, SetDeactivateSiegeModuleEarly)
-	Setting(string, SalvagePrefix, SetSalvagePrefix)
-	Setting(string, DropOffContainerName, SetDropOffContainerName)
-	Setting(string, MunitionStorage, SetMunitionStorage)
-	Setting(string, MunitionStorageFolder, SetMunitionStorageFolder)
 	Setting(string, DroneType, SetDroneType)
 	Setting(string, MissionFile, SetMissionFile)
 	Setting(string, KineticAmmo, SetKineticAmmo)
@@ -138,76 +83,170 @@ objectdef obj_Configuration_Mission inherits obj_Configuration_Base
 	Setting(string, EMAmmoSecondary, SetEMAmmoSecondary)
 	Setting(string, ExplosiveAmmoSecondary, SetExplosiveAmmoSecondary)
 	Setting(int, AmmoAmountToLoad, SetAmmoAmountToLoad)
-	Setting(string, BatteryToBring, SetBatteryToBring)
-	Setting(int, BatteryAmountToBring, SetBatteryAmountToBring)
-	Setting(int, LogLevelBar, SetLogLevelBar)
+	
+	; Page 3 of the UI begins
+	; Storage and Misc
+	
+	Setting(bool, DropOffToContainer, SetDropOffToContainer)	
+	Setting(string, DropOffContainerName, SetDropOffContainerName)	
+	Setting(string, MunitionStorage, SetMunitionStorage)
+	Setting(string, MunitionStorageFolder, SetMunitionStorageFolder)
+	; No guarantee that I will get this working but, this setting indicates that you are going to be helping a different bot with their missions
+	Setting(bool, SidekickMode, SetSidekickMode)
+	; Literal character name of whoever you are helping as a sidekick.
+	Setting(string, PrimaryName, SetPrimaryName)
+
+	; This won't go in the UI anywhere, just need a persistent storage for our Run Number because I'm lazy.
+	; To be honest, mostly just need this to initialize the number the first time around. This will be incremented after each mission completion.
+	Setting(int, RunNumberInt, SetRunNumberInt)
+
 }
 
 objectdef obj_Mission inherits obj_StateQueue
 {
-	;;;;;;;;;; Mission database.
-	variable index:string DontFightFaction
+	; This DB will be specific to the particular character
+	variable sqlitedb CharacterSQLDB
+	; This DB will be Shared by all clients on this machine.
+	variable sqlitedb SharedSQLDB
+	; Bool so we don't spam WAL all day
+	variable bool WalAssurance = FALSE	
+	
+	; SQLite Queries
+	; For getting general info from the MissionJournal Table
+	variable sqlitequery GetDBJournalInfo
+	; For getting info about our current combat mission
+	variable sqlitequery GetMissionLogCombat
+	; For getting info about our current courier mission
+	variable sqlitequery GetMissionLogCourier
+	; Multi-purpose query for using less lines to do a mid-run recovery
+	variable sqlitequery GetMissionLogCombined
+	; RoomNPCInfo lookup query
+	variable sqlitequery GetRoomNPCInfo
+
+	; This queue will store the AgentIDs of agents we need to contact to decline their missions as part of CurateMissions state.
+	variable queue:int64 AgentDeclineQueue
+
+	; Have we checked our mission logs?
+	variable bool CheckedMissionLogs
+	; Have we completed our Databasification? This bool indicates such.
+	variable bool DatabasificationComplete = FALSE
+	; index where we place our strings for SQL execution
+	variable index:string DML
+
+	; These are needed to store what comes out of my HTML parsing method. Because I can't remember if the method has its own scope, inherits scope from where it is called, or takes the entire scripts scope.
+	variable string LastAgentLocation
+	variable string LastMissionLocation
+	variable string LastExpectedItems
+	variable int	LastItemUnits
+	variable int64	LastItemVolume
+	variable bool	LastLowsec
+	variable string LastDropoff
+	variable string LastPickup
+	variable string LastLPReward
+	variable int64	LastPickupID
+	variable int64	LastDropoffID
+	
+	; Storage variables for our Current (selected) Agent / Mission
+	variable int64	CurrentAgentID
+	variable int64	CurrentAgentIndex
+	variable string CurrentAgentLocation
+	variable string CurrentAgentShip
+	variable string CurrentAgentItem
+	variable int	CurrentAgentItemUnits
+	variable int64	CurrentAgentVolumePer
+	variable int64	CurrentAgentVolumeTotal
+	variable string CurrentAgentPickup
+	variable int64	CurrentAgentPickupID
+	variable string CurrentAgentDropoff
+	variable int64	CurrentAgentDropoffID
+	variable string CurrentAgentDamage
+	variable string CurrentAgentDestroy
+	variable string CurrentAgentLoot
+	variable string	CurrentAgentMissionName
+	variable string CurrentAgentMissionType
+	variable int	CurrentAgentLPReward
+	
+	; Storage variables for our Current Run
+	variable int	CurrentRunNumber
+	variable int	CurrentRunRoomNumber
+	variable int64	CurrentRunStartTimestamp
+	variable bool	CurrentRunKilledTarget
+	variable bool	CurrentRunVanquisher
+	variable bool	CurrentRunContainerLooted
+	variable bool	CurrentRunHaveItems
+	variable bool	CurrentRunTechnicalComplete
+	variable bool	CurrentRunTrueComplete
+	variable int64	CurrentRunFinalTimestamp
+	variable int	CurrentRunTripNumber
+	variable int	CurrentRunExpectedTrips
+	variable int	CurrentRunItemUnitsMoved
+	variable int64	CurrentRunVolumeMoved
+	variable int64	CurrentRunISKReward
+	
+	; Courier Mission State Specific Variables
+	variable int	CourierMissionShipItems
+	variable int 	CourierMissionStationItems
+	; Not sure if I need to get this granular
+	;variable int	CourierMissionPickupStationItems
+	;variable int	CourierMissionDropoffStationItems
+	variable string	CourierMissionTravelState
+
+
+
+	; Some variable for our current room
+	variable int64	CurrentRoomStartTime
+	variable int64	CurrentRoomEndTime
+	
+	; Some variables about our current hauler, either for courier or for trade. Whatever we are flying at the moment.
+	variable string	HaulerLargestBayType
+	variable int64	HaulerLargestBayCapacity
+	variable bool	HaulerLargestBayOreLimited
+	variable string	HaulerLargestBayLocationFlag
+	
+	; Need an index of strings so we can handle the NPC databasification more easily.
+	variable index:string NPCDBDML
+	; Need this bool in case we go to change ships, and fail to do so.
+	variable bool	FailedToChangeShip = FALSE
+	; More bespoke bools
+	variable bool	ShipCargoChecked
+	variable bool	ShipFleetHangarChecked
+	variable bool	ShipOreBayChecked
+	variable bool	LargestBayRefreshed
+	variable bool	CorpHangarRefreshed
+	variable bool	StationHangarRefreshed
+
+	; Two more variables so we can record our wallet just BEFORE we complete a mission, and again just AFTER.
+	; Doing this so we can get the isk reward for the mission quantified without dealing with parsing HTML.
+	variable int64 ISKBeforeCompletion
+	variable int64 ISKAfterCompletion
+	
+	; Recycled variables from the original
+	variable string ammo
+	variable string secondaryAmmo
+	variable int	useDroneRace = 0
+	variable obj_Configuration_Mission Config
+	variable obj_Configuration_Agents Agents
+	variable obj_MissionUI2 LocalUI
+	variable bool 	reload = TRUE
+	variable bool	halt = FALSE
+
+	
+	variable index:string AgentList	
 	variable set BlackListedMission
 	variable collection:string DamageType
 	variable collection:string TargetToDestroy
 	variable collection:string ContainerToLoot
-	variable collection:float64 CapacityRequired
-	; (Optional) Bring key to mission when available
-	variable collection:string GateKey
-	; Look for mission key in cargo if didn't bring
-	variable collection:string GateKeyContainer
-	; To be deprecated.
-	variable collection:string DeliverItemContainer
-
-	;;;;;;;;;; Used when picking agents.
-	variable index:string AgentList
-	variable set CheckedAgent
-	variable int validOfferAgentCandidateIndex = 0
-	variable int validOfferAgentCandidateDistance = 0
-	variable int noOfferAgentCandidateIndex = 0
-	variable int noOfferAgentCandidateDistance = 0
-	variable int invalidOfferAgentCandidateIndex = 0
-	variable int invalidOfferAgentCandidateDistance = 0
-	variable int invalidOfferAgentCandidateDeclineWaitTime = 0
-
-	;;;;;;;;;; current mission data.
-	variable int currentAgentIndex = 0
-	variable string targetToDestroy
-	variable string ammo
-	variable string secondaryAmmo
-	variable string containerToLoot
-	variable string aquireItem
-	variable string gateKey
-	variable string gateKeyContainer
-	variable string deliverItem
-	variable string deliverItemContainer
-	variable int useDroneRace = 0
-	variable bool haveGateKeyInCargo = FALSE
-	variable bool haveDeliveryInCargo = FALSE
-
-	;;;;;;;;;; Used when performing mission.
-	; If a target can't be killed within 2 minutes, something is going wrong.
-	variable int maxAttackTime
-	variable int switchTargetAfter = 120
-
-	variable set AllowDronesOnNpcClass
-	variable obj_TargetList NPCs
-	variable obj_TargetList ActiveNPCs
-	variable obj_TargetList Lootables
-
-	variable obj_Configuration_Mission Config
-	variable obj_Configuration_Agents Agents
-	variable obj_MissionUI LocalUI
-
-	variable bool reload = TRUE
-	variable bool isLoadingFallbackDrones
-	variable bool halt = FALSE
-
+	variable collection:int64 CapacityRequired
+	
+	; Target list(s)
+	; TargetList for DatabasifyNPCs method.
+	variable obj_TargetList DatabasifyNPC
+	
 	method Initialize()
 	{
 		This[parent]:Initialize
 
-		DynamicAddBehavior("Mission", "Combat Missions")
+		DynamicAddBehavior("Mission", "Missioneer 2")
 		This.PulseFrequency:Set[3500]
 
 		This.LogInfoColor:Set["g"]
@@ -217,15 +256,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		Event[Tehbot_ScheduleHalt]:AttachAtom[This:ScheduleHalt]
 		LavishScript:RegisterEvent[Tehbot_ScheduleResume]
 		Event[Tehbot_ScheduleResume]:AttachAtom[This:ScheduleResume]
-
-		Lootables:AddQueryString["(GroupID = GROUP_WRECK || GroupID = GROUP_CARGOCONTAINER) && !IsMoribund"]
-
-		AllowDronesOnNpcClass:Add["Frigate"]
-		AllowDronesOnNpcClass:Add["Destroyer"]
-		AllowDronesOnNpcClass:Add["Cruiser"]
-		AllowDronesOnNpcClass:Add["BattleCruiser"]
-		AllowDronesOnNpcClass:Add["Battleship"]
-		AllowDronesOnNpcClass:Add["Sentry"]
 	}
 
 	method ScheduleHalt()
@@ -255,31 +285,22 @@ objectdef obj_Mission inherits obj_StateQueue
 
 		if !${Config.MissionFile.NotNULLOrEmpty}
 		{
-			This:LogCritical["You need to specify a mission file!"]
+			This:LogCritical["You need to specify a Mission file!"]
 			return
 		}
-
+		if !${ISXSQLiteTest.TheSQLDatabase.ID(exists)}
+		{
+			This:LogCritical["SQL is not optional. Check the readme for how to get the extension. It is free."]
+			This:LogCritical["If you have the extension. Enable ISXSQLiteTest on the minimodes tab."]
+			return 
+		}
+		
 		variable filepath MissionData = "${Script[Tehbot].CurrentDirectory}/data/${Config.MissionFile}"
 		runscript "${MissionData}"
-
-		if ${This.IsIdle}
-		{
-			This:LogInfo["Starting"]
-			This:QueueState["UpdateNPCs"]
-			This:QueueState["ReportMissionConfigs"]
-			This:QueueState["Repair"]
-			This:QueueState["Cleanup"]
-			This:QueueState["RequestMissionsFromAgentsInStation"]
-			This:QueueState["PickAgent"]
-			This:QueueState["CheckForWork"]
-			EVE:RefreshBookmarks
-		}
-
-		This:BuildNpcQueries
-		ActiveNPCs.AutoLock:Set[FALSE]
-		NPCs.AutoLock:Set[FALSE]
-		Tehbot.Paused:Set[FALSE]
+		
+		This:QueueState["CheckForWork",5000]
 		UIElement[Run@TitleBar@Tehbot]:SetText[Stop]
+
 	}
 
 	method Stop()
@@ -288,26 +309,19 @@ objectdef obj_Mission inherits obj_StateQueue
 		This:Clear
 		Tehbot.Paused:Set[TRUE]
 		UIElement[Run@TitleBar@Tehbot]:SetText[Run]
+		CharacterSQLDB:Close
+		SharedSQLDB:Close
+		
 	}
 
-	member:bool test()
+	method Shutdown()
 	{
-		echo ${Config.Halt}
+		CharacterSQLDB:Close
+		SharedSQLDB:Close
+		
 	}
-
-	member:bool UpdateNPCs()
-	{
-		NPCs:RequestUpdate
-		return TRUE
-	}
-
-	member:bool ReportMissionConfigs()
-	{
-		This:LogInfo["Mission Configuration Loaded"]
-		This:LogInfo[" ${DamageType.Used} Missions Configured", "o"]
-		return TRUE
-	}
-
+	
+	; Vaguely useful.
 	member:bool Repair()
 	{
 		if ${Me.InStation} && ${Utility.Repair}
@@ -319,1489 +333,2149 @@ objectdef obj_Mission inherits obj_StateQueue
 		return TRUE
 	}
 
+	; Well, here we are again. Instead of making something new I will be taking the Missioneer and making it (hopefully) better.
+	; Addendum - My ambitions and hubris increased so the core logic of the missioneer will be new. I am stealing some ancillary stuff from the old missioneer
+	; namely station interaction related stuff. It works enough.
+	; Integrating all of the things I have learned so far. So here we begin as usual at CheckForWork. The central hub from which we do everything
+	; else in this main mode. SQL integration is mandatory. We live in an SQL revolution now. 
 	member:bool CheckForWork()
 	{
-		This:LogDebug["CheckForWork \ao${EVE.Agent[${currentAgentIndex}].Name}"]
-		variable index:agentmission missions
-		variable iterator missionIterator
-		variable string missionName
+		; SQL DB related stuff.
+		if !${CharacterSQLDB.ID(exists)} || !${SharedSQLDB.ID(exists)}
+		{
+			; Setting our character specific and shared DBs.
+			CharacterSQLDB:Set[${SQLite.OpenDB["${Me.Name}DB","${Me.Name}DB.sqlite3"]}]
+			SharedSQLDB:Set[${SQLite.OpenDB["MissionSharedDB","MissionSharedDB.sqlite3"]}]
+			if !${WalAssurance}
+			{
+				This:EnsureWAL
+			}
+		}
+		if ${CharacterSQLDB.ID(exists)} && ${SharedSQLDB.ID(exists)}
+		{
+			; Let us initialize our tables if they don't already exist.
+			; Hopefully, I can remember all the brilliant ideas I had yesterday.
+			; First up, Character specific DB tables.
+			
+			; This table will be for keeping track of our Journal stuff.
+			; Agent ID is our primary key (integer). An agent can't have more than one active mission so that should be fine.
+			; Then we will get Mission Name (string), Mission Type (string), Mission Status (int). These are the things we can pull directly.
+			; It would be useful to have some more meta information available about the mission though.
+			; I also want to know where is this agent located, and if it is in Lowsec. So we will have AgentLocation (string) and MissionLocation (string). I also want to know if Lowsec exists between the two. Thus Lowsec (bool).
+			; After deliberation we should also keep track of Dropoff Location and Pickup Location for couriers because sometimes you go the opposite way and bring stuff TO your agent. Ultrashit.
+			; After even more deliberation, I need the IDs for Pickup and Dropoff locations because its hard to get an ID from a name. Fuck!
+			; I also want to know how many jumps exist between the two locations. JumpDistance (int).
+			; Next up will be some item specific information. ExpectedItems (string) for what the item is called. ItemUnits (integer) for how many items are expected. ItemVolume (int64) for its total volume. VolumePer (int64) for the Volume of each unit.
+			; Next up will be target specific information. DestroyTarget (string) for what must die. LootTarget (string) for what must be looted.
+			; Lastly, Damage type info. Damage2Deal (string). Think that covers anything, you may note that the last 3 things are all from the mission data xml. I may or may not
+			; get absurdly ambitious with this.
+			; Addendum, tacking on LP reward for the mission because I need to be able to recover it later if we crash or whatever. Ugh.
+			if !${CharacterSQLDB.TableExists["MissionJournal"]}
+			{
+				echo DEBUG - Creating Mission Journal Table
+				CharacterSQLDB:ExecDML["create table MissionJournal (AgentID INTEGER PRIMARY KEY, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, AgentLocation TEXT, MissionLocation TEXT, DropoffLocation TEXT, DropoffLocationID INTEGER, PickupLocation TEXT, PickupLocationID Integer, Lowsec BOOLEAN, JumpDistance INTEGER, ExpectedItems TEXT, ItemUnits INTEGER, ItemVolume INTEGER, MissionLPReward INTEGER, VolumePer INTEGER, DestroyTarget TEXT, LootTarget TEXT, Damage2Deal TEXT);"]
+			}
+			
+			; This table is for keeping track of what we've done during our combat missions.
+			; We will use a generated integer as our primary key. Run number or some such thing. StartingTimestamp (int64)
+			; MissionName (string). MissionType (string). Re-using those.
+			; Next up what room are we in. RoomNumber (int). 
+			; Next up combat mission specific things. Have we killed our target? KilledTarget (bool). Have we killed everything? Vanquisher (bool).
+			; Have we looted our target? ContainerLooted (bool).
+			; Do we have the item we came here for? HaveItems (bool).
+			; Have we technically completed the mission? TechnicalCompletion (bool). Have we truely completed the mission, that is to say have we gone to every single room and killed every single thing? TrueCompletion (bool).
+			; Timestamp at the end, taken right as we turn in the mission. FinalTimestamp (int64)
+			; Lastly, is this row historical? That is to say, is it for a mission that has expired, been turned in, been cancelled? Historical (bool).
+			if !${CharacterSQLDB.TableExists["MissionLogCombat"]}
+			{
+				echo DEBUG - Creating Mission Log Combat
+				CharacterSQLDB:ExecDML["create table MissionLogCombat (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, TrueCompletion BOOLEAN, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+			}
+			
+			; This table is for keeping track of what we've done during our Courier/Trade missions.
+			; RunNumber (int). MissionName (string). StartingTimestamp (int64). MissionType (string). Re-using.
+			; To keep track of how many trips we have made. TripNumber (int). To keep track of how many trips we are expected to make. ExpectedTrips (int).
+			; To keep track of the dropoff location. DropoffLocation (string). And Pickup Location. PickupLocation (string).
+			; To keep track of total units to move. TotalUnits (int). Same but for volume. TotalVolume (int64).
+			; To keep track of the units we have moved already. UnitsMoved (int). Same but for volume. VolumeMoved (int64).
+			; Re-using FinalTimestamp (int).
+			; Lastly, re-use historical.
+			
+			if !${CharacterSQLDB.TableExists["MissionLogCourier"]}
+			{
+				echo DEBUG - Creating Mission Log Courier
+				CharacterSQLDB:ExecDML["create table MissionLogCourier (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER, DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume INTEGER, UnitsMoved INTEGER, VolumeMoved INTEGER, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+			}			
 
+			; This table is so we can databasify a few things about the NPCs in a given combat mission room. I need this, ultimately, to get the bounties from them.
+			; Primary key will be EntityID (int64).
+			; Then we record the RunNumber (int). RoomNumber (int).
+			; Then the NPCName (string), NPCGroup (string), NPCBounty (int64). Fairly simple stuff tbh.
+			if !${CharacterSQLDB.TableExists["RoomNPCInfo"]}
+			{
+				echo DEBUG - Creating Per Room NPC Info Table
+				CharacterSQLDB:ExecDML["create table RoomNPCInfo (EntityID INTEGER PRIMARY KEY, RunNumber INTEGER, RoomNumber INTEGER, NPCName TEXT, NPCGroup TEXT, NPCBounty INTEGER);"]
+			}				
+			; This next table exists so that the watchdog can try and quantify whether "progress" is being made. I'm tired of bots just getting stuck in weird states. Sure it is rare, but it is also wasteful.
+			; Integer Primary Key shall be Character ID. Then RunNumber (int). Then we shall have CharName (string). Then MissionName (string). MissionType (string). RoomNumber (int). TripNumber (int). All re-used from before.
+			; We will have a timestamp, this is basically just when the last update from that client was. TimeStamp (int64)
+			; We will then have the bot's current target's entity ID. CurrentTarget (int). Then its current autopilot Destination (if its a courier). CurrentDestination (string).
+			; Then we will have the units it has completed couriering on this run. UnitsMoved (int). That should be enough info to get a good idea whether progress is occurring or not.
+			if !${SharedSQLDB.TableExists["WatchDogMonitoring"]}
+			{
+				echo DEBUG - Creating Watchdog Monitoring Table
+				SharedSQLDB:ExecDML["create table WatchDogMonitoring (CharID INTEGER PRIMARY KEY, RunNumber INTEGER, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, TripNumber INTEGER, TimeStamp DATETIME, CurrentTarget INTEGER, CurrentDestination TEXT, UnitsMoved INTEGER);"]
+			}
+			
+			; This, hopefully final table, exists so that we can gather meaningful statistics about our mission rewards.
+			; Each row is going to represent exactly one complete mission run. We will not be looking at loot values here. It would be very very hard
+			; for me to quantify loot values. We will be looking at straight isk mission rewards. LP rewards. Bounty rewards. Also, Mission duration beginning to end, room to room timing, the mission name obviously, what ship we are using.
+			; There will be no primary key, this will be kinda like our observer bots, its just going to be a series of events.
+			; First up we will have Timestamp (int64) CharName (string) CharID (int) RunNumber (int) RoomNumber (int) TripNumber (int)  MissionName (string) MissionType (string). All obvious.
+			; Next we will have what type of event this row represents, Room completion, Trip Completion, Run Completion, Mission Decline. EventType (string). Room/Trip/Run/Decline are the valid strings.
+			; Next up we will have a Bounty value, if applicable. Going to just add up the bounties of everything that we kill and Sum it up and throw it here. RoomBounties (int64).
+			; Next up, did we see a faction spawn (cruiser, battlecruiser, or battleship) in this room? RoomFactionSpawn (bool).
+			; Next up we will have a Duration for the time it took to complete the room. RoomDuration (int64).
+			; Next up we will have a mission turnin LP/ISK value to put on a Run completion EventType. RunLP (int) and RunISK (int64) respectively.
+			; Next up, Duration for time to complete the entire run. RunDuration (int64). Also, total bounties for the entire run.
+			; Last meaningful thing I can think to put here, what ship are we in? ShipType (string).
+			if !${SharedSQLDB.TableExists["MissioneerStats"]}
+			{
+				echo DEBUG - Creating Missioner Stats Table
+				SharedSQLDB:ExecDML["create table MissioneerStats (Timestamp DATETIME, CharName TEXT, CharID INTEGER, RunNumber INTEGER, RoomNumber INTEGER, TripNumber INTEGER, MissionName TEXT, MissionType TEXT, EventType TEXT, RoomBounties INTEGER, RoomFactionSpawn BOOLEAN, RoomDuration DATETIME, RunLP INTEGER, RunISK INTEGER, RunDuration DATETIME, RunTotalBounties INTEGER, ShipType TEXT);"]
+			}			
+			
+			; I lied, one more shared table remains. The shared table that the Salvagers will use.
+			; First off, our primary key integer will be the BM ID. BMID (int64).
+			; Next up, the name of the BM. BMName (string). Then the number of wrecks present. WreckCount (int). What system is it in? BMSystem (string).
+			; Next up, approximately when the first wreck is expected to expire (should correspond approximately with the room beginning). ExpectedExpiration (int64)
+			; Next up, which salvager claims the bookmark as theirs. ClaimedByCharID (int64). Next, How long did it take to salvage the site beginning to end? SalvageTime (int64)
+			; Last up, is this row Historical, that is to say, it represents something completed? Historical (bool)
+			if !${SharedSQLDB.TableExists["SalvageBMTable"]}
+			{
+				echo DEBUG - Creating Salvage Bookmark Table
+				SharedSQLDB:ExecDML["create table SalvageBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
+			}
+			; Well, that was time consuming and exhausting.
+		}
+		else
+		{
+			This:LogCritical["Something has gone wrong here."]
+			return FALSE
+		}
+		; DBs are loaded, lets roll.
+		; Is it time to halt? Or are we close to downtime? Only goes off when we are in a station.
+		if ${Me.InStation} && (${Config.Halt} || ${halt} || ${Utility.DowntimeClose})
+		{
+			This:QueueState["HaltBot"]
+		}
+		; First off we will check against our own character DB to figure out exactly where we left off last time.
+		; Did we disconnect mid mission? Did we stop in station with no mission at all? Why use context clues from our immediate
+		; situation when we can use an overly complicated DB lookup. Free will is an illusion.
+		; Todo - The shit I said above this. We would basically be looking at the character specific mission log tables, find a row that ISN'T historic, and pick that up as what we
+		; are currently working on. We would use the information recorded in that row to return to where we left off more or less.
+		if !${CheckedMissionLogs}
+		{
+			GetMissionLogCombat:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCombat WHERE Historical=FALSE;"]}]
+			echo DEBUG - First Query
+			if ${GetMissionLogCombat.NumRows} > 0
+			{
+				This:LogInfo["Found running combat mission."]
+				echo DEBUG - GOING TO MID RUN RECOVERY - NONCOMBAT
+				This:MidRunRecovery["Combat"]
+				This:QueueState["CombatMission", 3000]
+				GetMissionLogCombat:Finalize
+				return TRUE
+			}
+			GetMissionLogCourier:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCourier WHERE Historical=FALSE;"]}]
+			echo DEBUG - Second Query
+			if ${GetMissionLogCourier.NumRows} > 0
+			{
+				This:LogInfo["Found running courier mission."]
+				GetMissionLogCourier:Finalize
+				echo DEBUG - GOING TO MID RUN RECOVERY - NONCOMBAT
+				This:MidRunRecovery["Noncombat"]
+				This:InsertState["CourierMission", 3000]
+				This:InsertState["CourierMissionCheckStation", 2000]
+				This:InsertState["CourierMissionCheckShip", 2000]
+				This:InsertState["GetHaulerDetails",2000]
+				return TRUE
+			}
+			; Found nothing currently being "run". On to databasification.
+			CheckedMissionLogs:Set[TRUE]
+			This:LogInfo["No running missions found."]
+		}
+		
+		; Assuming the above doesn't immediately take us into a mission running state of some kind
+		; then next we will databasify our Mission Journal.
+		;if !${DatabasificationComplete}
+		;{
+		;	This:LogInfo["Begin Databasification"]
+		;	This:QueueState["Databasification", 5000]
+		;	return TRUE
+		;}
+		; Now that our Journal is Databasificated we can look through it for acceptable missions to run.
+		;if ${DatabasificationComplete}
+		;{
+			This:LogInfo["Begin Mission Choice"]
+			This:QueueState["CurateMissions", 5000]
+			return TRUE		
+		;}
+		
+	}
+	; In this state we will Curate our missions. Lowsec missions will not be removed, but all other missions we do not want will
+	; be removed from our mission journal. Due to how finnicky agent interactions can be, we will queue up AgentIDs and decline missions
+	; in another state with a slow pulse rate.
+	member:bool CurateMissions()
+	{
+		GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal;"]}]
+		echo DEBUG - THIRD QUERY
+		if ${GetDBJournalInfo.NumRows} > 0
+		{
+			do
+			{
+				if ${GetDBJournalInfo.GetFieldValue["Lowsec",bool]} && ${Config.DeclineLowSec}
+				{
+					; We won't actually decline the ones in lowsec if we don't want to do lowsec missions.
+					; Because any lowsec storyline agent that already has an offer can't have another one. Declining it would just waste the next storyline mission.
+					; Addendum. We will want to reject lowsec offers from our Datafile Configured Agent.
+					if ${GetDBJournalInfo.GetFieldValue["AgentID",int64]} == ${EVE.Agent[${AgentList.Get[1]}].ID}
+					{
+						This:LogInfo["Declining Lowsec Offer from Primary Agent"]
+						AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+						GetDBJournalInfo:NextRow
+						continue						
+					}
+					else
+					{
+						This:LogInfo["Ignoring Lowsec Mission Offer"]
+						GetDBJournalInfo:NextRow
+						continue
+					}
+				}
+				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Storyline"]} && !${Config.DoStoryline}
+				{
+					This:LogInfo["Adding to Decline List - Storyline"]
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+					GetDBJournalInfo:NextRow
+					continue
+				}
+				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && !${Config.DoCourier}
+				{
+					This:LogInfo["Adding to Decline List - Courier"]
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+					GetDBJournalInfo:NextRow
+					continue
+				}
+				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]} && !${Config.DoCombat}
+				{	
+					This:LogInfo["Adding to Decline List - Encounter"]
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+					GetDBJournalInfo:NextRow
+					continue
+				}
+				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Storyline - Encounter"]} && !${Config.DoStorylineCombat}
+				{	
+					This:LogInfo["Adding to Decline List - Storyline Encounter"]
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+					GetDBJournalInfo:NextRow
+					continue
+				}
+				if ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} > 1000 && !${Config.CourierShipName.NotNULLOrEmpty} && !${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
+				{	
+					This:LogInfo["High Volume and No Hauler Configured - Declining"]
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+					GetDBJournalInfo:NextRow
+					continue
+				}
+				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]} && !${Config.TradeShipName.NotNULLOrEmpty}
+				{	
+					This:LogInfo["Trade Mission and No Trade Ship Configured - Declining"]
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+					GetDBJournalInfo:NextRow
+					continue
+				}
+				if ${BlackListedMission.Contains[${GetDBJournalInfo.GetFieldValue["MissionName",string]}]}
+				{	
+					This:LogInfo["Mission in our Avoid List - Declining"]
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+					GetDBJournalInfo:NextRow
+					continue
+				}
+				
+				GetDBJournalInfo:NextRow
+			}
+			while !${GetDBJournalInfo.LastRow}
+			GetDBJournalInfo:Finalize
+		}
+		if ${AgentDeclineQueue.Peek}
+		{
+			This:QueueState["DeclineMissions", 6000]
+			return TRUE
+		}
+		This:QueueState["ChooseMission", 5000]
+		return TRUE
+	}
+	; This state is needed so we can reliably Decline missions that don't meet our criteria.
+	; Agent interactions don't enjoy going at mach speed such as found in a do while loop. So we will use this state to process a queue generated by CurateMissions state.
+	member:bool DeclineMissions()
+	{
+		if ${AgentDeclineQueue.Peek}
+		{
+			EVE.Agent[id,${AgentDeclineQueue.Peek}]:StartConversation
+			if !${EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}](exists)}
+			{
+				This:LogInfo["Waiting on Conversation Window"]
+				return FALSE
+			}
+			if ${EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}].Button["View Mission"](exists)}
+			{
+				EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}].Button["View Mission"]:Press
+				return FALSE
+			}
+			if ${EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}].Button["Decline"](exists)}
+			{
+				EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}].Button["Decline"]:Press
+				echo DEBUG - Decline Deletion
+				CharacterSQLDB:ExecDMLTransaction["Delete FROM MissionJournal WHERE AgentID=${AgentDeclineQueue.Peek}"]
+				EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}]:Close
+				This:LogInfo["Declining mission from ${AgentDeclineQueue.Peek}"]
+				AgentDeclineQueue:Dequeue
+				return FALSE
+			}				
+		}
+		else
+		{
+			This:QueueState["ChooseMission", 5000]
+			return TRUE
+		}
+	}
+	; This state will be where we choose our mission. Curate Missions state will have already done the heavy lifting for us.
+	; The reason the two states aren't one is because deleting rows while iterating them is a bad idea.
+	member:bool ChooseMission()
+	{	
+		; Storylines first.
+		GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE MissionType LIKE '%Storyline%';"]}]
+		echo DEBUG - FIFTH QUERY
+		if ${GetDBJournalInfo.NumRows} > 0
+		{
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
+			{
+				This:LogInfo["Encounter - Combat Ship Needed"]
+				CurrentAgentShip:Set[${Config.CombatShipName}]
+
+			}
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} > 10 )
+			{	
+				This:LogInfo["Large Courier - Hauler Needed"]
+				CurrentAgentShip:Set[${Config.CourierShipName}]
+			}
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} <= 10 )
+			{
+				This:LogInfo["Small Courier - Shuttle Needed"]
+				if ${Config.FastCourierShipName.NotNULLOrEmpty}
+					CurrentAgentShip:Set[${Config.FastCourierShipName}]
+				else
+					CurrentAgentShip:Set[${Config.CourierShipName}]
+			}
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
+			{
+				This:LogInfo["Trade Mission - Ore Hauler Needed"]
+				CurrentAgentShip:Set[${Config.TradeShipName}]
+			}
+			; Pulling our current (agent) variables back out.
+			if ${GetDBJournalInfo.GetFieldValue["ExpectedItems",string].NotNULLOrEmpty}
+				CurrentAgentItem:Set[${GetDBJournalInfo.GetFieldValue["ExpectedItems",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["ItemUnits",int]} >= 1
+				CurrentAgentItemUnits:Set[${GetDBJournalInfo.GetFieldValue["ItemUnits",int]}]
+			if ${GetDBJournalInfo.GetFieldValue["VolumePer",int64]} > 0
+				CurrentAgentVolumePer:Set[${GetDBJournalInfo.GetFieldValue["VolumePer",int64]}]
+			if ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} > 0
+				CurrentAgentVolumeTotal:Set[${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]}]				
+			if ${GetDBJournalInfo.GetFieldValue["PickupLocation",string].NotNULLOrEmpty}
+				CurrentAgentPickup:Set[${GetDBJournalInfo.GetFieldValue["PickupLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["DropoffLocation",string].NotNULLOrEmpty}
+				CurrentAgentDropoff:Set[${GetDBJournalInfo.GetFieldValue["DropoffLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["Damage2Deal",string].NotNULLOrEmpty}
+				CurrentAgentDamage:Set[${GetDBJournalInfo.GetFieldValue["Damage2Deal",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["DestroyTarget",string].NotNULLOrEmpty}
+				CurrentAgentDestroy:Set[${GetDBJournalInfo.GetFieldValue["DestroyTarget",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["LootTarget",string].NotNULLOrEmpty}
+				CurrentAgentLoot:Set[${GetDBJournalInfo.GetFieldValue["LootTarget",string]}]	
+			CurrentAgentID:Set[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+			CurrentAgentLocation:Set[${GetDBJournalInfo.GetFieldValue["AgentLocation",string]}]
+			CurrentAgentIndex:Set[${EVE.Agent[id,${CurrentAgentID}].Index}]
+			GetDBJournalInfo:Finalize
+			This:QueueState["MissionPrePrep", 5000]
+			return TRUE
+		}
+		GetDBJournalInfo:Finalize
+		; Everything else.
+		GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal;"]}]
+		echo DEBUG - SIXTH QUERY
+		if ${GetDBJournalInfo.NumRows} > 0
+		{
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
+			{
+				This:LogInfo["Encounter - Combat Ship Needed"]
+				CurrentAgentShip:Set[${Config.CombatShipName}]
+			}
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} > 10 )
+			{	
+				This:LogInfo["Large Courier - Hauler Needed"]
+				CurrentAgentShip:Set[${Config.CourierShipName}]
+			}
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} <= 10 )
+			{
+				This:LogInfo["Small Courier - Shuttle Needed"]
+				if ${Config.FastCourierShipName.NotNULLOrEmpty}
+					CurrentAgentShip:Set[${Config.FastCourierShipName}]
+				else
+					CurrentAgentShip:Set[${Config.CourierShipName}]
+			}
+			; Pulling our current (agent) variables back out.
+			if ${GetDBJournalInfo.GetFieldValue["MissionLPReward",int]} > 0
+				CurrentAgentLPReward:Set[${GetDBJournalInfo.GetFieldValue["MissionLPReward",int]}]
+			if ${GetDBJournalInfo.GetFieldValue["ExpectedItems",string].NotNULLOrEmpty}
+				CurrentAgentItem:Set[${GetDBJournalInfo.GetFieldValue["ExpectedItems",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["ItemUnits",int]} >= 1
+				CurrentAgentItemUnits:Set[${GetDBJournalInfo.GetFieldValue["ItemUnits",int]}]
+			if ${GetDBJournalInfo.GetFieldValue["VolumePer",int64]} > 0
+				CurrentAgentVolumePer:Set[${GetDBJournalInfo.GetFieldValue["VolumePer",int64]}]
+			if ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} > 0
+				CurrentAgentVolumeTotal:Set[${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]}]		
+			if ${GetDBJournalInfo.GetFieldValue["PickupLocation",string].NotNULLOrEmpty}
+				CurrentAgentPickup:Set[${GetDBJournalInfo.GetFieldValue["PickupLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["PickupLocationID",int64]}
+				CurrentAgentPickupID:Set[${GetDBJournalInfo.GetFieldValue["PickupLocationID",int64]}]				
+			if ${GetDBJournalInfo.GetFieldValue["DropoffLocation",string].NotNULLOrEmpty}
+				CurrentAgentDropoff:Set[${GetDBJournalInfo.GetFieldValue["DropoffLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["DropoffLocationID",int64]}
+				CurrentAgentDropoffID:Set[${GetDBJournalInfo.GetFieldValue["DropoffLocationID",int64]}]				
+			if ${GetDBJournalInfo.GetFieldValue["Damage2Deal",string].NotNULLOrEmpty}
+				CurrentAgentDamage:Set[${GetDBJournalInfo.GetFieldValue["Damage2Deal",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["DestroyTarget",string].NotNULLOrEmpty}
+				CurrentAgentDestroy:Set[${GetDBJournalInfo.GetFieldValue["DestroyTarget",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["LootTarget",string].NotNULLOrEmpty}
+				CurrentAgentLoot:Set[${GetDBJournalInfo.GetFieldValue["LootTarget",string]}]		
+			CurrentAgentID:Set[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+			CurrentAgentLocation:Set[${GetDBJournalInfo.GetFieldValue["AgentLocation",string]}]
+			CurrentAgentIndex:Set[${EVE.Agent[id,${CurrentAgentID}].Index}]	
+			echo DEBUG - ${CurrentAgentVolumeTotal} CAVT
+			GetDBJournalInfo:Finalize
+			This:QueueState["MissionPrePrep", 5000]
+			return TRUE
+		}
+		else
+		{
+			This:LogInfo["No Valid Offered Missions - Default to Datafile Agent"]
+			CurrentAgentID:Set[${EVE.Agent[${AgentList.Get[1]}].ID}]
+			CurrentAgentLocation:Set[${EVE.Agent[${AgentList.Get[1]}].Station}]
+			CurrentAgentIndex:Set[${EVE.Agent[${AgentList.Get[1]}].Index}]
+			This:QueueState["MissionPrePrep", 5000]
+			return TRUE
+		}
+	}
+	; Addendum - For trade missions, you need to either have the items already there, or bring the items with you. Market interactions are toast so we won't be doing that.
+	; Ugh, more work. So we also need to ensure we are in the correct ship, with the correct needed trade item, before we travel to the agent. Pisssssss. This also means we need
+	; to code in another case for returning to our Primary Agent Station to swap back to other ships for other missions before we go to those missions.
+	; This state thus exists to ensure we have the right ship for the job, also if its a trade mission, the right ore.
+	;;;; EXTREMELY IMPORTANT NOTE - WE ARE ASSUMING YOU WILL KEEP YOUR ALTERNATE SHIPS IN YOUR PRIMARY AGENT STATION
+	;;;; THAT IS TO SAY, THE STATION WHERE YOUR MAIN MISSION AGENT IS LOCATED. PLEASE DO SO
+	member:bool MissionPrePrep()
+	{
+		; Need a variable to decrement to figure out if we have enough of our trade item
+		variable int InStock
+		; Need another for loading that trade item
+		variable int TradeItemNeeded
+		
+		; Inventory variables
+		variable index:item items
+		variable iterator itemIterator
+		
+		
+		GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE AgentID=${CurrentAgentID};"]}]
+		echo DEBUG - SEVENTH QUERY
+		if ${GetDBJournalInfo.NumRows} < 1
+		{
+			This:LogInfo["No Valid Offered Missions - Go To Agent"]
+			; This case is that we are already going back to our Primary Agent Station, and we have no valid missions in our journal. Or we could already be there, but thats outside the scope of this state.
+			; Basically we are just bypassing this state.
+			This:InsertState["Go2Agent", 5000]
+			return TRUE			
+		}
+		; We need to figure out if we are already flying what we need, and carrying what we need, if we need anything.
+		; We determined WHAT we need in the previous state.
+		if ${Me.StationID} != ${EVE.Agent[${CurrentAgentIndex}].StationID}
+		{
+			; We aren't at our Primary Agent Station. Move there.
+			Move:Agent[${EVE.Agent[${CurrentAgentIndex}].Index}]
+			This:InsertState["Traveling"]
+		}
+		if ${Me.StationID} == ${EVE.Agent[${CurrentAgentIndex}].StationID}
+		{
+			; We are already at our Primary Agent Station. Here we will A) Ensure that our ship is the ship called for in the last state and B) (optional) ensure that we have the Ore needed for a trade mission, if thats what is next.
+			echo DEBUG - ${CurrentAgentShip}
+			if !${MyShip.Name.Find[${CurrentAgentShip}]}
+			{
+				; Ship isn't right. Let's see if we can switch our ship with isxeve still.
+				This:ActivateShip[${CurrentAgentShip}]
+				if ${FailedToChangeShip}
+				{
+					GetDBJournalInfo:Finalize
+					This:LogInfo["Ship doesn't exist here, awooga, stopping"]
+					This:Stop
+					return TRUE
+				}
+				; Presumably, we are in the right ship now.
+			}
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
+			{
+				InStock:Inc[${CurrentAgentItemUnits}]
+				TradeItemNeeded:Set[${CurrentAgentItemUnits}]
+				This:LogInfo["Checking for ${CurrentAgentItem} for Trade Mission"]
+				if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+					InStock:Dec[${This.InventoryItemQuantity[${CurrentAgentItem}, "StationCorpHangar", "${Config.MunitionStorageFolder}"]}]
+				if ${Config.MunitionStorage.Equal[Personal Hangar]}
+					InStock:Dec[${This.InventoryItemQuantity[${CurrentAgentItem}, ${Me.Station.ID}, "StationItems"]}]
+				; This will reduce the number we need by the number we have, supposedly. Jury is still out on if my tampering will break it.
+				if ${InStock} > 0
+				{
+					GetDBJournalInfo:Finalize
+					This:LogCritical["Insufficient Quantity of ${CurrentAgentItem}, Stopping."]
+					This:Stop
+					return TRUE					
+				}
+				else
+				{
+					; We presumably have enough of the item, let us try and load it into our ship. But first, need to know some stuff about this ship.
+					if ${HaulerLargestBayCapacity} >= ${CurrentAgentVolumeTotal}
+					{
+						if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+						{
+							if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
+							{
+								EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
+								GetDBJournalInfo:Finalize
+								return FALSE
+							}
+							EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
+							items:GetIterator[itemIterator]
+							do
+							{
+								if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+								{
+									if ${itemIterator.Value.Quantity} >= ${TradeItemNeeded}
+									{
+										itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayLocationFlag}, ${TradeItemNeeded}]
+										break
+									}
+									else
+									{
+										itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayLocationFlag}, ${itemIterator.Value.Quantity}]
+										TradeItemNeeded:Dec[${itemIterator.Value.Quantity}]
+										continue
+									}
+								}
+							}
+							while ${itemIterator:Next(exists)}
+						}
+						if ${Config.MunitionStorage.Equal[Personal Hangar]}
+						{
+							if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+							{
+								EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
+								return FALSE
+							}
+							EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
+							items:GetIterator[itemIterator]
+							do
+							{
+								if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+								{
+									if ${itemIterator.Value.Quantity} >= ${TradeItemNeeded}
+									{
+										itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayLocationFlag}, ${TradeItemNeeded}]
+										break
+									}
+									else
+									{
+										itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayLocationFlag}, ${itemIterator.Value.Quantity}]
+										TradeItemNeeded:Dec[${itemIterator.Value.Quantity}]
+										continue
+									}
+								}
+							}
+							while ${itemIterator:Next(exists)}
+						}
+					}
+					else
+					{
+						This:LogCritical["Picked a ship that can't haul ${CurrentAgentVolumeTotal} ore. I suggest a Miasmos."]
+						GetDBJournalInfo:Finalize
+						This:Stop
+						return TRUE
+					}
+				}
+				GetDBJournalInfo:Finalize
+				This:LogInfo["Ore Loaded, Headed out"]
+				This:QueueState["Go2Agent",8000]
+				return TRUE
+			}
+			else
+			{
+				This:QueueState["Go2Agent", 5000]
+				return TRUE		
+			}
+		}
+	}
+	; This state exists to get us to wherever our agent is. We will use 3 variables about our Current Agent to make this easier, probably. Actually... We only need their location.
+	; The other 2 are for other things later. Idk, I'm tired.
+	member:bool Go2Agent()
+	{
+		if ${Me.StationID} != ${EVE.Agent[${CurrentAgentIndex}].StationID}
+		{
+			; This calls a state in Move, we need to call Traveling or we will start doing shit while en route. That's no good.
+			Move:Agent[${CurrentAgentIndex}]
+			This:InsertState["Go2Agent",3000]
+			This:InsertState["Traveling"]
+			return TRUE
+		}
+		else
+		{
+			; Already there I guess. May as well open that Agent Conversation window and commence Databasification.
+			This:LogInfo["At Agent Station"]
+		}
+		GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE AgentID=${CurrentAgentID};"]}]
+		DEBUG - EIGHTH QUERY
+		if ${GetDBJournalInfo.NumRows} < 1
+		{
+			This:LogInfo["Begin Databasification"]
+
+			if !${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
+			{
+				GetDBJournalInfo:Finalize
+				EVE.Agent[${CurrentAgentIndex}]:StartConversation
+				return FALSE
+			}
+			if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["Request Mission"](exists)}
+			{
+				GetDBJournalInfo:Finalize
+				EVEWindow[AgentConversation_${CurrentAgentID}].Button["Request Mission"]:Press
+				return FALSE
+			}			
+			This:InsertState["Databasification",5000]
+			This:QueueState["CurateMissions",5000]
+			return TRUE
+		}
+		else
+		{
+			GetDBJournalInfo:Finalize
+			This:QueueState["InitialAgentInteraction", 5000]
+			return TRUE
+		}
+	}
+	; This state will be where we interact with our Agents outside of the little we did to achieve databasification. This will be the initial interaction.
+	; This state will also be where, after accepting a mission, we put our initial MissionLog entry in whatever table it belongs.
+	; As such, this is going to be a somewhat long state because we need to assemble all the pieces that go into that MissionLog table(s).
+	; Addendum, I made the state shorter by calling methods further down.
+	member:bool InitialAgentInteraction()
+	{
+		; Open a conversation window, again.
+		if !${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
+		{
+			This:LogInfo["Opening Conversation Window."]
+			EVE.Agent[${CurrentAgentIndex}]:StartConversation
+
+			return FALSE
+		}
+		if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"](exists)}
+		{
+			EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"]:Press
+			return FALSE
+		}
+		if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["Request Mission"](exists)}
+		{
+			EVEWindow[AgentConversation_${CurrentAgentID}].Button["Request Mission"]:Press
+			return FALSE
+		}
+		GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE AgentID=${CurrentAgentID};"]}]
+		echo DEBUG NINTH QUERY
+		; Is this mission unconfigured, and also a combat mission? We no do that.
+		if !${DamageType.Element[${GetDBJournalInfo.GetFieldValue["MissionName",string]}](exists)} && ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
+		{
+			This:LogCritical["We have hit an unconfigured combat mission - Stopping."]
+			GetDBJournalInfo:Finalize
+			This:Stop
+			return TRUE
+		}
+		; Let us accept the mission and close the window. 
+		if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["Accept"](exists)}
+		{
+			GetDBJournalInfo:Finalize
+			This:LogInfo["Accepting mission from Agent"]
+			EVEWindow[AgentConversation_${CurrentAgentID}].Button["Accept"]:Press
+			return FALSE
+		}
+		This:MissionJournalUpdateStatus[${CurrentAgentID},2]
+		CurrentAgentMissionName:Set[${GetDBJournalInfo.GetFieldValue["MissionName",string]}]
+		CurrentAgentMissionType:Set[${GetDBJournalInfo.GetFieldValue["MissionType",string]}]
+		; We have a journal row, as expected. This should have already been curated, so this mission should, without fail, be one we want.
+		; Let us establish the mission parameters, so we can put it in the correct mission log table.
+		; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER,
+		;  DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume INTEGER, UnitsMoved INTEGER, VolumeMoved INTEGER, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+		if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} || ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
+		{
+			; Gotta do this again, we might have swapped ships going from a trade mission to a courier.
+			This:InsertState["GetHaulerDetails",5000]
+			; The following method is basically just to initialize our Current Run stats.
+			; First argument on this will be the capacity of our largest bay, second argument will be the total volume of mission
+			This:SetCurrentRunDetails[${HaulerLargestBayCapacity},${CurrentAgentVolumeTotal}]
+			This:MissionLogCourierUpsert[${CurrentRunNumber},${CurrentStartTimestamp},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType},${CurrentRunTripNumber},${CurrentRunExpectedTrips},${CurrentAgentDropoff},${CurrentAgentPickup},${CurrentAgentItemUnits},${CurrentAgentVolumeTotal},${CurrentRunItemUnitsMoved},${CurrentRunVolumeMoved},${CurrentRunFinalTimestamp},FALSE]
+			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
+			{
+				GetDBJournalInfo:Finalize
+				EVEWindow[AgentConversation_${CurrentAgentID}]:Close
+				CurrentRunTripNumber:Inc[1]
+				This:QueueState["TradeMission",5000]
+				return TRUE
+			}
+			else
+			{
+				GetDBJournalInfo:Finalize
+				EVEWindow[AgentConversation_${CurrentAgentID}]:Close
+				This:QueueState["CourierMission",5000]
+				This:InsertState["CourierMissionCheckStation", 2000]
+				This:InsertState["RefreshStationItemsState", 2000]
+				This:InsertState["CourierMissionCheckShip", 2000]
+				This:InsertState["RefreshLargestBayState", 2000]
+				This:InsertState["GetHaulerDetails",2000]
+
+				return TRUE
+			}
+		}
+		; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, 
+		;   TrueCompletion BOOLEAN, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+		if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
+		{
+			; Don't ask, no idea why I did this.
+			This:InsertState["GetHaulerDetails",5000]
+			; Do know why I did this.
+			This:SetCurrentRunDetails[${HaulerLargestBayCapacity},${CurrentAgentVolumeTotal}]
+			This:MissionLogCombatUpsert[${CurrentRunNumber},${CurrentStartTimestamp},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${CurrentRunFinalTimestamp},FALSE]
+			GetDBJournalInfo:Finalize
+			EVEWindow[AgentConversation_${CurrentAgentID}]:Close
+			This:QueueState["MissionPrep",5000]
+			return TRUE
+		}
+	
+	}
+	; This state will be where we prep our ship for the mission. Load ammo/drones, etc. This will be bypassed for Courier and Trade missions.
+	; Courier missions will do their own loading, trade missions have already done their loading. 
+	member:bool MissionPrep()
+	{
+		; First up, we need to establish exactly what damage type, and hence ammo and drones, we need.
+		This:ResolveDamageType[${CurrentAgentDamage.Lower}]
+		; Queue up the state that handles station inventory management for this scenario.
+		This:QueueState["Go2Mission",4000]
+		This:InsertState["ReloadAmmoAndDrones", 4000]
+		return TRUE
+	}
+	; This state will take us to our Mission Bookmark
+	member:bool Go2Mission()
+	{
+		variable index:agentmission missions
+		variable iterator missionIterator	
 		EVE:GetAgentMissions[missions]
 		missions:GetIterator[missionIterator]
 		if ${missionIterator:First(exists)}
 		{
 			do
-			{
-				if ${missionIterator.Value.AgentID} != ${EVE.Agent[${currentAgentIndex}].ID}
+			{	
+				if ${missionIterator.Value.AgentID} != ${CurrentAgentID}
 				{
 					continue
-				}
-
-				missionIterator.Value:GetDetails
-				if !${EVEWindow[ByCaption, Mission journal - ${EVE.Agent[${currentAgentIndex}].Name}](exists)}
-				{
-					if ${EVEWindow[ByCaption, Mission journal](exists)}
-					{
-						; Close journal of other mission.
-						EVEWindow[ByCaption, Mission journal]:Close
-					}
-					missionIterator.Value:GetDetails
-					return FALSE
-				}
-
-				; Must ensure that ${EVEWindow[ByCaption, Mission journal - ${AgentName}].HTML.Escape} already returns full length
-    			; journal BEFORE using mission parser.
-				variable string missionJournalText = ${EVEWindow[ByCaption, Mission journal - ${EVE.Agent[${currentAgentIndex}].Name}].HTML.Escape}
-				if !${missionJournalText.Find["The following rewards will be yours if you complete this mission"]}
-				{
-					missionIterator.Value:GetDetails
-					return FALSE
-				}
-
-				MissionParser.AgentName:Set[${EVE.Agent[${currentAgentIndex}].Name}]
-				missionName:Set[${missionIterator.Value.Name.Trim}]
-
-				; offered
-				if ${missionIterator.Value.State} == 1
-				{
-					if ${Config.DeclineLowSec} && ${MissionParser.IsLowSec}
-					{
-						This:LogInfo["Declining low security mission \ao${missionName}"]
-						This:InsertState["Cleanup"]
-						This:InsertState["CheckForWork"]
-						This:InsertState["InteractAgent", 1500, "DECLINE"]
-						return TRUE
-					}
-
-					if !${This.AllowFightFaction[${MissionParser.EnemyFactionName}]}
-					{
-						This:LogInfo["Declining mission \ao${missionName} for I don't want to fight ${MissionParser.EnemyFactionName}"]
-						This:InsertState["Cleanup"]
-						This:InsertState["CheckForWork"]
-						This:InsertState["InteractAgent", 1500, "DECLINE"]
-						return TRUE
-					}
-
-					if ${BlackListedMission.Contains[${missionName}]}
-					{
-						This:LogInfo["Declining mission \ao${missionName}"]
-						This:InsertState["Cleanup"]
-						This:InsertState["CheckForWork"]
-						This:InsertState["InteractAgent", 1500, "DECLINE"]
-						return TRUE
-					}
-
-					if ${DamageType.Element[${missionName}](exists)}
-					{
-						echo ${EVE.Agent[${currentAgentIndex}].Index}
-						This:LogInfo["Accepting mission \ao${missionName}"]
-						This:InsertState["Cleanup"]
-						This:InsertState["CheckForWork"]
-						This:InsertState["InteractAgent", 1500, "ACCEPT"]
-						useDroneRace:Set[0]
-						return TRUE
-					}
-
-					This:LogInfo["Unconfigured mission \ao${missionName}"]
-					if ${Me.StationID} != ${EVE.Agent[${currentAgentIndex}].StationID}
-					{
-						This:LogInfo["Going to the agent station anyway"]
-						This:InsertState["Cleanup"]
-						This:InsertState["Repair"]
-						This:InsertState["CheckForWork"]
-						This:InsertState["InteractAgent", 1500, "OFFER"]
-						return TRUE
-					}
-
-					This:InsertState["CheckForWork"]
-					return TRUE
-				}
-				; accepted
-				elseif ${missionIterator.Value.State} == 2
-				{
-					if ${DamageType.Element[${missionName}](exists)}
-					{
-						if ${MissionParser.IsComplete}
-						{
-							This:LogInfo["Mission Complete \ao${missionName}"]
-							This:Clear
-							This:InsertState["Cleanup"]
-							This:InsertState["Repair"]
-							This:InsertState["CompleteMission", 3000]
-							return TRUE
-						}
-
-						if ${MissionParser.IsOngoing}
-						{
-							This:LogInfo["Ongoing mission identified \ao${missionName}"]
-
-							targetToDestroy:Set[""]
-							if ${TargetToDestroy.Element[${missionName}](exists)}
-							{
-								This:LogInfo["Destroy target: \ao${TargetToDestroy.Element[${missionName}]}"]
-								targetToDestroy:Set[${TargetToDestroy.Element[${missionName}]}]
-							}
-
-							containerToLoot:Set[""]
-							if ${ContainerToLoot.Element[${missionName}](exists)}
-							{
-								This:LogInfo["Loot container: \ao${ContainerToLoot.Element[${missionName}]}"]
-								containerToLoot:Set[${ContainerToLoot.Element[${missionName}]}]
-							}
-
-							aquireItem:Set[${MissionParser.AquireItem}]
-							if ${aquireItem.NotNULLOrEmpty}
-							{
-								This:LogInfo["Acquire item: \ao${aquireItem}"]
-							}
-
-							gateKey:Set[""]
-							gateKeyContainer:Set[""]
-							if ${GateKey.Element[${missionName}](exists)}
-							{
-								This:LogInfo["Bring gate key if available: \ao${GateKey.Element[${missionName}]}"]
-								gateKey:Set[${GateKey.Element[${missionName}]}]
-
-								haveGateKeyInCargo:Set[FALSE]
-								if (!${EVEWindow[Inventory](exists)})
-								{
-									EVE:Execute[OpenInventory]
-									return FALSE
-								}
-
-								if !${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo](exists)} || ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo].Capacity} < 0
-								{
-									EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo]:MakeActive
-									Client:Wait[5000]
-									return FALSE
-								}
-
-								if ${This.InventoryItemQuantity[${gateKey}, ${Me.ShipID}, "ShipCargo"]} > 0
-								{
-									This:LogInfo["Confirmed gate key \"${gateKey}\" in cargo."]
-									haveGateKeyInCargo:Set[TRUE]
-								}
-
-								if !${haveGateKeyInCargo}
-								{
-									if ${GateKeyContainer.Element[${missionName}](exists)}
-									{
-										This:LogInfo["Look for the gate key in: \ao${GateKeyContainer.Element[${missionName}]}"]
-										gateKeyContainer:Set[${GateKeyContainer.Element[${missionName}]}]
-									}
-								}
-							}
-
-							deliverItem:Set[${MissionParser.DeliverItem}]
-							deliverItemContainer:Set[""]
-							if ${deliverItem.NotNULLOrEmpty}
-							{
-								This:LogInfo["Deliver item: \ao${deliverItem}"]
-
-								haveDeliveryInCargo:Set[FALSE]
-								if (!${EVEWindow[Inventory](exists)})
-								{
-									EVE:Execute[OpenInventory]
-									return FALSE
-								}
-
-								if !${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo](exists)} || ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo].Capacity} < 0
-								{
-									EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo]:MakeActive
-									Client:Wait[5000]
-									return FALSE
-								}
-
-								if ${This.InventoryItemQuantity[${deliverItem}, ${Me.ShipID}, "ShipCargo"]} > 0
-								{
-									This:LogInfo["Confirmed delivery \"${deliverItem}\" in cargo."]
-									haveDeliveryInCargo:Set[TRUE]
-								}
-
-								if ${DeliverItemContainer.Element[${missionName}](exists)}
-								{
-									This:LogInfo["Deliver the item to: \ao${DeliverItemContainer.Element[${missionName}]}"]
-									deliverItemContainer:Set[${DeliverItemContainer.Element[${missionName}]}]
-								}
-								else
-								{
-									This:LogCritical["Don't know where to deliver, halting."]
-									This:Stop
-									return TRUE
-								}
-							}
-
-							; echo damagetype ${DamageType.Element[${missionName}].Lower}
-							variable string damageType
-							damageType:Set[${DamageType.Element[${missionName}].Lower}]
-							if ${damageType.Equal["auto"]} && ${MissionParser.EnemyFactionName.NotNULLOrEmpty} && ${MissionParser.EnemyDamageToDeal.NotNULLOrEmpty}
-							{
-								This:LogInfo["Using damage type ${MissionParser.EnemyDamageToDeal} on ${MissionParser.EnemyFactionName}."]
-								damageType:Set[${MissionParser.EnemyDamageToDeal.Lower}]
-							}
-							switch ${damageType}
-							{
-								case kinetic
-									ammo:Set[${Config.KineticAmmo}]
-									if ${Config.UseSecondaryAmmo}
-										secondaryAmmo:Set[${Config.KineticAmmoSecondary}]
-									else
-										secondaryAmmo:Set[""]
-									useDroneRace:Set[DRONE_RACE_MINMATAR]
-									break
-								case em
-									ammo:Set[${Config.EMAmmo}]
-									if ${Config.UseSecondaryAmmo}
-										secondaryAmmo:Set[${Config.EMAmmoSecondary}]
-									else
-										secondaryAmmo:Set[""]
-									useDroneRace:Set[DRONE_RACE_MINMATAR]
-									break
-								case thermal
-									ammo:Set[${Config.ThermalAmmo}]
-									if ${Config.UseSecondaryAmmo}
-										secondaryAmmo:Set[${Config.ThermalAmmoSecondary}]
-									else
-										secondaryAmmo:Set[""]
-									useDroneRace:Set[DRONE_RACE_MINMATAR]
-									break
-								case explosive
-									ammo:Set[${Config.ExplosiveAmmo}]
-									if ${Config.UseSecondaryAmmo}
-										secondaryAmmo:Set[${Config.ExplosiveAmmoSecondary}]
-									else
-										secondaryAmmo:Set[""]
-									useDroneRace:Set[DRONE_RACE_MINMATAR]
-									break
-								default
-									ammo:Set[${Config.KineticAmmo}]
-									if ${Config.UseSecondaryAmmo}
-										secondaryAmmo:Set[${Config.KineticAmmoSecondary}]
-									else
-										secondaryAmmo:Set[""]
-									break
-							}
-
-							Ship.ModuleList_Weapon:ConfigureAmmo[${ammo}, ${secondaryAmmo}]
-							Ship.ModuleList_Ancillary_Shield_Booster:ConfigureAmmo[${Config.BatteryToBring}]
-
-							if ${Client.InSpace} && (${Entity[Type = "Beacon"]} || ${Entity[Type = "Acceleration Gate"]})
-							{
-								This:InsertState["PerformMission"]
-								This:InsertState["Cleanup"]
-								return TRUE
-							}
-						}
-					}
-
-					if ${Me.InStation} && ${reload}
-					{
-						This:LogInfo["Loading Ammo \ao${ammo}"]
-						if ${Config.UseSecondaryAmmo}
-						{
-							This:LogInfo["Loading Secondary Ammo \ao${secondaryAmmo}", "o"]
-						}
-						if ${Config.BatteryToBring.NotNULLOrEmpty} && ${Config.BatteryAmountToBring}
-						{
-							This:LogInfo["Loading Charge \ao${Config.BatteryToBring}", "o"]
-						}
-						reload:Set[FALSE]
-						This:InsertState["CheckForWork"]
-						isLoadingFallbackDrones:Set[FALSE]
-						This:InsertState["ReloadAmmoAndDrones", 3000]
-						if !${haveGateKeyInCargo}
-						{
-							This:InsertState["TryBringGateKey"]
-						}
-						if ${deliverItem.NotNULLOrEmpty} && !${haveDeliveryInCargo}
-						{
-							This:InsertState["BringDelivery"]
-						}
-						This:InsertState["PrepHangars"]
-						return TRUE
-					}
-
-					variable index:bookmark missionBookmarks
-					variable iterator bookmarkIterator
-					missionIterator.Value:GetBookmarks[missionBookmarks]
-					missionBookmarks:GetIterator[bookmarkIterator]
-					if ${bookmarkIterator:First(exists)}
-					{
-						do
-						{
-							if ${bookmarkIterator.Value.LocationType.Equal[dungeon]}
-							{
-								Move:AgentBookmark[${bookmarkIterator.Value.ID}]
-								This:BuildNpcQueries
-								ActiveNPCs.AutoLock:Set[FALSE]
-								NPCs.AutoLock:Set[FALSE]
-								This:InsertState["PerformMission"]
-								This:InsertState["Traveling", 5000]
-								This:InsertState["Cleanup"]
-								reload:Set[TRUE]
-								return TRUE
-							}
-						}
-						while ${bookmarkIterator:Next(exists)}
-					}
-				}
-			}
-			while ${missionIterator:Next(exists)}
-		}
-
-		This:LogInfo["Requesting mission"]
-		This:InsertState["CheckForWork"]
-		This:InsertState["InteractAgent", 1500, "OFFER"]
-		return TRUE
-	}
-
-	method BuildNpcQueries()
-	{
-		variable iterator classIterator
-		variable iterator groupIterator
-		variable string groups = ""
-		variable string seperator = ""
-
-		ActiveNPCs:ClearQueryString
-
-		variable int range = ${Math.Calc[${MyShip.MaxTargetRange} * .95]}
-
-		; Add ongoing jammers.
-		variable index:jammer attackers
-		variable iterator attackerIterator
-		Me:GetJammers[attackers]
-		attackers:GetIterator[attackerIterator]
-		if ${attackerIterator:First(exists)}
-		do
-		{
-			variable index:string jams
-			variable iterator jamsIterator
-			attackerIterator.Value:GetJams[jams]
-			jams:GetIterator[jamsIterator]
-			if ${jamsIterator:First(exists)}
-			{
-				do
-				{
-					; Both scramble and disrupt
-					if ${jamsIterator.Value.Lower.Find["warp"]}
-					{
-						groups:Concat[${seperator}ID =- "${attackerIterator.Value.ID}"]
-						seperator:Set[" || "]
-					}
-					elseif ${jamsIterator.Value.Lower.Find["trackingdisrupt"]}
-					{
-						groups:Concat[${seperator}ID =- "${attackerIterator.Value.ID}"]
-						seperator:Set[" || "]
-					}
-					elseif ${jamsIterator.Value.Lower.Find["electronic"]}
-					{
-						groups:Concat[${seperator}ID =- "${attackerIterator.Value.ID}"]
-						seperator:Set[" || "]
-					}
-					; Energy drain and neutralizer
-					elseif ${jamsIterator.Value.Lower.Find["energy"]}
-					{
-						groups:Concat[${seperator}ID =- "${attackerIterator.Value.ID}"]
-						seperator:Set[" || "]
-					}
-					elseif ${jamsIterator.Value.Lower.Find["remotesensordamp"]}
-					{
-						groups:Concat[${seperator}ID =- "${attackerIterator.Value.ID}"]
-						seperator:Set[" || "]
-					}
-					elseif ${jamsIterator.Value.Lower.Find["webify"]}
-					{
-						groups:Concat[${seperator}ID =- "${attackerIterator.Value.ID}"]
-						seperator:Set[" || "]
-					}
-					elseif ${jamsIterator.Value.Lower.Find["targetpaint"]}
-					{
-						groups:Concat[${seperator}ID =- "${attackerIterator.Value.ID}"]
-						seperator:Set[" || "]
-					}
-					else
-					{
-						This:LogCritical["unknown EW ${jamsIterator.Value}"]
-					}
-				}
-				while ${jamsIterator:Next(exists)}
-			}
-		}
-		while ${attackerIterator:Next(exists)}
-
-		ActiveNPCs:AddQueryString["IsNPC && !IsMoribund && (${groups})"]
-		ActiveNPCs:AddQueryString["IsNPC && !IsMoribund && IsWarpScramblingMe"]
-
-		; Add potential jammers.
-		seperator:Set[""]
-		groups:Set[""]
-		PrioritizedTargets.Scramble:GetIterator[groupIterator]
-		if ${groupIterator:First(exists)}
-		{
-			do
-			{
-				groups:Concat[${seperator}Name =- "${groupIterator.Value}"]
-				seperator:Set[" || "]
-			}
-			while ${groupIterator:Next(exists)}
-		}
-		ActiveNPCs:AddQueryString["IsNPC && IsTargetingMe && !IsMoribund && (${groups})"]
-
-		seperator:Set[""]
-		groups:Set[""]
-		PrioritizedTargets.Neut:GetIterator[groupIterator]
-		if ${groupIterator:First(exists)}
-		{
-			do
-			{
-				groups:Concat[${seperator}Name =- "${groupIterator.Value}"]
-				seperator:Set[" || "]
-			}
-			while ${groupIterator:Next(exists)}
-		}
-		ActiveNPCs:AddQueryString["IsNPC && IsTargetingMe && !IsMoribund && (${groups})"]
-
-		seperator:Set[""]
-		groups:Set[""]
-		PrioritizedTargets.ECM:GetIterator[groupIterator]
-		if ${groupIterator:First(exists)}
-		{
-			do
-			{
-				groups:Concat[${seperator}Name =- "${groupIterator.Value}"]
-				seperator:Set[" || "]
-			}
-			while ${groupIterator:Next(exists)}
-		}
-		ActiveNPCs:AddQueryString["IsNPC && IsTargetingMe && !IsMoribund && (${groups})"]
-
-		NPCData.BaseRef:GetSetIterator[classIterator]
-		if ${classIterator:First(exists)}
-		{
-			do
-			{
-				seperator:Set[""]
-				groups:Set[""]
-				classIterator.Value:GetSettingIterator[groupIterator]
-				if ${groupIterator:First(exists)}
+				}	
+				
+				variable index:bookmark missionBookmarks
+				variable iterator bookmarkIterator
+				missionIterator.Value:GetBookmarks[missionBookmarks]
+				missionBookmarks:GetIterator[bookmarkIterator]
+				if ${bookmarkIterator:First(exists)}
 				{
 					do
 					{
-						groups:Concat["${seperator}GroupID = ${groupIterator.Key}"]
-						seperator:Set[" || "]
+						if ${bookmarkIterator.Value.LocationType.Equal[dungeon]}
+						{
+							Move:AgentBookmark[${bookmarkIterator.Value.ID}]
+							;ActiveNPCs.AutoLock:Set[FALSE]
+							;NPCs.AutoLock:Set[FALSE]
+							This:InsertState["Traveling", 5000]
+							reload:Set[TRUE]
+							This:QueueState["CombatMission", 4000]
+							return TRUE
+						}
 					}
-					while ${groupIterator:Next(exists)}
-				}
-				ActiveNPCs:AddQueryString["IsNPC && IsTargetingMe && !IsMoribund && (${groups})"]
+					while ${bookmarkIterator:Next(exists)}
+				}	
 			}
-			while ${classIterator:Next(exists)}
-		}
-
-		ActiveNPCs:AddTargetingMe
-
-		if ${Config.AggressiveMode}
-		{
-			ActiveNPCs:AddAllNPCs
-			if ${targetToDestroy.NotNULLOrEmpty}
-			{
-				ActiveNPCs:AddQueryString[${targetToDestroy.Escape}]
-			}
-		}
-
-		NPCs:ClearQueryString
-		NPCs:AddAllNPCs
-
-		if ${Config.IgnoreNPCSentries}
-		{
-			ActiveNPCs:AddTargetExceptionByPartOfName["Battery"]
-			ActiveNPCs:AddTargetExceptionByPartOfName["Batteries"]
-			ActiveNPCs:AddTargetExceptionByPartOfName["Sentry Gun"]
-			ActiveNPCs:AddTargetExceptionByPartOfName["Tower Sentry"]
-
-			NPCs:AddTargetExceptionByPartOfName["Battery"]
-			NPCs:AddTargetExceptionByPartOfName["Batteries"]
-			NPCs:AddTargetExceptionByPartOfName["Sentry Gun"]
-			NPCs:AddTargetExceptionByPartOfName["Tower Sentry"]
+			while ${missionIterator:Next(exists)}
 		}
 	}
-
-	variable bool looted = FALSE
-	variable int64 currentTarget = 0
-	variable set blackListedContainers
-	variable int64 currentLootContainer
-	variable int64 approachTimer
-	variable bool notDone = FALSE
-	member:bool PerformMission(int nextwaitcomplete = 0)
+	; This state will be the start of Primary Logic for Combat Missions.Basically this state here will be our hub for combat missions.
+	member:bool CombatMission()
 	{
-		variable iterator itemIterator
 
-		ActiveNPCs.AutoLock:Set[TRUE]
-		NPCs.AutoLock:Set[TRUE]
-		ActiveNPCs:RequestUpdate
-		NPCs:RequestUpdate
-		Lootables:RequestUpdate
-		Ship.ModuleList_ActiveResists:ActivateAll
-		variable index:bookmark BookmarkIndex
-		variable index:bookmark BookmarkIndex2
-
-		if ${Me.ToEntity.Mode} == MOVE_WARPING
+		; Considering we have all of the information contained here as live variables already, no need to touch this thing below.
+		;GetMissionLogCombat:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCombat WHERE Historical=FALSE;"]}]
+		
+	
+	
+	}
+	
+	; This state will be the Start of Primary Logic for Courier Missions. Basically this state here will be our hub for courier missions.
+	; We need to figure out where we are, whether we have our cargo loaded, how much cargo remains, where are we going, etc. We also need to
+	; have a recovery method in place in case of disconnect or what have you. Luckily, the DB has all we need.
+	member:bool CourierMission()
+	{
+		echo DEBUG CMSHIPITEMS ${CourierMissionShipItems}
+		echo DEBUG CMSTATIONITEMS ${CourierMissionStationItems}
+		; Considering we have all of the information contained here as live variables already, no need to touch this thing below.
+		;GetMissionLogCourier:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCourier WHERE Historical=FALSE;"]}]
+		
+		; Alright so, my first attempt at this didn't go so well. Using members to get inventory info was a bad call. Whatever amadeus did at some point
+		; to slow down how quickly you can get inventory info is coming back to haunt me. Basically, this is going to go from taking 4 states (Start, dropoff, pickup, finish)
+		; to something like 7 (start, check station inventory, check ship inventory, load, travel, unload, finish).
+		
+		; First up, are we in station or are we in space.
+		if ${Me.InStation}
 		{
-			This:InsertState["PerformMission"]
-			return TRUE
-		}
+			; Check both inventories, we are in a station.
 
-		variable bool allowSiegeModule
-		variable iterator targetIterator
-		allowSiegeModule:Set[TRUE]
-		if ${Config.DeactivateSiegeModuleEarly} && (${NPCs.TargetList.Used} < 1) && !${Entity[${targetToDestroy}]}
-		{
-			allowSiegeModule:Set[FALSE]
-			NPCs.TargetList:GetIterator[targetIterator]
-			if ${targetIterator:First(exists)}
+			;Are we in the pickup station or dropoff station, or somewhere else entirely?
+			if ${Me.StationID} == ${CurrentAgentPickupID}
 			{
-				do
+				echo DEBUG IN AGENT PICKUP STATION
+				; We are in the Pickup station, have we already loaded the items?
+				if ${CourierMissionShipItems} > 0
 				{
-					if ${Entity[${targetIterator.Value}].Distance} > 70000
-					{
-						This:LogDebug["still allowing siege for target is ${Entity[${targetIterator.Value}].Distance} away"]
-						allowSiegeModule:Set[TRUE]
-						break
-					}
+					; We have loaded the items
+					This:LogInfo["Courier Start - Dropoff - ${CurrentAgentDropoff}"]
+					CourierMissionTravelState:Set["Dropoff"]
+					CurrentRunTripNumber:Inc[1]
+					This:UpdateWatchDog
+					This:MissionLogCourierUpdate[${CurrentRunNumber},${CurrentRunTripNumber},${CurrentRunItemUnitsMoved},${CurrentRunVolumeMoved},${Time.Timestamp},FALSE}]
+					This:InsertState["CourierMissionTravel",5000]
+					return TRUE
+					
 				}
-				while ${targetIterator:Next(exists)}
-			}
-		}
-
-		if !${allowSiegeModule} && ${Ship.ModuleList_Siege.ActiveCount}
-		{
-			This:LogDebug["Deactivating siege module early. ${NPCs.TargetList.Used}"]
-			Ship.ModuleList_Siege:DeactivateAll
-		}
-
-		; Should do nothing when ship is not approaching yet so the Approaching eneity is null.
-		; Will deactivate overload when the target is near.
-		This:ManageThrusterOverload[${MyShip.ToEntity.Approaching.ID}]
-
-		; Hack: Approach to spawn Fajah Ateshi in Anomaly 1, not worth adding another mission configue for this one mission
-		variable string containerQuery = "(Type = \"Ancient Ship Structure\")"
-		variable string seperator = " || "
-
-		if ${containerToLoot.NotNULLOrEmpty}
-		{
-			containerQuery:Concat["${seperator}(${containerToLoot})"]
-			seperator:Set[" || "]
-		}
-
-		; Only interested in the gate key container when it's necessary to loot the key
-		if ${gateKeyContainer.NotNULLOrEmpty} && \
-			!${haveGateKeyInCargo} && \
-			!${gateKeyContainer.Equal[${containerToLoot}]}
-		{
-			containerQuery:Concat["${seperator}(${gateKeyContainer})"]
-			seperator:Set[" || "]
-		}
-
-		if ${deliverItemContainer.NotNULLOrEmpty} && \
-			${haveDeliveryInCargo}
-		{
-			containerQuery:Concat["${seperator}(${deliverItemContainer})"]
-			seperator:Set[" || "]
-		}
-
-		variable index:entity lootContainers
-		if ${containerQuery.NotNULLOrEmpty}
-		{
-			EVE:QueryEntities[lootContainers, ${containerQuery}]
-		}
-
-		; Avoid duplicate check on containers.
-		variable iterator containerIterator
-		blackListedContainers:GetIterator[containerIterator]
-		if ${containerIterator:First(exists)}
-			do
-			{
-				lootContainers:RemoveByQuery[${LavishScript.CreateQuery[ID = ${containerIterator.Value}]}]
-			}
-			while ${containerIterator:Next(exists)}
-		lootContainers:Collapse
-
-		; Move to the loot or delivery containers before moving to gates.
-		if ${lootContainers.Used}
-		{
-			if !${currentLootContainer}
-			{
-				currentLootContainer:Set[${lootContainers.Get[1].ID}]
-			}
-			else
-			{
-				if !${Entity[${currentLootContainer}](exists)} || \
-					${Entity[${currentLootContainer}].IsWreckEmpty} || \
-					${Entity[${currentLootContainer}].IsWreckViewed} || \
-					${Entity[${currentLootContainer}].IsMoribund}
+				if ${CourierMissionStationItems} > 0 && ${CourierMissionShipItems} == 0
 				{
-					currentLootContainer:Set[0]
+					; We have not loaded the items
+					This:LogInfo["Courier Start - Loading"]					
+					This:InsertState["CourierMissionLoadShip",5000]
+					return TRUE
 				}
-				else
+				if ${CourierMissionStationItems} == 0 && ${CourierMissionShipItems} == 0
 				{
-					if ${Entity[${currentLootContainer}].Distance} > 2500
+					; The items have phased out of existence.
+					echo DEBUG - END OF THE LINE
+					This:QueueState["CourierMission",5000]
+					This:InsertState["CourierMissionCheckStation", 2000]
+					This:InsertState["RefreshStationItemsState", 2000]
+					This:InsertState["CourierMissionCheckShip", 2000]
+					This:InsertState["RefreshLargestBayState", 2000]
+					This:InsertState["GetHaulerDetails",2000]
+					return TRUE
+				}
+			}
+			elseif ${Me.StationID} == ${CurrentAgentDropoffID}
+			{
+				; we are in the Dropoff Station, have we already unloaded the items?
+				if ${CourierMissionShipItems} > 0
+				{
+					; We have not unloaded the items
+					This:LogInfo["Courier Start - Unloading"]					
+					This:InsertState["CourierMissionUnloadShip",5000]
+					return TRUE					
+				}
+				if ${CourierMissionStationItems} > 0 && ${CourierMissionShipItems} == 0
+				{
+					; We have unloaded the item, are all the items here at the dropoff?
+					if ${CourierMissionStationItems} == ${CurrentAgentItemUnits}
 					{
-						if (${MyShip.ToEntity.Mode} != MOVE_APPROACHING || ${LavishScript.RunningTime} > ${approachTimer}) && !${Move.Traveling}
-						{
-							This:ManageThrusterOverload[${Entity[${currentLootContainer}].ID}]
-							Entity[${currentLootContainer}]:Approach[1000]
-							This:InsertState["PerformMission"]
-							approachTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 10000]}]
-							return TRUE
-						}
-
-						if ${Ship.ModuleList_TractorBeams.Count} && \
-							${Entity[${currentLootContainer}].Distance} < ${Ship.ModuleList_TractorBeams.Range} && \
-							${Entity[${currentLootContainer}].Distance} < ${MyShip.MaxTargetRange} && \
-							(${Entity[${currentLootContainer}].GroupID} == GROUP_WRECK || ${Entity[${currentLootContainer}].GroupID} == GROUP_CARGOCONTAINER)
-						{
-							if ${Entity[${currentLootContainer}].IsLockedTarget} && !${Ship.ModuleList_TractorBeams.IsActiveOn[${currentLootContainer}]}
-							{
-								if ${Ship.ModuleList_TractorBeams.InactiveCount} > 0
-								{
-									Ship.ModuleList_TractorBeams:ActivateOne[${currentLootContainer}]
-								}
-								else
-								{
-									Ship.ModuleList_TractorBeams:ForceActivateOne[${currentLootContainer}]
-								}
-								return FALSE
-							}
-							elseif !${Entity[${currentLootContainer}].IsLockedTarget} && !${Entity[${currentLootContainer}].BeingTargeted}
-							{
-								Entity[${currentLootContainer}]:LockTarget
-								return FALSE
-							}
-						}
-						notDone:Set[TRUE]
-					}
-					; TODO Test without this condition
-					elseif !${NPCs.TargetList.Used}
-					{
-						if !${EVEWindow[Inventory].ChildWindow[${currentLootContainer}](exists)}
-						{
-							Entity[${currentLootContainer}]:Open
-							This:InsertState["PerformMission"]
-							return TRUE
-						}
-
-						variable index:item items
-						Client:Wait[5000]
-						EVEWindow[Inventory].ChildWindow[${currentLootContainer}]:GetItems[items]
-						if ${items.Used}
-						{
-							items:GetIterator[itemIterator]
-							if ${itemIterator:First(exists)}
-								do
-								{
-									if ${itemIterator.Value.Type.Equal[${aquireItem}]}
-									{
-										itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold]
-										This:LogInfo["Aquired mission item: \ao${aquireItem}"]
-										This:InsertState["CheckForWork"]
-										This:InsertState["Idle", 2000]
-										notDone:Set[FALSE]
-										return TRUE
-									}
-									elseif ${itemIterator.Value.Type.Equal[${gateKey}]}
-									{
-										itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold]
-										This:LogInfo["Aquired mission gate key: \ao${gateKey}"]
-										haveGateKeyInCargo:Set[TRUE]
-										gateKeyContainer:Set[""]
-										This:InsertState["PerformMission"]
-										notDone:Set[FALSE]
-										return TRUE
-									}
-								}
-								while ${itemIterator:Next(exists)}
-							blackListedContainers:Add[${currentLootContainer}]
-							currentLootContainer:Set[0]
-							EVE:Execute[CmdStopShip]
-							This:InsertState["PerformMission"]
-							notDone:Set[FALSE]
-							return TRUE
-						}
-						elseif ${haveDeliveryInCargo} && ${deliverItemContainer.Find[${Entity[${currentLootContainer}].Name}]}
-						{
-							if !${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo](exists)} || ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo].Capacity} < 0
-							{
-								EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo]:MakeActive
-								Client:Wait[5000]
-								return FALSE
-							}
-
-							variable index:item cargo
-							variable iterator cargoIterator
-							Client:Wait[5000]
-							EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo]:GetItems[cargo]
-							cargo:GetIterator[cargoIterator]
-							if ${cargoIterator:First(exists)}
-							{
-								do
-								{
-									if ${cargoIterator.Value.Name.Equal[${deliverItem}]}
-									{
-										cargoIterator.Value:MoveTo[${Entity[${currentLootContainer}].ID}, CargoHold]
-										This:LogInfo["Delivered \ao\"${deliverItem}\""]
-										haveDeliveryInCargo:Set[FALSE]
-										This:InsertState["CheckForWork"]
-										This:InsertState["Idle", 2000]
-										return TRUE
-									}
-								}
-								while ${cargoIterator:Next(exists)}
-							}
-
-							This:LogCritical["Can't find the delivery in cargo"]
-							; Don't halt here to help surviving
-							; This:Stop
-							; return TRUE
-						}
-						else
-						{
-							blackListedContainers:Add[${currentLootContainer}]
-							currentLootContainer:Set[0]
-							EVE:Execute[CmdStopShip]
-							This:InsertState["PerformMission"]
-							notDone:Set[FALSE]
-							return TRUE
-						}
+						; All of the items are here, go to finish.
+						This:LogInfo["Courier Start - Complete Mission"]
+						This:UpdateWatchDog
+						This:MissionLogCourierUpdate[${CurrentRunNumber},${CurrentRunTripNumber},${CurrentRunItemUnitsMoved},${CurrentRunVolumeMoved},${Time.Timestamp},FALSE}]						
+						This:InsertState["CourierMissionFinish",5000]
+						return TRUE
 					}
 					else
 					{
-						notDone:Set[TRUE]
+						; The items are not all here, go back to pickup
+						This:LogInfo["Courier Start - Pickup - ${CurrentAgentPickup}"]
+						CourierMissionTravelState:Set["Pickup"]
+						This:UpdateWatchDog
+						This:MissionLogCourierUpdate[${CurrentRunNumber},${CurrentRunTripNumber},${CurrentRunItemUnitsMoved},${CurrentRunVolumeMoved},${Time.Timestamp},FALSE}]
+						This:InsertState["CourierMissionTravel",5000]
+						return TRUE						
 					}
+					
 				}
+				if ${CourierMissionStationItems} == 0 && ${CourierMissionShipItems} == 0
+				{
+					; The items have phased out of existence.
+					
+				}				
+			}
+			else
+			{
+				; We are in some other station that is neither our dropoff nor our pickup, somehow
 			}
 		}
 		else
 		{
-			notDone:Set[FALSE]
-			if !${Move.Traveling}
+			; We are in space, check our ship to see if we have the items or not.
+			This:InsertState["CourierMissionCheckShip",2500]
+			if ${CourierMissionShipItems} > 0
 			{
-				if ${Entity[Type = "Acceleration Gate"]}
-				{
-					if ${MyShip.ToEntity.Mode} != MOVE_ORBITING && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING
-					{
-						Entity[Type = "Acceleration Gate"]:Orbit[2000]
-						This:InsertState["PerformMission"]
-						return TRUE
-					}
-				}
-				elseif ${Entity[Name = "Acceleration Gate (Locked Down)"]}
-				{
-					if ${MyShip.ToEntity.Mode} != MOVE_ORBITING && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING
-					{
-						Entity[Name = "Acceleration Gate (Locked Down)"]:Orbit[2000]
-						This:InsertState["PerformMission"]
-						return TRUE
-					}
-				}
-				elseif ${Entity[Type = "Beacon"]}
-				{
-					if ${MyShip.ToEntity.Mode} != MOVE_ORBITING && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING
-					{
-						Entity[Type = "Beacon"]:Orbit[2000]
-						This:InsertState["PerformMission"]
-						return TRUE
-					}
-				}
+				; We have the goods, we must be headed to our dropoff station
+				This:LogInfo["Courier Travel - Dropoff - ${CurrentAgentDropoff}"]
+				CourierMissionTravelState:Set["Dropoff"]
+				This:InsertState["CourierMissionTravel",5000]
+				return TRUE
+			}
+			if ${CourierMissionShipItems} == 0
+			{
+				; We do not have the goods, we must be headed to the pickup.
+				This:LogInfo["Courier Travel - Pickup - ${CurrentAgentPickup}"]
+				CourierMissionTravelState:Set["Pickup"]
+				This:InsertState["CourierMissionTravel",5000]
+				return TRUE
 			}
 		}
-
-		if ${EVEWindow[Telecom](exists)}
+	}
+	; This state will be for checking the station inventory.
+	member:bool CourierMissionCheckStation()
+	{
+		variable index:item itemIndex
+		variable iterator itemIterator
+		; in case you somehow ended up moving multiple stacks of the item, no idea
+		variable int itemtotal = 0
+		echo DEBUG CMCSTATION
+		if ${Client.InSpace}
 		{
-			EVEWindow[Telecom]:Close
+			return TRUE
+		}
+		if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
+			This:InsertState["Idle",3000]
 			return FALSE
 		}
-
-		variable int MaxTarget
-		MaxTarget:Set[${Utility.Min[${Me.MaxLockedTargets}, ${MyShip.MaxLockedTargets}]}]
-		MaxTarget:Dec[2]
-
-		ActiveNPCs.MinLockCount:Set[${MaxTarget}]
-
-		; ActiveNPCs:RequestUpdate
-		; echo list is ${ActiveNPCs.LockedTargetList.Used}
-		; finalized target not locked.
-		if !${Entity[${currentTarget}]} || ${Entity[${currentTarget}].IsMoribund} || !(${Entity[${currentTarget}].IsLockedTarget} || ${Entity[${currentTarget}].BeingTargeted})
-		{
-			currentTarget:Set[0]
-			maxAttackTime:Set[0]
-		}
-		elseif (${maxAttackTime} > 0 && ${LavishScript.RunningTime} > ${maxAttackTime})
-		{
-			This:LogInfo["Resseting target for the current one is taking too long."]
-			currentTarget:Set[0]
-			maxAttackTime:Set[0]
-		}
-
 		
-		variable iterator lockedTargetIterator
-		variable iterator activeJammerIterator
-		Ship:BuildActiveJammerList
-		; May switch target more than once so use this flag to avoid log spamming.
-		variable bool switched
-		if ${currentTarget} != 0
+		if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 		{
-			; Finalized decision
-			variable bool finalized
-			finalized:Set[FALSE]
-			if ${Ship.ActiveJammerList.Used}
+			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[itemIndex]
+			itemIndex:GetIterator[itemIterator]
+			if ${itemIterator:First(exists)}
 			{
-				if !${Ship.ActiveJammerSet.Contains[${currentTarget}]}
-				{
-					; Being jammed but the jammer is not the current target
-					Ship.ActiveJammerList:GetIterator[activeJammerIterator]
-					do
-					{
-						if ${Entity[${activeJammerIterator.Value}].IsLockedTarget}
-						{
-							currentTarget:Set[${activeJammerIterator.Value}]
-							maxAttackTime:Set[${Math.Calc[${LavishScript.RunningTime} + (${switchTargetAfter} * 1000)]}]
-							This:LogInfo["Switching target to activate jammer \ar${Entity[${currentTarget}].Name}"]
-							finalized:Set[TRUE]
-							break
-						}
-					}
-					while ${activeJammerIterator:Next(exists)}
-				}
-				else
-				{
-					finalized:Set[TRUE]
-				}
-			}
-
-			if !${finalized} && ${ActiveNPCs.LockedTargetList.Used} && (${Ship.IsHardToDealWithTarget[${currentTarget}]} || ${This.IsStructure[${currentTarget}]})
-			{
-				ActiveNPCs.LockedTargetList:GetIterator[lockedTargetIterator]
-				if ${lockedTargetIterator:First(exists)}
-				{
-					do
-					{
-						if ${This.IsStructure[${currentTarget}]} && !${This.IsStructure[${lockedTargetIterator.Value}]}
-						{
-							This:LogInfo["Pritorizing non-structure targets."]
-							currentTarget:Set[0]
-							maxAttackTime:Set[0]
-							return FALSE
-						}
-					}
-					while ${lockedTargetIterator:Next(exists)}
-				}
-
-				; Switched to easier target.
-				switched:Set[FALSE]
-				if ${lockedTargetIterator:First(exists)}
-				{
-					do
-					{
-						if !${Ship.IsHardToDealWithTarget[${lockedTargetIterator.Value}]} && !${This.IsStructure[${lockedTargetIterator.Value}]} && \
-						(${Ship.IsHardToDealWithTarget[${currentTarget}]} || ${Entity[${currentTarget}].Distance} > ${Entity[${lockedTargetIterator.Value}].Distance})
-						{
-							currentTarget:Set[${lockedTargetIterator.Value}]
-							maxAttackTime:Set[${Math.Calc[${LavishScript.RunningTime} + (${switchTargetAfter} * 1000)]}]
-							switched:Set[TRUE]
-						}
-					}
-					while ${lockedTargetIterator:Next(exists)}
-				}
-				if ${switched}
-				{
-					This:LogInfo["Switching to easier target: \ar${Entity[${currentTarget}].Name}"]
-				}
-			}
-		}
-		elseif ${ActiveNPCs.LockedTargetList.Used}
-		{
-			; Need to re-pick from locked target
-			if ${Ship.ActiveJammerList.Used}
-			{
-				Ship.ActiveJammerList:GetIterator[activeJammerIterator]
 				do
 				{
-					if ${Entity[${activeJammerIterator.Value}].IsLockedTarget}
+					if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
 					{
-						currentTarget:Set[${activeJammerIterator.Value}]
-						maxAttackTime:Set[${Math.Calc[${LavishScript.RunningTime} + (${switchTargetAfter} * 1000)]}]
-						This:LogInfo["Targeting activate jammer \ar${Entity[${currentTarget}].Name}"]
-						break
+						itemtotal:Inc[${itemIterator.Value.Quantity}]
 					}
 				}
-				while ${activeJammerIterator:Next(exists)}
+				while ${itemIterator:Next(exists)}
 			}
-
-			if ${currentTarget} == 0
-			{
-				; Priortize the closest target which is not hard to deal with to
-				; reduce the frequency of switching ammo.
-				variable int64 lowPriorityTarget = 0
-				ActiveNPCs.LockedTargetList:GetIterator[lockedTargetIterator]
-				if ${lockedTargetIterator:First(exists)}
-				{
-					do
-					{
-						if ${Ship.IsHardToDealWithTarget[${lockedTargetIterator.Value}]} || ${This.IsStructure[${lockedTargetIterator.Value}]}
-						{
-							; Structure priority is lower than ships.
-							if !${This.IsStructure[${lockedTargetIterator.Value}]} || ${lowPriorityTarget.Equal[0]}
-							{
-								lowPriorityTarget:Set[${lockedTargetIterator.Value}]
-							}
-						}
-						elseif ${currentTarget} == 0 || ${Entity[${currentTarget}].Distance} > ${Entity[${lockedTargetIterator.Value}].Distance}
-						{
-							; if ${currentTarget} != 0
-							; 	This:LogInfo["there is something closer ${Entity[${lockedTargetIterator.Value}].Name}"]
-							currentTarget:Set[${lockedTargetIterator.Value}]
-							maxAttackTime:Set[${Math.Calc[${LavishScript.RunningTime} + (${switchTargetAfter} * 1000)]}]
-						}
-					}
-					while ${lockedTargetIterator:Next(exists)}
-				}
-
-				if ${currentTarget} == 0
-				{
-					; This:LogInfo["no easy target"]
-					currentTarget:Set[${lowPriorityTarget}]
-					maxAttackTime:Set[${Math.Calc[${LavishScript.RunningTime} + (${switchTargetAfter} * 1000)]}]
-				}
-			}
-			This:LogInfo["Primary target: \ar${Entity[${currentTarget}].Name}, effciency ${Math.Calc[${Ship.ModuleList_Weapon.DamageEfficiency[${currentTarget}]} * 100].Deci}%."]
-		}
-
-		; Nothing is locked.
-		if ${ActiveNPCs.TargetList.Used} && \
-			${currentTarget.Equal[0]} && \
-		 	${ActiveNPCs.TargetList.Get[1].Distance} > ${Math.Calc[${Ship.ModuleList_Weapon.Range} * 0.95]} && \
-			!${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1].ID}]} && \
-			!${Move.Traveling}
+			;;; Not sure if we need to get this granular
+			;if ${Me.StationID} == ${CurrentAgentDropoffID}
+			;{
+			;	CourierMissionDropoffStationItems:Set[${itemtotal}]
+			;	This:LogInfo["${itemtotal} x ${CurrentAgentItem} located in Dropoff Station Hangar"]
+			;}
+			;if ${Me.StationID} == ${CurrentAgentPickupID}
+			;{
+			;	CourierMissionPickupStationItems:Set[${itemtotal}]
+			;	This:LogInfo["${itemtotal} x ${CurrentAgentItem} located in Pickup Station Hangar"]			
+			;}
+			CourierMissionStationItems:Set[${itemtotal}]
+			This:LogInfo["${itemtotal} x ${CurrentAgentItem} located in Station Hangar"]				
+			return TRUE
+		}			
+	}
+	; This state will be for checking your ship's inventory.
+	member:bool CourierMissionCheckShip()
+	{
+		variable index:item itemIndex
+		variable iterator itemIterator
+		; in case you somehow ended up moving multiple stacks of the item, no idea
+		variable int itemtotal = 0
+		echo DEBUG CMCSHIP
+		echo ${HaulerLargestBayType}
+		if !${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"](exists)}
 		{
-			if ${Ship.ModuleList_Siege.ActiveCount}
+			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"]:MakeActive
+			This:InsertState["Idle",3000]
+			return FALSE
+		}
+		
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"]:GetItems[itemIndex]
+			itemIndex:GetIterator[itemIterator]
+			if ${itemIterator:First(exists)}
 			{
-				; This:LogInfo["Deactivate siege module due to no locked target"]
-				Ship.ModuleList_Siege:DeactivateAll
+				do
+				{
+					if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+					{
+						itemtotal:Inc[${itemIterator.Value.Quantity}]
+						echo DWHIAHM ${itemtotal}
+					}
+				}
+				while ${itemIterator:Next(exists)}
 			}
-			This:LogInfo["Approaching distanced target: \ar${ActiveNPCs.TargetList.Get[1].Name}"]
-			This:ManageThrusterOverload[${ActiveNPCs.TargetList.Get[1].ID}]
-			ActiveNPCs.TargetList.Get[1]:Approach
-			This:InsertState["PerformMission"]
+			This:LogInfo["${itemtotal} x ${CurrentAgentItem} located in ${HaulerLargestBayType}"]
+			CourierMissionShipItems:Set[${itemtotal}]
+			return TRUE
+		}		
+	}
+	; This state will be for loading.
+	member:bool CourierMissionLoadShip()
+	{
+		variable index:item itemIndex
+		variable iterator	itemIterator
+		variable int		wholeUnits
+		echo HAULER LARGEST ${HaulerLargestBayType} ${HaulerLargestBayCapacity}
+		if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
+			return FALSE
+		}
+		if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[itemIndex]
+			itemIndex:GetIterator[itemIterator]
+			if ${itemIterator:First(exists)}
+			{
+				do
+				{
+					if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+					{
+						wholeUnits:Set[${Math.Calc[${HaulerLargestBayCapacity}/${itemIterator.Value.Volume}].Int}]
+						if ${itemIterator.Value.Quantity} > ${wholeUnits}
+						{
+							itemIterator.Value:MoveTo[${Me.ShipID}, ${HaulerLargestBayLocationFlag}, ${wholeUnits}]
+							This:LogInfo["${wholeUnits} x ${CurrentAgentItem} @ ${Math.Calc[${wholeUnits}*${itemIterator.Value.Volume}]}m3 moved FROM Station TO ${HaulerLargestBayType}"]
+						}
+						else
+						{
+							itemIterator.Value:MoveTo[${Me.ShipID}, ${HaulerLargestBayLocationFlag}, ${itemIterator.Value.Quantity}]
+							This:LogInfo["${itemIterator.Value.Quantity} x ${CurrentAgentItem} @ ${Math.Calc[${itemIterator.Value.Quantity}*${itemIterator.Value.Volume}]}m3 moved FROM Station TO ${HaulerLargestBayType}"]						
+						}
+					}
+				}
+				while ${itemIterator:Next(exists)}
+			}
+		}
+		This:InsertState["CourierMission",5000]
+		;This:InsertState["CourierMissionCheckStation", 2000]
+		;This:InsertState["RefreshStationItemsState", 2000]
+		This:InsertState["CourierMissionCheckShip", 2000]
+		This:InsertState["RefreshLargestBayState", 2000]
+		return TRUE
+	}
+	; This state will be for unloading.
+	member:bool CourierMissionUnloadShip()
+	{
+		variable index:item itemIndex
+		variable iterator itemIterator
+		
+		if !${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"]:MakeActive
+			return FALSE
+		}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"]:GetItems[itemIndex]
+			itemIndex:GetIterator[itemIterator]
+			if ${itemIterator:First(exists)}
+			{
+				do
+				{
+					if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+					{
+						itemIterator.Value:MoveTo[MyStationHangar, Hangar]
+						CurrentRunItemUnitsMoved:Inc[${itemIterator.Value.Quantity}]
+						CurrentRunVolumeMoved:Inc[${Math.Calc[${itemIterator.Value.Quantity}*${itemIterator.Value.Volume}]}]
+						This:LogInfo["${itemIterator.Value.Quantity} x ${CurrentAgentItem} @ ${Math.Calc[${itemIterator.Value.Quantity}*${itemIterator.Value.Volume}]}m3 moved FROM ${HaulerLargestBayType} TO Station"]
+					}
+				}
+				while ${itemIterator:Next(exists)}
+			}
+			
+		}
+		This:InsertState["CourierMission",5000]
+		This:InsertState["CourierMissionCheckStation", 2000]
+		This:InsertState["RefreshStationItemsState", 2000]
+		;This:InsertState["CourierMissionCheckShip", 2000]
+		;This:InsertState["RefreshLargestBayState", 2000]
+		return TRUE
+	
+	}
+	; This state will be for travelling, outbound or inbound.
+	member:bool CourierMissionTravel()
+	{
+		; Ok so we get called to this state, a variable is already set that says what this state will be doing, we do what it says
+		; and then we set that variable to blank.
+		if ${Me.InStation}
+		{
+			; We are docked, we need to not be, undock and restart state.
+			This:LogInfo["We need to be undocked for this part"]
+			Move:Undock
+			return FALSE
+		}
+		else
+		{
+			;if ${CourierMissionTravelState.Equal["Dropoff"]}
+			;{
+				; State of dropoff, therefore travel to the dropoff station, then return to the initial courier state.
+				;Move:TravelToStation[${CurrentAgentDropoffID}]
+				; Nope, TravelToStation is broken as hell, guess we are doing a Move:AgentBookmark instead.
+				; That means we get to iterate through our bookmarks and find the right one woo.
+				;Move:AgentBookmark[${This.CourierMissionDestination}]
+				; Mot sure if we are capable of escaping the traveling state while this is all going on. TravelToStation is a goddamn mystery ass relic piece of code. I don't know
+				; if you get captured by that state or not.
+				;if ${Me.StationID} == ${CurrentAgentDropoffID}
+				;{
+				;	CourierMissionTravelState:Set[""]
+				;	This:InsertState["CourierMissionCheckStation", 2000]
+				;	This:InsertState["RefreshStationItemsState", 2000]
+				;	This:InsertState["CourierMissionCheckShip", 2000]
+				;	This:InsertState["RefreshLargestBayState", 2000]
+				;	return TRUE
+				;}
+				;else
+				;{
+				;	return FALSE
+				;}
+			;}
+			;if ${CourierMissionTravelState.Equal["Pickup"]}
+			;{
+				; State of pickup, therefore travel to the pickup station, then return to the initial courier state.		
+				;Move:TravelToStation[${CurrentAgentPickupID}]
+				;Move:AgentBookmark[${This.CourierMissionDestination}]
+				; Mot sure if we are capable of escaping the traveling state while this is all going on. TravelToStation is a goddamn mystery ass relic piece of code. I don't know
+				; if you get captured by that state or not.
+				;if ${Me.StationID} == ${CurrentAgentPickupID}
+				;{
+				;	CourierMissionTravelState:Set[""]
+				;	This:InsertState["CourierMissionCheckStation", 2000]
+				;	This:InsertState["RefreshStationItemsState", 2000]
+				;	This:InsertState["CourierMissionCheckShip", 2000]
+				;	This:InsertState["RefreshLargestBayState", 2000]
+				;	return TRUE 
+				;}
+				;else
+				;{
+				;	return FALSE
+				;}
+			;}
+			Move:AgentBookmark[${This.CourierMissionDestination}]
+			This:InsertState["CourierMission",5000]
+			This:InsertState["CourierMissionCheckStation", 2000]
+			This:InsertState["RefreshStationItemsState", 2000]
+			This:InsertState["CourierMissionCheckShip", 2000]
+			This:InsertState["RefreshLargestBayState", 2000]
+			This:InsertState["Traveling"]
 			return TRUE
 		}
+	}
+	; This state is for CourierMissionFinish. If we are in this state it means we are at the dropoff location, and all the items are in the station. We will record some final information
+	; and reset some variables, then go to FinishingAgentInteraction.
+	member:bool CourierMissionFinish()
+	{
+			This:MissionLogCourierUpdate[${CurrentRunNumber},${CurrentRunTripNumber},${CurrentRunItemUnitsMoved},${CurrentRunVolumeMoved},${Time.Timestamp},0}]
+			This:UpdateWatchDog
+			This:QueueState["FinishingAgentInteraction",5000]
+			return TRUE
 
-		if ${currentTarget} != 0 && ${Entity[${currentTarget}]} && !${Entity[${currentTarget}].IsMoribund}
+	}
+	; This uh, state, will be for Trade mission turnins. Its probably going to be like, 3 lines. Most of the work is done before here.
+	member:bool TradeMission()
+	{
+		; We SHOULD already have our items. We should also already be at the dropoff station, because that is the agent's location...
+		; Guess we will just verify we are in the right place. Also, can you do the turnin with the items in an ore bay or ship fleet hangar? Dunno. Guess we will find out.
+		if ${Me.StationID} != ${EVE.Agent[${CurrentAgentIndex}].StationID}
 		{
-			variable string targetClass
-			targetClass:Set[${NPCData.NPCType[${Entity[${currentTarget}].GroupID}]}]
-			; Avoid using drones against structures which may cause AOE damage when destructed.
-			if !${AllowDronesOnNpcClass.Contains[${targetClass}]}
-			{
-				DroneControl:Recall
-			}
-
-			if (${Ship.ModuleList_Weapon.Range} > ${Entity[${currentTarget}].Distance}) || \
-				!${Config.RangeLimit}
-			{
-				Ship.ModuleList_Weapon:ActivateAll[${currentTarget}]
-				Ship.ModuleList_TrackingComputer:ActivateFor[${currentTarget}]
-				if ${allowSiegeModule}
+			This:LogCritical["Something went wrong with this trade mission - Stopping"]
+			This:Stop
+			return TRUE			
+		}
+		; MissionLogCourierUpdate(int RunNumber, int TripNumber, int UnitsMoved, int64 VolumeMoved, int64 FinalTimestamp, int Historical)
+		This:MissionLogCourierUpdate[${CurrentRunNumber},${CurrentRunTripNumber},${CurrentAgentItemUnits},${CurrentAgentVolumeTotal},${Time.Timestamp},'FALSE'}]
+		This:QueueState["FinishingAgentInteraction",5000]
+	}
+	; This state will be where we do our finishing interaction with our Agent. This comes at mission completion.
+	; This is also where we, when we turn in the mission, do our final MissionLog entry in whatever table it belongs to.
+	; We will set that row to Historical, update any final details that need to be updated, clean up any variables that need cleaning up.
+	member:bool FinishingAgentInteraction()
+	{
+		; Storing our wallet just before we hit complete button.
+		ISKBeforeCompletion:Set[${Me.Wallet.Balance}]
+		; Open a conversation window, again.
+		if !${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
+		{
+			This:LogInfo["Opening Conversation Window."]
+			EVE.Agent[${CurrentAgentIndex}]:StartConversation
+			This:InsertState["Idle", 2000]
+			return FALSE
+		}	
+		if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"](exists)}
+		{
+			EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"]:Press
+					This:InsertState["Idle", 2000]
+			return FALSE
+		}
+		if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["Complete Mission"](exists)}
+		{
+			EVEWindow[AgentConversation_${CurrentAgentID}].Button["Complete Mission"]:Press
+					This:InsertState["Idle", 2000]
+			return FALSE
+		}
+		; Storing our wallet just after we hit the complete button.
+		ISKAfterCompletion:Set[${Me.Wallet.Balance}]
+		; Mission Completion MissioneerStats Update
+		This:UpdateMissioneerStats["RunComplete"]
+		;We can be fairly sure the mission completed correctly.
+		if ${CurrentAgentMissionType.Find[Courier]}
+		{
+			This:MissionLogCourierUpdate[${CurrentRunNumber},${CurrentRunTripNumber},${CurrentRunItemUnitsMoved},${CurrentRunVolumeMoved},${Time.Timestamp},1}]
+			This:LogInfo["Mission complete - Finalizing Courier Log Entry"]
+		}
+		elseif ${CurrentAgentMissionType.Find[Trade]}
+		{
+			This:MissionLogCourierUpdate[${CurrentRunNumber},${CurrentRunTripNumber},${CurrentAgentItemUnits},${CurrentAgentVolumeTotal},${Time.Timestamp},1}]
+			This:LogInfo["Mission complete - Finalizing Trade Log Entry"]
+		}
+		else
+		{
+			; MissionLogCombatUpdate(int RunNumber, int RoomNumber, bool KilledTarget, bool Vanquisher, bool ContainerLooted, bool HaveItems, bool TechnicalCompletion, bool TrueCompletion, int64 FinalTimestamp, int Historical)
+			This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},1}]
+			This:LogInfo["Mission complete - Finalizing Combat Log Entry"]				
+		}
+		CurrentRunNumber:Inc[1]
+		Script[Tehbot].VariableScope.Mission.Config:SetRunNumberInt[${CurrentRunNumber}]
+		This:QueueState["BeginCleanup",5000]
+		return TRUE
+	}
+	; This state will be where we kick off our station interaction stuff. Repairs, loot dropoff, etc.
+	; After this state we should go back to CheckForWork.
+	member:bool BeginCleanup()
+	{
+		if ${CurrentAgentMissionType.Find["Encounter"]}
+		{
+			This:InsertState["DropOffLoot", 10000]			
+			This:InsertState["Repair"]
+		}
+		; Delete the row now that the mission is gone.
+		CharacterSQLDB:ExecDML["DELETE From MissionJournal WHERE AgentID=${CurrentAgentID};"]
+		EVEWindow[AgentConversation_${CurrentAgentID}]:Close
+		DatabasificationComplete:Set[FALSE]
+		This:QueueState["CheckForWork",4000]
+		return TRUE
+	}
+	
+	; This is a great name for a state. Anyways, here in Databasification we will take our Mission Journal, go through all of the missions
+	; Then we will place the information in the SQL database for easier consumption presumably. I won't lie, it has been more than one day
+	; Since I worked on this, so I've somewhat lost the plot. Each mission will be placed into the Character Specific MissionJournal Table.
+	; From there we can use that information to accomplish something, surely. I am fairly sure that in order to accomplish this I will have to touch the mission parser
+	; at least a little bit. Also we will need to get some info from that mission data file.
+	member:bool Databasification()
+	{
+		; Oh god where do I even begin. Well let us look at that MissionJournal Table I made and how its rows are set up.
+		; (AgentID INTEGER PRIMARY KEY, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, AgentLocation TEXT, MissionLocation TEXT, DropoffLocation TEXT, PickupLocation TEXT, Lowsec BOOLEAN, JumpDistance INTEGER, 
+		;  ExpectedItems TEXT, ItemUnits INTEGER, ItemVolume INTEGER, VolumePer INTEGER, DestroyTarget TEXT, LootTarget TEXT, Damage2Deal TEXT);"]
+		; Basically we want to assemble all of this information from what we can pull from the Mission Journal, the Mission Details, and our Mission Data XML, and then finally from some minor calculations from those 3 sources.\
+		; We take that information and fork it over to MissionJournalUpsert method. And hence, it is databasificated.
+		; Guess we should get our limited scope variables in a row here.
+		; These make the mission journal stuff work
+		variable index:agentmission missions
+		variable iterator missionIterator
+		; These we can pull directly from the mission journal
+		variable int64 AgentID
+		variable string MissionName
+		variable string MissionType
+		variable int MissionStatus
+		; These we get from our mission data file
+		variable string DestroyTarget
+		variable string LootTarget
+		variable string Damage2Deal
+		; These we can pull when we get mission details and parse them. This was extreme hubris by the way. 
+		variable string AgentLocation
+		variable string MissionLocation
+		variable string ExpectedItems
+		variable int ItemUnits
+		variable int64 ItemVolume
+		variable string PickupLocation
+		variable string DropoffLocation
+		variable bool Lowsec
+		variable int LPReward
+		variable int64 PickupLocationID
+		variable int64 DropoffLocationID
+		; These will be derived from the above.
+		; JumpDistance is how many jumps to the Agent from where we are, then from the agent to the mission location. Volume per is just total volume / units.
+		; Aaaactually, I can't think of a great way to get JumpDistance, the pathing won't behave correctly. It ignores autopilot settings and whatnot.
+		variable int JumpDistance
+		variable int64 VolumePer
+		
+		; Begin the work. Lets get all our current missions.
+		EVE:GetAgentMissions[missions]
+		missions:GetIterator[missionIterator]
+		if ${missionIterator:First(exists)}
+		{
+				echo ${missionIterator.Value.AgentID} ID
+				; Lets get a convo window open with this agent.
+				if !${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}](exists)}
 				{
-					Ship.ModuleList_Siege:ActivateOne
+					echo start conversation
+					EVE.Agent[id,${missionIterator.Value.AgentID}]:StartConversation
 				}
-			}
-			elseif !${Ship.ModuleList_Weapon.IsUsingLongRangeAmmo}
+				if ${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}].Button["View Mission"](exists)}
+				{
+					echo press view mission
+					EVEWindow[AgentConversation_${missionIterator.Value.AgentID}].Button["View Mission"]:Press
+					return FALSE
+				}
+				if !${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}].ObjectivesHTML.AsJSON.Find["The following rewards will be yours if you complete this mission"]}
+				{
+					return FALSE
+				}
+				; I guess we will want to skip checking things that are in the Table but haven't changed.
+				GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE AgentID=${missionIterator.Value.AgentID} AND MissionName='${missionIterator.Value.Name}' AND MissionStatus=${missionIterator.Value.State};"]}]
+				echo DEBUG TENTH QUERY
+				if ${GetDBJournalInfo.NumRows} > 0
+				{
+					; If it already exists in the DB, in the same state, the same mission name, from the same agent, it is safe to say it is already there. Skip it.
+					
+				}
+				if ${missionIterator.Value.State} == 3
+				{
+					; If it is an expired mission, don't databasify it.
+					
+				}
+				GetDBJournalInfo:Finalize
+				; To hell with that Mission Parser, why use that when I can make my own thing that might work once in a while.
+				This:ParseMissionDetails[${missionIterator.Value.AgentID}, ${missionIterator.Value.Type}]
+				; Simple stuff
+				AgentID:Set[${missionIterator.Value.AgentID}]
+				MissionName:Set[${missionIterator.Value.Name}]
+				MissionType:Set[${missionIterator.Value.Type}]
+				MissionStatus:Set[${missionIterator.Value.State}]
+				; Data file`
+				DestroyTarget:Set[""]
+				if ${TargetToDestroy.Element[${MissionName}](exists)}
+				{
+					This:LogInfo["Destroy target: \ao${TargetToDestroy.Element[${MissionName}]}"]
+					DestroyTarget:Set[${TargetToDestroy.Element[${MissionName}]}]
+				}
+				LootTarget:Set[""]
+				if ${ContainerToLoot.Element[${MissionName}](exists)}
+				{
+					This:LogInfo["Loot container: \ao${ContainerToLoot.Element[${MissionName}]}"]
+					LootTarget:Set[${ContainerToLoot.Element[${MissionName}]}]
+				}
+				Damage2Deal:Set[${DamageType.Element[${MissionName}].Lower}]
+				; Info from parsing the mission details
+				AgentLocation:Set[${LastAgentLocation}]
+				MissionLocation:Set[${LastMissionLocation}]
+				ExpectedItems:Set[${LastExpectedItems}]
+				ItemUnits:Set[${LastItemUnits}]
+				ItemVolume:Set[${LastItemVolume}]
+				PickupLocation:Set[${LastPickup}]
+				PickupLocationID:Set[${LastPickupID}]
+				echo PickupLocationID ${PickupLocationID}
+				DropoffLocation:Set[${LastDropoff}]
+				DropoffLocationID:Set[${LastDropoffID}]
+				echo DropoffLocationID ${DropoffLocationID}
+				echo ${LastDropoffID}
+				echo ${DropoffLocationID.Equal[${LastDropoffID}]}
+				Lowsec:Set[${LastLowsec}]
+				LPReward:Set[${LastLPReward}]
+				; Derived information
+				if ${LastItemUnits} > 0
+					VolumePer:Set[${Math.Calc[${LastItemVolume} / ${LastItemUnits}]}]
+				; Assemble information and prepare to Insert into Table
+				; MissionJournalUpsert(int64 AgentID, string MissionName, string MissionType, int MissionStatus, string AgentLocation, string MissionLocation, string DropoffLocation, int64 DropOffLocationID, string PickupLocation, int64 PickupLocationID, bool Lowsec, int JumpDistance, string ExpectedItems, int ItemUnits, int64 ItemVolume, int MissionLPReward, int64 VolumePer, string DestroyTarget, string LootTarget, string Damage2Deal)
+				echo ${AgentID},${MissionName.ReplaceSubstring[','']}, ${MissionType.ReplaceSubstring[',''].ReplaceSubstring[UI/Agents/MissionTypes/,].ReplaceSubstring[\},]}, ${MissionStatus}, ${AgentLocation.ReplaceSubstring[','']}, ${MissionLocation.ReplaceSubstring[','']}, ${DropoffLocation.ReplaceSubstring[','']}, ${DropoffLocationID}, ${PickupLocation.ReplaceSubstring[','']}, ${PickupLocationID}, ${Lowsec}, ${JumpDistance}, ${ExpectedItems.ReplaceSubstring[','']}, ${ItemUnits}, ${ItemVolume}, ${LPReward}, ${VolumePer}, ${DestroyTarget.ReplaceSubstring[','']},${LootTarget.ReplaceSubstring[','']},${Damage2Deal}
+				This:MissionJournalUpsert[${AgentID},${MissionName.ReplaceSubstring[','']}, ${MissionType.ReplaceSubstring[',''].ReplaceSubstring[UI/Agents/MissionTypes/,].ReplaceSubstring[\},]}, ${MissionStatus}, ${AgentLocation.ReplaceSubstring[','']}, ${MissionLocation.ReplaceSubstring[','']}, ${DropoffLocation.ReplaceSubstring[','']}, ${DropoffLocationID}, ${PickupLocation.ReplaceSubstring[','']}, ${PickupLocationID}, ${Lowsec}, ${JumpDistance}, ${ExpectedItems.ReplaceSubstring[','']}, ${ItemUnits}, ${ItemVolume}, ${LPReward}, ${VolumePer}, ${DestroyTarget.ReplaceSubstring[','']}, ${LootTarget.ReplaceSubstring[','']}, ${Damage2Deal}]
+				if ${EVEWindow[AgentConversation_${AgentID}](exists)}
+				{
+					This:LogInfo["Entry Processed, closing window"]
+					EVEWindow[AgentConversation_${AgentID}]:Close
+				}				
+			
+			; Next up, lets run a quick deletion on all Expired Mission Offers
+			echo DEBUG - Databasification Deletion
+			CharacterSQLDB:ExecDML["Delete FROM MissionJournal WHERE MissionStatus=3;"]
+			; So we know we've completed this.
+			DatabasificationComplete:Set[TRUE]
+		}
+		DatabasificationComplete:Set[TRUE]
+		This:QueueState["CheckForWork",5000]
+		return TRUE
+
+	}
+	; This method will be used to do our Agent Conversation HTML parsing. Because the existing stuff is just too damn easy.
+	; We will also be using Agent ID instead of Index, because I'm a rebel. This can't possibly come back to haunt me.
+	method ParseMissionDetails(string AgentID, string MissionType)
+	{
+		; Temp storage strings for jsonified HTML trash.
+		variable string JSONObjective
+		variable string JSONBriefing
+		; Record the location of the first <br><br>
+		variable int FirstBRBR
+		; Then we are going to take a substring from that position for the next idk, 2000 characters?
+		variable string JSONBriefingString1
+		; Then we are going to take the location of the first //
+		variable int FirstSlashSlash
+		; Substring from there...
+		variable string JSONBriefingString2
+		; Then we are going to take the location of the first >
+		variable int FirstAngleBracket
+		; And then we have the ID of the station, after all that crap. What the hell.
+		variable int64 StationID
+		; For combat/mining missions we start by looking for dungeon>
+		variable int Firstdungeon
+		; Then we will substring off of that.
+		variable string JSONObjectiveString1
+		; Then we will look for the first  </a>
+		variable int FirstSlashA
+		; Pickup and dropoff location stuff
+		; First find will be for <td>Pickup Location</td>
+		variable int FindPickup
+		; Second find will be for <td>Drop-off Location</td>
+		variable int FindDropoff
+		; Storage for substring
+		variable string JSONObjectiveString2
+		variable string JSONObjectiveString3
+		; Next find will be for double slash again
+		variable int SecondSlashSlash
+		variable int ThirdSlashSlash
+		; Storage for substring
+		variable string JSONObjectiveString2B
+		variable string JSONObjectiveString3B
+		; Now we need to find the > at the end
+		variable int SecondAngleBracket
+		variable int ThirdAngleBracket
+		; Two more temp storages for StationIDs
+		variable int64 StationID2
+		variable int64 StationID3
+		; Onward to the Item Specific Stuff. First up, What will be our marker? Dunno. 
+		; First up, find locations for Item and Cargo
+		variable int FindItem
+		variable int FindCargo
+		; Storage for substring
+		variable string JSONObjectiveString4
+		variable string JSONObjectiveString5
+		; Find more of >
+		variable int FindPointyThing
+		variable int FindPointyThing2
+		; Even more substring storage
+		variable string JSONObjectiveString4B
+		variable string JSONObjectiveString5B		
+		; Find the x		
+		variable int FindX1
+		variable int FindX2
+		; Storage for substring
+		variable string JSONObjectiveString6
+		variable string JSONObjectiveString7
+		; Find the )
+		variable int FindParenth1
+		variable int FindParenth2
+		; Storage for substring
+		variable string JSONObjectiveString6B
+		variable string JSONObjectiveString7B
+		; Find the m3
+		variable int Findm3A
+		variable int Findm3B
+		; Our last deal, we need to get the Loyalty Point reward from this garbage fire.
+		; Find "Loyalty Points"
+		variable int FindLP
+		; Storage substring
+		variable string JSONObjectiveString8
+		; Find the > again
+		variable int FindPointyThing3
+		; Last storage substring I hope
+		variable string JSONObjectiveString8B
+
+		; Lets get the Briefing into its JSONified String
+		JSONObjective:Set[${EVEWindow[AgentConversation_${AgentID}].ObjectivesHTML.AsJSON}]
+		; Lets get the Objectives into its JSONified String
+		JSONBriefing:Set[${EVEWindow[AgentConversation_${AgentID}].BriefingHTML.AsJSON}]
+		; Lets get the easy one out of the way, is this declared lowsec.
+		if ${JSONObjective.AsJSON.Find["low security system"]}
+			LastLowsec:Set[TRUE]
+		else
+			LastLowsec:Set[FALSE]
+		; Ok next, lets get the Location of the Agent, but from the HTML, instead of looking it up. Dunno why. Just go with it.
+		; First we get the location of the first <br><br>, take that location get a substring from it, take that substring and find the first //, this // comes before the station ID. Station ID number ends at a >. Find that >.
+		; We will now have a position where the number starts and where it ends.
+		FirstBRBR:Set[${JSONBriefing.AsJSON.Find[<br><br>]}]
+		JSONBriefingString1:Set[${JSONBriefing.AsJSON.Mid[${FirstBRBR},2000].AsJSON}]
+		FirstSlashSlash:Set[${Math.Calc[${JSONBriefingString1.AsJSON.Find[//]} + 2]}]
+		JSONBriefingString2:Set[${JSONBriefingString1.AsJSON.Mid[${FirstSlashSlash},2000].AsJSON}]
+		FirstAngleBracket:Set[${Math.Calc[${JSONBriefingString2.AsJSON.Find[>]} - 2]}]
+		StationID:Set[${JSONBriefingString2.AsJSON.Mid[2,${FirstAngleBracket}].AsJSON}]
+		echo StationID ${StationID}
+		; Ok so we have a stationID, didn't we want the station name?
+		LastAgentLocation:Set[${EVE.Station[${StationID}].Name}]
+		; After that, we want the Mission Location. Mission Location is either Where the dungeon is located or where the item pickup/dropoff (whichever is not at your agent's location) is supposed to happen.
+		; If we are doing a mission that isn't a courier, the Location will be a system. If it is a courier, it will be a station. Thanks to the wonkiness of courier missions, I have to pull TWO pieces of info here
+		; Then we get to use some logic to eliminate one of the locations. 
+		; Lets get to work, Mining / Combat missions will have a destination location of a dungeon. So a solar system as far as I care for this. Sidenote, I will not be setting up mining missions unless I get Extremely Bored Yo. They pay like trash garbage.
+		; Look for dungeon> after this will be the system name then a </a>.
+		if ${MissionType.Find[Encounter]} || ${MissionType.Find[Mining]}
+		{
+			Firstdungeon:Set[${Math.Calc[${JSONObjective.AsJSON.Find[dungeon>]} + 8]}]
+			JSONObjectiveString1:Set[${JSONObjective.AsJSON.Mid[${Firstdungeon},100].AsJSON}]
+			FirstSlashA:Set[${Math.Calc[${JSONObjectiveString1.AsJSON.Find[</a>]}-2]}]
+			LastMissionLocation:Set[${JSONObjectiveString1.AsJSON.Mid[2,${FirstSlashA}]}]
+			echo LML ${LastMissionLocation}
+		}
+		; Courier mission, The location is whatever location we scrape that isn't the agent's location. I think I am going to have to bite the bullet
+		; and parse both the pickup and the dropoff location. I also will need to adjust the tables and crap above. RIP.
+		if ${MissionType.Find[Courier]}
+		{
+			FindPickup:Set[${JSONObjective.AsJSON.Find[<td>Pickup Location</td>]}]
+			JSONObjectiveString2:Set[${JSONObjective.AsJSON.Mid[${FindPickup},1000].AsJSON}]
+			SecondSlashSlash:Set[${Math.Calc[${JSONObjectiveString2.AsJSON.Find[//]} + 2]}]
+			JSONObjectiveString2B:Set[${JSONObjectiveString2.AsJSON.Mid[${SecondSlashSlash},2000].AsJSON}]
+			SecondAngleBracket:Set[${Math.Calc[${JSONObjectiveString2B.AsJSON.Find[>]} - 2]}]
+			StationID2:Set[${JSONObjectiveString2B.AsJSON.Mid[2,${SecondAngleBracket}]}]
+			echo StationID2 ${StationID2}
+			
+			FindDropoff:Set[${JSONObjective.AsJSON.Find[<td>Drop-off Location</td>]}]
+			JSONObjectiveString3:Set[${JSONObjective.AsJSON.Mid[${FindDropoff},1000].AsJSON}]
+			ThirdSlashSlash:Set[${Math.Calc[${JSONObjectiveString3.AsJSON.Find[//]} + 2]}]
+			JSONObjectiveString3B:Set[${JSONObjectiveString3.AsJSON.Mid[${ThirdSlashSlash},2000].AsJSON}]
+			ThirdAngleBracket:Set[${Math.Calc[${JSONObjectiveString3B.AsJSON.Find[>]} - 2]}]
+			StationID3:Set[${JSONObjectiveString3B.AsJSON.Mid[2,${ThirdAngleBracket}]}]
+			echo StationID3 ${StationID3}
+			; And now to make both of those Station IDs into names
+			LastPickup:Set[${EVE.Station[${StationID2}].Name}]
+			echo LP ${LastPickup}
+			LastPickupID:Set[${StationID2}]
+			echo LPID ${LastPickupID}
+			LastDropoff:Set[${EVE.Station[${StationID3}].Name}]
+			echo LD ${LastDropoff}
+			LastDropoffID:Set[${StationID3}]
+			echo LDID ${LastDropoffID}
+		}
+		; Trade mission, the location is the agent location, always.
+		if ${MissionType.Find[Trade]}
+		{
+			LastMissionLocation:Set[${EVE.Station[${StationID}].Name}]
+			echo LML ${LastMissionLocation}
+		}
+		; On to Item specifics
+		; First up ItemUnits. This is how many units of the Item are expected. As with above, if there is no item, there is no this.
+		if ${JSONObjective.AsJSON.Find["these goods:"]}
+		{
+			if ${JSONObjective.AsJSON.Find[<td>Item</td>]}
 			{
-				This:LogDebug["Far switch ammo to long"]
-				; Activate weapon to switch ammo to long.
-				Ship.ModuleList_Weapon:ActivateAll[${currentTarget}]
-				Ship.ModuleList_TrackingComputer:ActivateFor[${currentTarget}]
+				FindItem:Set[${Math.Calc[${JSONObjective.AsJSON.Find[<td>Item</td>]} + 13]}]
+				JSONObjectiveString4:Set[${JSONObjective.AsJSON.Mid[${FindItem},1000].AsJSON}]
+				FindPointyThing:Set[${Math.Calc[${JSONObjectiveString4.AsJSON.Find[d>]} + 2]}]
+				JSONObjectiveString4B:Set[${JSONObjectiveString4.AsJSON.Mid[${FindPointyThing},1000].AsJSON}]
+				FindX1:Set[${Math.Calc[${JSONObjectiveString4B.AsJSON.Find[x]} - 2]}]
+				LastItemUnits:Set[${JSONObjectiveString4B.AsJSON.Mid[2,${FindX1}].Trim.AsJSON}]
+				echo LIU ${LastItemUnits}
 			}
-			elseif ${allowSiegeModule} && \
-				${Ship.ModuleList_Siege.Allowed} && \
-				${Ship.ModuleList_Siege.Count} && \
-				!${Ship.RegisteredModule.Element[${Ship.ModuleList_Siege.ModuleID.Get[1]}].IsActive} && \
-			 	(${Math.Calc[${Entity[${currentTarget}].Distance} / (${Ship.ModuleList_Weapon.Range} + 1)]} < 1.2)
+			elseif ${JSONObjective.AsJSON.Find[<td>Cargo</td>]}
 			{
-				This:LogDebug["Far need siege"]
-				; Using long range ammo and within range if siege module is on.
-				Ship.ModuleList_Siege:ActivateOne
-				; Switch target
-				Ship.ModuleList_Weapon:ActivateAll[${currentTarget}]
-				Ship.ModuleList_TrackingComputer:ActivateFor[${currentTarget}]
+				FindCargo:Set[${Math.Calc[${JSONObjective.AsJSON.Find[<td>Cargo</td>]} + 14]}]
+				JSONObjectiveString5:Set[${JSONObjective.AsJSON.Mid[${FindCargo},1000].AsJSON}]
+				FindPointyThing2:Set[${Math.Calc[${JSONObjectiveString5.AsJSON.Find[d>]} + 2]}]
+				JSONObjectiveString5B:Set[${JSONObjectiveString5.AsJSON.Mid[${FindPointyThing2},1000].AsJSON}]
+				FindX2:Set[${Math.Calc[${JSONObjectiveString5B.AsJSON.Find[x]} - 2]}]
+				LastItemUnits:Set[${JSONObjectiveString5B.AsJSON.Mid[2,${FindX2}].Trim.AsJSON}]
+				echo LIU ${LastItemUnits}
 			}
-			elseif !${Entity[${currentTarget}].IsTargetingMe}
+			
+		}
+		else
+			LastItemUnits:Set[0]
+		; Next up, ExpectedItems. This is going to be the Name of the Item you are picking up. Also, might not be an item involved at all.
+		; Ok so building off the last set there where we grabbed what was BEFORE the X, now we will grab what is between the X and the (
+		if ${JSONObjective.AsJSON.Find["these goods:"]}
+		{
+			if ${JSONObjective.AsJSON.Find[<td>Item</td>]}
 			{
-				This:LogDebug["Far trigger"]
-				; Shoot at out of range target to trigger them.
-				Ship.ModuleList_Weapon:ActivateAll[${currentTarget}]
-				Ship.ModuleList_TrackingComputer:ActivateFor[${currentTarget}]
+				JSONObjectiveString6:Set[${JSONObjectiveString4B.AsJSON.Mid[${Math.Calc[${FindX1} + 3]},1000].Trim.AsJSON}]
+				FindParenth1:Set[${Math.Calc[${JSONObjectiveString6.AsJSON.Find[\(]} - 2]}]
+				LastExpectedItems:Set[${JSONObjectiveString6.AsJSON.Mid[2,${FindParenth1}].Trim.AsJSON}]
+				echo LEI ${LastExpectedItems}
+				JSONObjectiveString6B:Set[${JSONObjectiveString6.AsJSON.Mid[${Math.Calc[${FindParenth1} + 3]},1000].Trim.AsJSON}]
 			}
+			elseif ${JSONObjective.AsJSON.Find[<td>Cargo</td>]}
+			{
+				JSONObjectiveString7:Set[${JSONObjectiveString5B.AsJSON.Mid[${Math.Calc[${FindX2} + 3]},1000].Trim.AsJSON}]
+				FindParenth2:Set[${Math.Calc[${JSONObjectiveString7.AsJSON.Find[\(]} - 2]}]
+				LastExpectedItems:Set[${JSONObjectiveString7.AsJSON.Mid[2,${FindParenth2}].Trim.AsJSON}]
+				echo LEI ${LastExpectedItems}
+				JSONObjectiveString7B:Set[${JSONObjectiveString7.AsJSON.Mid[${Math.Calc[${FindParenth2} + 3]},1000].Trim.AsJSON}]
+			}			
+		}
+		else
+			LastExpectedItems:Set[""]
+		; Next up ItemVolume, which is actually the total volume of all the items. May as well grab it here. If no item, then no this. 
+		if ${JSONObjective.AsJSON.Find["these goods:"]}
+		{
+			if ${JSONObjective.AsJSON.Find[<td>Item</td>]}
+			{
+				Findm3A:Set[${Math.Calc[${JSONObjectiveString6B.AsJSON.Find[m³]} - 2]}]
+				LastItemVolume:Set[${JSONObjectiveString6B.AsJSON.Mid[2,${Findm3A}].Trim.AsJSON}]
+				echo LIV ${LastItemVolume}
+			}
+			elseif ${JSONObjective.AsJSON.Find[<td>Cargo</td>]}
+			{
+				Findm3B:Set[${Math.Calc[${JSONObjectiveString7B.AsJSON.Find[m³]} - 2]}]
+				LastItemVolume:Set[${JSONObjectiveString7B.AsJSON.Mid[2,${Findm3B}].Trim.AsJSON}]
+				echo LIV ${LastItemVolume}
+			}			
+		}
+		else
+			LastItemVolume:Set[0]
+		; Final goddamn thing, we need to parse the LP reward for this mission.
+		if ${JSONObjective.AsJSON.Find["Loyalty Points"]}
+		{
+			FindLP:Set[${Math.Calc[${JSONObjective.AsJSON.Find["Loyalty Points"]} - 10]}]
+			JSONObjectiveString8:Set[${JSONObjective.AsJSON.Mid[${FindLP},10].AsJSON}]
+			FindPointyThing3:Set[${Math.Calc[${JSONObjectiveString8.AsJSON.Find[2>]} + 2]}]
+			JSONObjectiveString8B:Set[${JSONObjectiveString8.AsJSON.Mid[${FindPointyThing3},10].AsJSON}]
+			LastLPReward:Set[${JSONObjectiveString8B.ReplaceSubstring[\",].Trim}]
+			echo Last LP ${LastLPReward}
+		
+		}
+		else
+			LastLPReward:Set[0]
+	}
+	; This method will be used to databasify NPCs in a mission room, or when new NPCs appear during a mission.
+	;	 RoomNPCInfoInsert(int64 EntityID, int RunNumber, int RoomNumber, string NPCName, string NPCGroup, int64 NPCBounty)
+	method DatabasifyNPCs()
+	{
+		
+		variable iterator DBNPC
+		; Lets just use TargetList to make this easier.
+		DatabasifyNPC:AddAllNPCs
+		if ${DatabasifyNPC.TargetList.Used} > 0
+		{
+			DatabasifyNPC.TargetList:GetIterator[DBNPC]
+			if ${DBNPC:First(exists)}
+			{
+				do
+				{
+					GetRoomNPCInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM RoomNPCInfo WHERE EntityID=${DBNPC.Value} AND RoomNumber=${CurrentRoomNumber} AND RunNumber=${CurrentRunNumber};"]}]
+					echo DEBUG ELEVENTH QUERY
+					if ${GetRoomNPCInfo.NumRows} > 0
+					{
+						GetRoomNPCInfo:Finalize
+						continue
+					}
+					This:RoomNPCInfoInsert[${DBNPC.Value},${CurrentRunNumber},${CurrentRunRoomNumber},'${Entity[${DBNPC.Value}].Name.ReplaceSubstring[','']}','${Entity[${DBNPC.Value}].Group.ReplaceSubstring[','']}',${Entity[${DBNPC.Value}].Bounty}]
+				}
+				while ${DBNPC:Next(exists)}
+			}
+			CharacterSQLDB:ExecDMLTransaction[NPCDBDML]
+			echo DEBUG - DBNPC
+		}
+	}
+	; This method will be to help us generate appropriate Status Reports for WatchDogMonitoring
+	;	WatchDogMonitoringUpsert(int64 CharID, int RunNumber, string MissionName, string MissionType, int RoomNumber, int TripNumber, int64 TimeStamp, int64 CurrentTarget, string CurrentDestination, int UnitsMoved)	
+	method UpdateWatchDog()
+	{
+		variable int64 CT
+		variable int64 CD
+		variable index:int WaypointIndex
+		EVE:GetWaypoints[WaypointIndex]
+		
+		if ${Client.InSpace}
+		{
+			if ${Entity[IsActiveTarget = TRUE](exists)}
+				CT:Set[${Entity[IsActiveTarget = TRUE]}]
 			else
-			{
-				This:LogDebug["Far approach"]
-				Ship.ModuleList_Weapon:DeactivateAll[${currentTarget}]
-				Ship.ModuleList_Siege:DeactivateAll
-
-				if !${MyShip.ToEntity.Approaching.ID.Equal[${currentTarget}]} && !${Move.Traveling}
-				{
-					This:LogInfo["Approaching out of range target: \ar${Entity[${currentTarget}].Name}"]
-					This:ManageThrusterOverload[${Entity[${currentTarget}].ID}]
-					Entity[${currentTarget}]:Approach
-				}
-			}
-
-			if ${Entity[${currentTarget}].Distance} <= ${Ship.ModuleList_TargetPainter.Range}
-			{
-				Ship.ModuleList_TargetPainter:ActivateAll[${currentTarget}]
-			}
-			; 'Effectiveness Falloff' is not read by ISXEVE, but 20km is a generally reasonable range to activate the module
-			if ${Entity[${currentTarget}].Distance} <= ${Math.Calc[${Ship.ModuleList_StasisGrap.Range} + 20000]}
-			{
-				Ship.ModuleList_StasisGrap:ActivateAll[${currentTarget}]
-			}
-			if ${Entity[${currentTarget}].Distance} <= ${Ship.ModuleList_StasisWeb.Range}
-			{
-				Ship.ModuleList_StasisWeb:ActivateAll[${currentTarget}]
-			}
+				CT:Set[-1]
 		}
+		else
+			CT:Set[-1]
+			
+		if ${WaypointIndex.Get[1]} != NULL
+			CD:Set[${WaypointIndex.Get[1]}]
+		else
+			CD:Set[-1]
 
-		if ${ActiveNPCs.TargetList.Used} || ${nextwaitcomplete} == 0
+		This:WatchDogMonitoringUpsert[${Me.CharID},${CurrentRunNumber},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType.ReplaceSubstring[','']},${CurrentRunRoomNumber},${CurrentRunTripNumber},${Time.Timestamp},${CT},${CD},${CurrentRunItemUnitsMoved}]
+	
+	}
+	; This method will help us generate an appropriate Missioneer Stats entry.
+	;	MissioneerStatsInsert(int64 Timestamp, string CharName, int64 CharID, int RunNumber, int RoomNumber, int TripNumber, string MissionName, string MissionType, string EventType, int64 RoomBounties, bool RoomFactionSpawn, int64 RoomDuration,
+	;		 					int RunLP, int64 RunISK, int64 RunDuration, int64 RunTotalBounties, string ShipType)
+	method UpdateMissioneerStats(string EventType)
+	{
+		; ISK, LP, Total Duration
+		variable int64 	CRISK = 0
+		variable int 	CRLP = 0
+		variable int64 	CRTD = 0
+		variable int64	CRTB = 0
+		
+		variable string ST
+		if ${Client.InSpace}
+			ST:Set[${MyShip.ToEntity.Type}]
+		else
+			ST:Set[${MyShip.ToItem.Type}]
+		
+		; So we don't record the mission ISK/LP reward over and over and over and over. We will record this only on mission completion I guess.
+		if ${EventType.Equal[RunComplete]}
 		{
-			This:InsertState["PerformMission", 500, ${Math.Calc[${LavishScript.RunningTime} + 10000]}]
+			CRISK:Set[${This.RunISK}]
+			CRLP:Set[${CurrentAgentLPReward}]
+			CRTD:Set[${This.RunDuration}]
+			CRTB:Set[${This.TotalBounties}]
+		}
+		This:MissioneerStatsInsert[${Time.Timestamp},${Me.Name.ReplaceSubstring[','']},${Me.CharID},${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunTripNumber},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType.ReplaceSubstring[','']},${EventType},${This.RoomBounties},${This.RoomFactionSpawn},${This.RoomDuration},${CRISK},${CRLP},${CRTD},${CRTB},${ST.ReplaceSubstring[','']}]
+	}
+	; These members will be for the MissionerStatsInsert, just to make getting the information simpler.
+	; First member will be for tallying up the total Bounties in a mission room/area. This will return a Float.
+	; HMMM, I forgot something, some rooms the enemies show up in waves. This is gonna get rather complicated.
+	member:int64 RoomBounties()
+	{
+		; No bounties in the station, yo.
+		if ${Me.InStation}
+			return 0
+			
+		GetRoomNPCInfo:Set[${CharacterSQLDB.ExecQuery["SELECT Total(NPCBounty) FROM RoomNPCInfo WHERE RunNumber=${CurrentRunNumber} AND RoomNumber=${CurrentRoomNumber};"]}]
+		echo DEBUG TWELFTH QUERY
+		if ${GetRoomNPCInfo.NumRows} > 0
+		{
+			GetRoomNPCInfo:Finalize
+			return ${GetRoomNPCInfo.GetFieldValue["Total",int64]}
+		}
+		else
+			return 0
+	}
+	; Second member will be for identifying whether there has been a faction spawn or not. Going to limit these to faction spawns that are cruiser or larger. A few missions
+	; have things that are technically faction spawns but literally never have anything good, and those are generally frigates. This will return a bool.
+	member:bool RoomFactionSpawn()
+	{
+		GetRoomNPCInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM RoomNPCInfo WHERE (RunNumber=${CurrentRunNumber} AND RoomNumber=${CurrentRoomNumber}) AND (NPCGroup LIKE '%Commander Cruiser%' OR NPCGroup LIKE '%Commander Battlecruiser%' OR NPCGroup LIKE '%Commander Battleship%');"]}]
+		echo DEBUG THIRTEENTH QUERY
+		if ${GetRoomNPCInfo.NumRows} > 0
+		{
+			GetRoomNPCInfo:Finalize
 			return TRUE
 		}
-
-		if ${LavishScript.RunningTime} < ${nextwaitcomplete}
+		else
 			return FALSE
 
-		NPCs.MinLockCount:Set[1]
-
-		if ${NPCs.TargetList.Used}
+	}
+	; Third member will be for how long the current room has lasted. This will return a number of milliseconds as an int64.
+	member:int64 RoomDuration()
+	{
+		; I technically could restore this variable from DB information but meh.
+		if ${CurrentRoomStartTime} == 0
+			return 0
+		else
+			return ${Math.Calc[${CurrentRoomEndTime}-${CurrentRoomStartTime}]}
+	}
+	; Fourth member will be for getting the ISK reward for doing this mission. Reward + bonus. Returns a int64.
+	; This will also include parsing HTML so fuckin kill me now.
+	; Addendum, we can do this without parsing. Record wallet balance just before mission completion and then again just after. Boom, isk difference was the mission reward, probably.
+	member:int64 RunISK()
+	{
+		return ${Math.Calc[${ISKAfterCompletion}-${ISKBeforeCompletion}]}
+	}
+	; Fifth and final member in this area will be for returning how long the entire run has taken, beginning to end. Returns milliseconds as an int64.
+	member:int64 RunDuration()
+	{
+		; This shouldn't come up, because this variable IS restored from DB.
+		if ${CurrentRunStartTimestamp} == 0
+			return 0
+		else
+			return ${Math.Calc[${CurrentRunFinalTimestamp}-${CurrentRunStartTimestamp}]}		
+	
+	}
+	; Sixth and actual final member in this area will be for the total bounties for the entire run.
+	member:int64 TotalBounties()
+	{
+		GetRoomNPCInfo:Set[${CharacterSQLDB.ExecQuery["SELECT Total(NPCBounty) FROM RoomNPCInfo WHERE RunNumber=${CurrentRunNumber};"]}]
+		echo DEBUG FOURTEENTH QUERY
+		if ${GetRoomNPCInfo.NumRows} > 0
 		{
-			if ${NPCs.TargetList.Get[1].Distance} > ${Math.Calc[${Ship.ModuleList_Weapon.Range} * .95]} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING && !${Move.Traveling}
-			{
-				if ${Ship.ModuleList_Siege.ActiveCount}
-				{
-					; This:LogInfo["Deactivate siege module due to approaching"]
-					Ship.ModuleList_Siege:DeactivateAll
-				}
-
-				This:ManageThrusterOverload[${NPCs.TargetList.Get[1].ID}]
-				NPCs.TargetList.Get[1]:Approach
-			}
-
-			if ${currentTarget} == 0 || ${Entity[${currentTarget}].IsMoribund} || !${Entity[${currentTarget}]}
-			{
-				if ${NPCs.LockedTargetList.Used}
-					currentTarget:Set[${NPCs.LockedTargetList.Get[1]}]
+			GetRoomNPCInfo:Finalize
+			return ${GetRoomNPCInfo.GetFieldValue["Total",int64]}
+		}
+		else
+			return 0	
+	}
+	; This method will be for resolving our damage type. So we know what ammo and drones to load for a combat mission.
+	method ResolveDamageType(string DmgType)
+	{
+		switch ${damageType}
+		{
+			case kinetic
+				ammo:Set[${Config.KineticAmmo}]
+				if ${Config.UseSecondaryAmmo}
+					secondaryAmmo:Set[${Config.KineticAmmoSecondary}]
 				else
-					currentTarget:Set[0]
-			}
-			This:InsertState["PerformMission"]
-			return TRUE
+					secondaryAmmo:Set[""]
+				useDroneRace:Set[DRONE_RACE_CALDARI]
+				break
+			case em
+				ammo:Set[${Config.EMAmmo}]
+				if ${Config.UseSecondaryAmmo}
+					secondaryAmmo:Set[${Config.EMAmmoSecondary}]
+				else
+					secondaryAmmo:Set[""]
+				useDroneRace:Set[DRONE_RACE_AMARR]
+				break
+			case thermal
+				ammo:Set[${Config.ThermalAmmo}]
+				if ${Config.UseSecondaryAmmo}
+					secondaryAmmo:Set[${Config.ThermalAmmoSecondary}]
+				else
+					secondaryAmmo:Set[""]
+				useDroneRace:Set[DRONE_RACE_GALLENTE]
+				break
+			case explosive
+				ammo:Set[${Config.ExplosiveAmmo}]
+				if ${Config.UseSecondaryAmmo}
+					secondaryAmmo:Set[${Config.ExplosiveAmmoSecondary}]
+				else
+					secondaryAmmo:Set[""]
+				useDroneRace:Set[DRONE_RACE_MINMATAR]
+				break
+			default
+				ammo:Set[${Config.KineticAmmo}]
+				if ${Config.UseSecondaryAmmo}
+					secondaryAmmo:Set[${Config.KineticAmmoSecondary}]
+				else
+					secondaryAmmo:Set[""]
+				break
 		}
-
-		DroneControl:Recall
-
-		if ${Entity[${targetToDestroy}]}
+	Ship.ModuleList_Weapon:ConfigureAmmo[${ammo}, ${secondaryAmmo}]	
+	}
+	; This method will be for a Mid-Run Information Recovery. Client crashed / you disconnected / etc. This will be called to set the CurrentRun and CurrentAgent variables from values stored in the DBs
+	method MidRunRecovery(string Case)
+	{
+		if ${Case.Equal[Combat]}
 		{
-			if ${Entity[${targetToDestroy}].Distance} > ${Math.Calc[${Ship.ModuleList_Weapon.Range} * .95]} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING && !${Move.Traveling}
-			{
-				if ${Ship.ModuleList_Siege.ActiveCount}
-				{
-					; This:LogInfo["Deactivate siege module due to approaching"]
-					Ship.ModuleList_Siege:DeactivateAll
-				}
-
-				This:ManageThrusterOverload[${Entity[${targetToDestroy}].ID}]
-				Entity[${targetToDestroy}]:Approach
-			}
-
-			if !${Entity[${targetToDestroy}].IsLockedTarget} && !${Entity[${targetToDestroy}].BeingTargeted} && \
-				${Entity[${targetToDestroy}].Distance} < ${MyShip.MaxTargetRange}
-			{
-				This:LogInfo["Locking Target To Destroy"]
-				This:LogInfo[" ${Entity[${targetToDestroy}].Name}", "o"]
-				Entity[${targetToDestroy}]:LockTarget
-			}
-			elseif ${Entity[${targetToDestroy}].IsLockedTarget}
-			{
-				Ship.ModuleList_Weapon:ActivateAll[${Entity[${targetToDestroy}].ID}]
-				if ${AutoModule.Config.TrackingComputers}
-				{
-					Ship.ModuleList_TrackingComputer:ActivateAll[${currentTarget}]
-				}
-			}
-			This:InsertState["PerformMission"]
-			return TRUE
+			GetMissionLogCombined:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCombat WHERE Historical=FALSE;"]}]
+			echo DEBUG FIFTEENTH QUERY
 		}
-
-		if ${Ship.ModuleList_Siege.ActiveCount}
+		if ${Case.Equal[Noncombat]}
 		{
-			; This:LogInfo["Deactivate siege module due to no target."]
-			Ship.ModuleList_Siege:DeactivateAll
+			GetMissionLogCombined:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCourier WHERE Historical=FALSE;"]}]
+			echo DEBUG SIXTEENTH QUERY
 		}
-
-		if ${notDone} || ${Busy.IsBusy}
+		; Pulling our current (run) variables back out. There is no way for this to not return a row, or we wouldn't have gotten here.
+		if ${GetMissionLogCombined.NumRows} > 0 && ${Case.Equal[Combat]}
 		{
-			This:InsertState["PerformMission"]
-			return TRUE
+			CurrentRunNumber:Set[${GetMissionLogCombined.GetFieldValue["RunNumber",int]}]
+			CurrentRunRoomNumber:Set[${GetMissionLogCombined.GetFieldValue["RoomNumber",int]}]
+			CurrentRunStartTimestamp:Set[${GetMissionLogCombined.GetFieldValue["StartingTimestamp",int]}]
+			CurrentRunKilledTarget:Set[${GetMissionLogCombined.GetFieldValue["KilledTarget",bool]}]
+			CurrentRunVanquisher:Set[${GetMissionLogCombined.GetFieldValue["Vanquisher",bool]}]
+			CurrentRunContainerLooted:Set[${GetMissionLogCombined.GetFieldValue["ContainerLooted",bool]}]
+			CurrentRunHaveItems:Set[${GetMissionLogCombined.GetFieldValue["HaveItems",bool]}]
+			CurrentRunTechnicalComplete:Set[${GetMissionLogCombined.GetFieldValue["TechnicalCompletionr",bool]}]
+			CurrentRunTrueComplete:Set[${GetMissionLogCombined.GetFieldValue["TrueCompletion",bool]}]
 		}
-		
-		
-		if ${Entity[Type = "Acceleration Gate"]} && !${EVEWindow[byName, modal].Text.Find[This gate is locked!]}
+		if ${GetMissionLogCombined.NumRows} > 0 && ${Case.Equal[Noncombat]}
 		{
-			if (${Lootables.TargetList.Used} > 23 && ${Config.SalvagePrefix.NotNULLOrEmpty}) || (${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "State"](exists)})
-			{
-				EVE:GetBookmarks[BookmarkIndex]
-				BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
-				BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[Distance < 200000]}, FALSE]
-				BookmarkIndex:Collapse
-
-				if !${BookmarkIndex.Used}
-				{
-					;THIS IS BROKEN UNTIL CT LIVES AGAIN
-					Lootables.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Lootables.TargetList.Used} ${EVETime.Time.Left[5]}", "", "Salvaging", 1]
-									
-				}
-			}
-
-			currentTarget:Set[0]
-			Move:Gate[${Entity[Type = "Acceleration Gate"]}]
-			; Blitz cargo delivery and recon 1 of 3
-			This:InsertState["CheckForWork"]
-			This:InsertState["Idle", 2000]
-			This:InsertState["Traveling"]
-			This:InsertState["ReloadWeapons"]
-			return TRUE
-		}
-		
-		
-		echo ${Lootables.TargetList.Used}
-		
-		if (${Lootables.TargetList.Used} > 23 && ${Config.SalvagePrefix.NotNULLOrEmpty}) || (${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "State"](exists)})
+			CurrentRunNumber:Set[${GetMissionLogCombined.GetFieldValue["RunNumber",int]}]
+			CurrentRunStartTimestamp:Set[${GetMissionLogCombined.GetFieldValue["StartingTimestamp",int]}]
+			CurrentRunTripNumber:Set[${GetMissionLogCombined.GetFieldValue["TripNumber",int]}]
+			CurrentRunExpectedTrips:Set[${GetMissionLogCombined.GetFieldValue["ExpectedTrips",int]}]
+			CurrentRunItemUnitsMoved:Set[${GetMissionLogCombined.GetFieldValue["UnitsMoved",int]}]
+			CurrentRunVolumeMoved:Set[${GetMissionLogCombined.GetFieldValue["VolumeMoved",int64]}]
+		}			
+		; Presumably you will only have one active mission at a time. But lets make sure the mission names are the same.
+		GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE MissionStatus=2 AND MissionName='${GetMissionLogCombined.GetFieldValue["MissionName",string]}';"]}]
+		echo DEBUG SEVENTEENTH QUERY
+		if ${GetDBJournalInfo.NumRows} > 0
 		{
-			EVE:GetBookmarks[BookmarkIndex2]
-			BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
-			BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[Distance < 200000]}, FALSE]
-			BookmarkIndex2:Collapse
-
-				{
-					;THIS IS BROKEN UNTIL CT LIVES AGAIN
-					Lootables.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Lootables.TargetList.Used} ${EVETime.Time.Left[5]}", "", "Salvaging", 1]
-										
-				}
+			; Pulling our current (agent) variables back out.
+			if ${GetDBJournalInfo.GetFieldValue["MissionLPReward",int]} > 0
+				CurrentAgentLPReward:Set[${GetDBJournalInfo.GetFieldValue["MissionLPReward",int]}]
+			if ${GetDBJournalInfo.GetFieldValue["ExpectedItems",string].NotNULLOrEmpty}
+				CurrentAgentItem:Set[${GetDBJournalInfo.GetFieldValue["ExpectedItems",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["ItemUnits",int]} >= 1
+				CurrentAgentItemUnits:Set[${GetDBJournalInfo.GetFieldValue["ItemUnits",int]}]
+			if ${GetDBJournalInfo.GetFieldValue["VolumePer",int64]} > 0
+				CurrentAgentVolumePer:Set[${GetDBJournalInfo.GetFieldValue["VolumePer",int64]}]
+			if ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} > 0
+				CurrentAgentVolumeTotal:Set[${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]}]		
+			if ${GetDBJournalInfo.GetFieldValue["PickupLocation",string].NotNULLOrEmpty}
+				CurrentAgentPickup:Set[${GetDBJournalInfo.GetFieldValue["PickupLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["PickupLocationID",int64]}
+				CurrentAgentPickupID:Set[${GetDBJournalInfo.GetFieldValue["PickupLocationID",int64]}]				
+			if ${GetDBJournalInfo.GetFieldValue["DropoffLocation",string].NotNULLOrEmpty}
+				CurrentAgentDropoff:Set[${GetDBJournalInfo.GetFieldValue["DropoffLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["DropoffLocationID",int64]}
+				CurrentAgentDropoffID:Set[${GetDBJournalInfo.GetFieldValue["DropoffLocationID",int64]}]				
+			if ${GetDBJournalInfo.GetFieldValue["Damage2Deal",string].NotNULLOrEmpty}
+				CurrentAgentDamage:Set[${GetDBJournalInfo.GetFieldValue["Damage2Deal",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["DestroyTarget",string].NotNULLOrEmpty}
+				CurrentAgentDestroy:Set[${GetDBJournalInfo.GetFieldValue["DestroyTarget",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["LootTarget",string].NotNULLOrEmpty}
+				CurrentAgentLoot:Set[${GetDBJournalInfo.GetFieldValue["LootTarget",string]}]		
+			CurrentAgentID:Set[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+			CurrentAgentLocation:Set[${GetDBJournalInfo.GetFieldValue["AgentLocation",string]}]
+			CurrentAgentIndex:Set[${EVE.Agent[id,${CurrentAgentID}].Index}]
+			CurrentAgentMissionName:Set[${GetDBJournalInfo.GetFieldValue["MissionName",string]}]
+			CurrentAgentMissionType:Set[${GetDBJournalInfo.GetFieldValue["MissionType",string]}]
 		}
-
-		; Check mission complete for World Collide and Extravaganza before activating an extra gate
-		;variable index:agentmission missions
-		;variable iterator missionIterator
-		;variable string missionName
-		;EVE:GetAgentMissions[missions]
-		;missions:GetIterator[missionIterator]
-		
-		;Lootables:AddQueryString["(GroupID = GROUP_WRECK || GroupID = GROUP_CARGOCONTAINER) && !IsMoribund"]
-
+		GetMissionLogCombined:Finalize	
+		GetDBJournalInfo:Finalize
+		echo DEBUG - DID WE COMPLETE THE MRR?
+		return TRUE
+	}
+	; This method will Set/Reset our Current Run information (the crap that goes into the mission log db entries). Initial entry basically.
+	method SetCurrentRunDetails(int64 OurCapacity, int64 TotalVolume)
+	{
+		CurrentRunNumber:Set[${Config.RunNumberInt}]
+		CurrentRunRoomNumber:Set[0]
+		CurrentRunStartTimestamp:Set[${Time.Timestamp}]
+		CurrentRunKilledTarget:Set[FALSE]
+		CurrentRunVanquisher:Set[FALSE]
+		CurrentRunContainerLooted:Set[FALSE]
+		CurrentRunHaveItems:Set[FALSE]
+		CurrentRunTechnicalComplete:Set[FALSE]
+		CurrentRunTrueComplete:Set[FALSE]
+		CurrentRunFinalTimestamp:Set[0]
+		CurrentRunTripNumber:Set[0]
+		if ${OurCapacity} > 0
+			CurrentRunExpectedTrips:Set[${Math.Calc[${TotalVolume}/${OurCapacity}].Ceil}]
+		else
+			CurrentRunExpectedTrips:Set[-1]
+		CurrentRunItemUnitsMoved:Set[0]
+		CurrentRunVolumeMoved:Set[0]
+	}
+	; This method will be for gathering some details about our current Hauler ship. What kind of bays does it have, how much can it carry. 
+	; ADDENDUM - Have to make this into a state because goddamn.
+	member:bool GetHaulerDetails()
+	{	
+		variable int64 TempStorage1
+		echo DEBUG BEGIN HAULERDETAILS
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"](exists)} && !${ShipCargoChecked}
+		{
+			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"]:MakeActive
+			ShipCargoChecked:Set[TRUE]
+			echo DEBUG GHD1
+			return FALSE
+			
+		}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} < 0
+		{
+			echo DEBUG GHD2
+			return FALSE
+		}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} > 0
+		{
+			HaulerLargestBayCapacity:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity}]
+			TempStorage1:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity}]
+			HaulerLargestBayType:Set["ShipCargo"]
+			HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].LocationFlag}]
+			HaulerLargestBayOreLimited:Set[FALSE]
+			echo DEBUG GHD3
+		}
+		else
+		{
+			; Something went wrong here
+		}	
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"](exists)} && !${ShipFleetHangarChecked}
+		{
+			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"]:MakeActive
+			ShipFleetHangarChecked:Set[TRUE]
+			echo DEBUG GHD4
+			return FALSE
+		}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity} < 0
+		{
+			echo DEBUG GHD5
+			return FALSE
+		}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity} > 0
+		{
+			HaulerLargestBayCapacity:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity}]
+			TempStorage1:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity}]
+			HaulerLargestBayType:Set["ShipFleetHangar"]
+			HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].LocationFlag}]
+			HaulerLargestBayOreLimited:Set[FALSE]
+			echo DEBUG GHD6
+		}
+		else
+		{
+			; Something went wrong here
+		}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"](exists)} && !${ShipOreBayChecked}
+		{
+			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"]:MakeActive
+			ShipOreBayChecked:Set[TRUE]
+			echo DEBUG GHD7
+			return FALSE
+		}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} < 0
+		{
+			echo DEBUG GHD8
+			return FALSE
+		}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} > 0 &&  (${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} > ${TempStorage1})
+		{
+			HaulerLargestBayCapacity:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity}]
+			HaulerLargestBayType:Set["ShipGeneralMiningHold"]
+			HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold""].LocationFlag}]
+			HaulerLargestBayOreLimited:Set[TRUE]
+			echo DEBUG GHD8
+		}
+		else
+		{
+			; Something went wrong here
+		}
+		ShipCargoChecked:Set[FALSE]
+		ShipFleetHangarChecked:Set[FALSE]
+		ShipOreBayChecked:Set[FALSE]
+		return TRUE
+		; Now that I think about it, is there even a situation where the normal cargo hold will be larger than the fleet hangar or the ore bay if a ship has either one of those???
+	}
+	; This member will return the ID of the destination bookmark for our courier mission
+	member:int64 CourierMissionDestination()
+	{
+		variable index:agentmission missions
+		variable iterator missionIterator	
+		EVE:GetAgentMissions[missions]
+		missions:GetIterator[missionIterator]
+		echo CMD BEGIN
 		if ${missionIterator:First(exists)}
 		{
 			do
-			{
-				if ${missionIterator.Value.AgentID} != ${EVE.Agent[${currentAgentIndex}].ID}
+			{	
+				if ${missionIterator.Value.AgentID} != ${CurrentAgentID}
 				{
 					continue
-				}
-
-				missionIterator.Value:GetDetails
-				if !${EVEWindow[ByCaption, Mission journal - ${EVE.Agent[${currentAgentIndex}].Name}](exists)}
+				}	
+				
+				variable index:bookmark missionBookmarks
+				variable iterator bookmarkIterator
+				missionIterator.Value:GetBookmarks[missionBookmarks]
+				missionBookmarks:GetIterator[bookmarkIterator]
+				if ${bookmarkIterator:First(exists)}
 				{
-					if ${EVEWindow[ByCaption, Mission journal](exists)}
+					do
 					{
-						; Close journal of other mission.
-						EVEWindow[ByCaption, Mission journal]:Close
-					}
-					missionIterator.Value:GetDetails
-					return FALSE
-				}
-
-				; Must ensure that ${EVEWindow[ByCaption, Mission journal - ${AgentName}].HTML.Escape} already returns full length
-    			; journal BEFORE using mission parser.
-				variable string missionJournalText = ${EVEWindow[ByCaption, Mission journal - ${EVE.Agent[${currentAgentIndex}].Name}].HTML.Escape}
-				if !${missionJournalText.Find["The following rewards will be yours if you complete this mission"]}
-				{
-					missionIterator.Value:GetDetails
-					return FALSE
-				}
-
-				MissionParser.AgentName:Set[${EVE.Agent[${currentAgentIndex}].Name}]
-				missionName:Set[${missionIterator.Value.Name.Trim}]
-
-				; accepted
-				if ${missionIterator.Value.State} == 2
-				{
-					if ${DamageType.Element[${missionName}](exists)}
-					{
-						if ${MissionParser.IsComplete}
+						if ${bookmarkIterator.Value.Label.Find["Objective (Drop Off)"]} && ${CourierMissionTravelState.Equal[Dropoff]}
 						{
-							This:LogInfo["Mission Complete \ao${missionName}"]
-							This:Clear
-							This:InsertState["Cleanup"]
-							This:InsertState["Repair"]
-							This:InsertState["CompleteMission", 3000]
-							return TRUE
+							echo DEBUG CMD ${bookmarkIterator.Value.ID}
+							return "${bookmarkIterator.Value.ID}"
+						}
+						if ${bookmarkIterator.Value.Label.Find["Objective (Pick Up)"]} && ${CourierMissionTravelState.Equal[Pickup]}
+						{
+							echo DEBUG CMD ${bookmarkIterator.Value.ID}
+							return "${bookmarkIterator.Value.ID}"
 						}
 					}
-				}
+					while ${bookmarkIterator:Next(exists)}
+				}	
 			}
 			while ${missionIterator:Next(exists)}
 		}
-		
-
-		currentTarget:Set[0]
-		This:InsertState["CheckForWork"]
-		This:InsertState["ReloadWeapons"]
-		looted:Set[FALSE]
-		return TRUE
 	}
-
+	; This method will be for inserting information into the MissionJournal table. This will naturally be an Upsert.
+	; (AgentID INTEGER PRIMARY KEY, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, AgentLocation TEXT, MissionLocation TEXT, DropoffLocation TEXT, DropoffLocationID INTEGER, PickupLocation TEXT, PickupLocationID INTEGER, Lowsec BOOLEAN, JumpDistance INTEGER, ExpectedItems TEXT, ItemUnits INTEGER, ItemVolume INTEGER, MissionLPReward int
+	;   VolumePer INTEGER, DestroyTarget TEXT, LootTarget TEXT, Damage2Deal TEXT);"]
+	method MissionJournalUpsert(int64 AgentID, string MissionName, string MissionType, int MissionStatus, string AgentLocation, string MissionLocation, string DropoffLocation, int64 DropoffLocationID, string PickupLocation, int64 PickupLocationID, bool Lowsec, int JumpDistance, string ExpectedItems, int ItemUnits, int64 ItemVolume, int MissionLPReward, int64 VolumePer, string DestroyTarget, string LootTarget, string Damage2Deal)
+	{	
+		;variable index:string MJUDML
+		;MJUDML:Insert
+		CharacterSQLDB:ExecDML["insert into MissionJournal (AgentID,MissionName,MissionType,MissionStatus,AgentLocation,MissionLocation,DropoffLocation,DropoffLocationID,PickupLocation,PickupLocationID,Lowsec,JumpDistance,ExpectedItems,ItemUnits,ItemVolume,MissionLPReward,VolumePer,DestroyTarget,LootTarget,Damage2Deal) values (${AgentID}, '${MissionName}', '${MissionType}', ${MissionStatus}, '${AgentLocation}', '${MissionLocation}', '${DropoffLocation}', ${DropoffLocationID}, '${PickupLocation}', ${PickupLocationID}, ${Lowsec}, ${JumpDistance}, '${ExpectedItems}', ${ItemUnits}, ${ItemVolume}, ${MissionLPReward}, ${VolumePer}, '${LootTarget}', '${DestroyTarget}','${Damage2Deal}') ON CONFLICT (AgentID) DO UPDATE SET MissionName=excluded.MissionName, MissionType=excluded.MissionType, MissionStatus=excluded.MissionStatus, AgentLocation=excluded.AgentLocation, MissionLocation=excluded.MissionLocation, DropoffLocation=excluded.DropoffLocation, DropoffLocationID=excluded.DropoffLocationID, PickupLocation=excluded.PickupLocation, PickupLocationID=excluded.PickupLocationID, Lowsec=excluded.Lowsec, Jumpdistance=excluded.JumpDistance, ExpectedItems=excluded.ExpectedItems, ItemUnits=excluded.ItemUnits, ItemVolume=excluded.ItemVolume, MissionLPReward=excluded.MissionLPReward, VolumePer=excluded.VolumePer, DestroyTarget=excluded.DestroyTarget, LootTarget=excluded.LootTarget, Damage2Deal=excluded.Damage2Deal;"]
+		;Transaction[MJUDML]
+		echo ${AgentID}, '${MissionName}', '${MissionType}', ${MissionStatus}, '${AgentLocation}', '${MissionLocation}', '${DropoffLocation}', ${DropoffLocationID}, '${PickupLocation}', ${PickupLocationID}, ${Lowsec}, ${JumpDistance}, '${ExpectedItems}', ${ItemUnits}, ${ItemVolume}, ${MissionLPReward}, ${VolumePer}, '${LootTarget}', '${DestroyTarget}','${Damage2Deal}
+	}
+	; Need to update MissionJournal when we accept a mission or things break.
+	method MissionJournalUpdateStatus(int64 AgentID, int MissionStatus)
+	{
+		CharacterSQLDB:ExecDML["update MissionJournal SET MissionStatus=${MissionStatus} WHERE AgentID=${AgentID};"]
+	}
+	; This method will be for inserting information into the MissionLogCombat table. This will also be an upsert.
+	; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, 
+	;   TrueCompletion BOOLEAN, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+	method MissionLogCombatUpsert(int RunNumber, int64 StartingTimestamp, string MissionName, string MissionType, int RoomNumber, bool KilledTarget, bool Vanquisher, bool ContainerLooted, bool HaveItems, bool TechnicalCompletion, bool TrueCompletion, int64 FinalTimestamp, int Historical)
+	{
+		CharacterSQLDB:ExecDML["insert into MissionLogCombat (RunNumber,StartingTimestamp,MissionName,MissionType,RoomNumber,KilledTarget,Vanquisher,ContainerLooted,HaveItems,TechnicalCompletion,TrueCompletion,FinalTimestamp,Historical) values (${RunNumber},${StartingTimestamp},'${MissionName}','${MissionType}',${RoomNumber},${KilledTarget},${Vanquisher},${ContainerLooted},${HaveItems},${TechnicalCompletion},${TrueCompletion},${FinalTimestamp},${Historical}) ON CONFLICT (RunNumber) DO UPDATE SET StartingTimestamp=excluded.StartingTimestamp, MissionName=excluded.MissionName, MissionType=excluded.MissionType, RoomNumber=excluded.RoomNumber, KilledTarget=excluded.KilledTarget, Vanquisher=excluded.Vanquisher, ContainerLooted=excluded.ContainerLooted, HaveItems=excluded.HaveItems, TechnicalCompletion=excluded.TechnicalCompletion, TrueCompletion=excluded.TrueCompletion, FinalTimestamp=excluded.FinalTimestamp, Historical=excluded.Historical;"]
+	}
+	; This method will be for Mid-Combat-Mission Updates
+	method MissionLogCombatUpdate(int RunNumber, int RoomNumber, bool KilledTarget, bool Vanquisher, bool ContainerLooted, bool HaveItems, bool TechnicalCompletion, bool TrueCompletion, int64 FinalTimestamp, int Historical)
+	{
+		CharacterSQLDB:ExecDML["update MissionLogCombat SET RoomNumber=${RoomNumber}, KilledTarget=${KilledTarget}, Vanquisher=${Vanquisher}, ContainerLooted=${ContainerLooted}, HaveItems=${HaveItems}, TechnicalCompletion=${TechnicalCompletion}, TrueCompletion=${TrueCompletion}, FinalTimestamp=${FinalTimestamp}, Historical=${Historical} WHERE RunNumber=${CurrentRunNumber};"]
+	}
+	; This method will be for inserting information into the MissionLogCourier table. This will also be an upsert.
+	; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER,
+	;  DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume INTEGER, UnitsMoved INTEGER, VolumeMoved INTEGER, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+	method MissionLogCourierUpsert(int RunNumber, int64 StartingTimestamp, string MissionName, string MissionType, int TripNumber, int ExpectedTrips, string DropoffLocation, string PickupLocation, int TotalUnits, int64 TotalVolume, int UnitsMoved, int64 VolumeMoved, int64 FinalTimestamp, int Historical)
+	{
+		CharacterSQLDB:ExecDML["insert into MissionLogCourier (RunNumber,StartingTimestamp,MissionName,MissionType,TripNumber,ExpectedTrips,DropoffLocation,PickupLocation,TotalUnits,TotalVolume,UnitsMoved,VolumeMoved,FinalTimestamp,Historical) values (${RunNumber},${StartingTimestamp},'${MissionName}','${MissionType}',${TripNumber},${ExpectedTrips},'${DropoffLocation}','${PickupLocation}',${TotalUnits},${TotalVolume},${UnitsMoved},${VolumeMoved},${FinalTimestamp},${Historical}) ON CONFLICT (RunNumber) DO UPDATE SET StartingTimestamp=excluded.StartingTimestamp, MissionName=excluded.MissionName, MissionType=excluded.MissionType, TripNumber=excluded.TripNumber, ExpectedTrips=excluded.ExpectedTrips, DropoffLocation=excluded.DropoffLocation, PickupLocation=excluded.PickupLocation, TotalUnits=excluded.TotalUnits, TotalVolume=excluded.TotalVolume, UnitsMoved=excluded.UnitsMoved, VolumeMoved=excluded.VolumeMoved, FinalTimestamp=excluded.FinalTimestamp, Historical=excluded.Historical;"]
+	}
+	; This method will be for Mid-CourierMission Updates
+	method MissionLogCourierUpdate(int RunNumber, int TripNumber, int UnitsMoved, int64 VolumeMoved, int64 FinalTimestamp, int Historical)
+	{
+		CharacterSQLDB:ExecDML["update MissionLogCourier SET TripNumber=${TripNumber}, UnitsMoved=${UnitsMoved}, VolumeMoved=${VolumeMoved}, FinalTimestamp=${FinalTimestamp}, Historical=${Historical} WHERE RunNumber=${CurrentRunNumber};"]
+	}
+	; This method will be for filling out our RoomNPCInfo table. Just an insert, none of the values will ever change.
+	; (EntityID INTEGER PRIMARY KEY, RunNumber INTEGER, RoomNumber INTEGER, NPCName TEXT, NPCGroup TEXT, NPCBounty INTEGER)
+	method RoomNPCInfoInsert(int64 EntityID, int RunNumber, int RoomNumber, string NPCName, string NPCGroup, int64 NPCBounty)
+	{
+		NPCDBDML:Insert["insert into RoomNPCInfo (EntityID,RunNumber,RoomNumber,NPCName,NPCGroup,NPCBounty) values (${EntityID},${RunNumber},${RoomNumber},'${NPCName}','${NPCGroup}',${NPCBounty});"]
+	}
+	; This method will be for inserting information into the WatchDogMonitoring table. This will also be an upsert.
+	; (CharID INTEGER PRIMARY KEY, RunNumber INTEGER, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, TripNumber INTEGER, TimeStamp DATETIME, CurrentTarget INTEGER, CurrentDestination TEXT, UnitsMoved INTEGER);"]
+	method WatchDogMonitoringUpsert(int64 CharID, int RunNumber, string MissionName, string MissionType, int RoomNumber, int TripNumber, int64 TimeStamp, int64 CurrentTarget, string CurrentDestination, int UnitsMoved)
+	{
+		SharedSQLDB:ExecDML"insert into WatchDogMonitoring (CharID,RunNumber,MissionName,MissionType,RoomNumber,TripNumber,Timestamp,CurrentTarget,CurrentDestination,UnitsMoved) values (${CharID},${RunNumber},'${MissionName}','${MissionType}',${RoomNumber},${TripNumber},${Timestamp},${CurrentTarget},'${CurrentDestination}',${UnitsMoved})  ON CONFLICT (CharID) DO UPDATE SET RunNumber=excluded.RunNumber, MissionName=excluded.MissionName, MissionType=excluded.MissionType, RoomNumber=excluded.RoomNumber, TripNumber=excluded.TripNumber, Timestamp=excluded.Timestamp, CurrentTarget=excluded.CurrentTarget, CurrentDestination=excluded.CurrentDestination, UnitsMoved=excluded.UnitsMoved;"]
+	}
+	; This method will be for inserting information into the MissioneerStats table. This will be a normal insert, no upserts here.
+	; (Timestamp DATETIME, CharName TEXT, CharID INTEGER, RunNumber INTEGER, RoomNumber INTEGER, TripNumber INTEGER, MissionName TEXT, MissionType TEXT, EventType TEXT, RoomBounties INTEGER, RoomFactionSpawn BOOLEAN,
+	;   RoomDuration DATETIME, RunLP INTEGER, RunISK INTEGER, RunDuration DATETIME, RunTotalBounties INTEGER, ShipType TEXT);"]
+	method MissioneerStatsInsert(int64 Timestamp, string CharName, int64 CharID, int RunNumber, int RoomNumber, int TripNumber, string MissionName, string MissionType, string EventType, int64 RoomBounties, bool RoomFactionSpawn, int64 RoomDuration, int RunLP, int64 RunISK, int64 RunDuration, int64 RunTotalBounties, string ShipType)
+	{
+		SharedSQLDB:ExecDML["insert into MissioneerStats (CharName,CharID,RunNumber,RoomNumber,TripNumber,MissionName,MissionType,EventType,RoomBounties,RoomFactionSpawn,RoomDuration,RunLP,RunISK,RunDuration,RunTotalBounties,ShipType) values ('${CharName}',${CharID},${RunNumber},${RoomNumber},${TripNumber},'${MissionName}','${MissionType}','${EventType}',${RoomBounties},${RoomFactionSpawn},${RoomDuration},${RunLP},${RunISK},${RunDuration},${RunTotalBounties},'${ShipType}')
+	}
+	; This method will be for inserting information into the SalvageBMTable table. I don't anticipate this ever needing to be an Upsert.
+	; (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
+	method SalvageBMTableInsert(int64 BMID, string BMName, int WreckCount, string BMSystem, int64 ExpectedExpiration, int64 ClaimedByCharID, int64 SalvageTime, int Historical)
+	{
+		SharedSQLDB:ExecDML["insert into SalvageBMTable (BMID,BMName,WreckCount,BMSystem,ExpectedExpiration,ClaimedByCharID,SalvageTime,Historical) values (${BMID},'${BMName}',${WreckCount},'${BMSystem}',${ExpectedExpiration},${ClaimedByCharID},${SalvageTime},${Historical});"]
+	}
+	; This method is just so a salvager can claim a salvage BM. If you have more than one salvager it is kinda needed.
+	method SalvageBMTableClaim(int64 CharID, int64 BMID)
+	{
+		CharacterSQLDB:ExecDML["update SalvageBMTable SET ClaimedByCharID=${CharID} WHERE BMID=${BMID};"]
+	}
+	
+	;;;;;;;;;;;;;;;;;;;;; Below this point is stuff I just grabbed from the original Missioneer ;;;;;;;;;;;;;;;;;
+	
+	; I've always wondered why this is even here.
 	member:bool ReloadWeapons()
 	{
 		EVE:Execute[CmdReloadAmmo]
 		return TRUE
 	}
 
-	member:bool Cleanup()
-	{
-		if ${EVEWindow[AgentBrowser](exists)}
-		{
-			EVEWindow[AgentBrowser]:Close
-			return FALSE
-		}
-		if ${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}](exists)}
-		{
-			EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}]:Close
-			return FALSE
-		}
-		if ${EVEWindow[ByCaption, Mission journal](exists)}
-		{
-			EVEWindow[ByCaption, Mission journal]:Close
-			return FALSE
-		}
-		if ${EVEWindow[RepairShop](exists)}
-		{
-			EVEWindow[RepairShop]:Close
-		}
-		return TRUE
-	}
-
-	member:bool CompleteMission()
-	{
-		if ${Me.InSpace}
-		{
-			if ${Ship.ModuleList_Siege.ActiveCount}
-			{
-				; This:LogInfo["Deactivate siege module due to mission complete"]
-				Ship.ModuleList_Siege:DeactivateAll
-			}
-
-			variable index:activedrone activeDrones
-			Me:GetActiveDrones[activeDrones]
-			if ${activeDrones.Used} > 0
-			{
-				DroneControl:Recall
-				return FALSE
-			}
-		}
-
-		if ${Me.StationID} != ${EVE.Agent[${currentAgentIndex}].StationID}
-		{
-			This:LogInfo["Need to be at agent station to complete mission"]
-			This:LogInfo["Setting course for \ao${EVE.Station[${EVE.Agent[${currentAgentIndex}].StationID}].Name}"]
-			Move:Agent[${currentAgentIndex}]
-			This:InsertState["CompleteMission", 3000]
-			This:InsertState["Traveling"]
-			return TRUE
-		}
-
-		if !${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}](exists)}
-		{
-			EVE.Agent[${currentAgentIndex}]:StartConversation
-			return FALSE
-		}
-
-		if ${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["View Mission"](exists)}
-		{
-			EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["View Mission"]:Press
-			return FALSE
-		}
-
-		if ${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["Complete Mission"](exists)}
-		{
-			EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["Complete Mission"]:Press
-			relay "all" -event Tehbot_SalvageBookmark ${Me.ID}
-		}
-
-		variable index:agentmission missions
-		variable iterator missionIterator
-
-		EVE:GetAgentMissions[missions]
-		missions:GetIterator[missionIterator]
-		if ${missionIterator:First(exists)}
-			do
-			{
-				if ${missionIterator.Value.AgentID} == ${EVE.Agent[${currentAgentIndex}].ID} && ${missionIterator.Value.State} == 2
-				{
-					return FALSE
-				}
-			}
-			while ${missionIterator:Next(exists)}
-
-		if ${Utility.DowntimeClose}
-		{
-			This:LogInfo["Halting for downtime close."]
-		}
-
-		if !${Config.Halt} && !${halt} && !${Utility.DowntimeClose}
-		{
-			This:InsertState["CheckForWork"]
-			This:InsertState["PickAgent"]
-			This:InsertState["RequestMissionsFromAgentsInStation"]
-			; This:InsertState["InteractAgent", 1500, "OFFER"]
-			This:InsertState["SalvageCheck"]
-			This:InsertState["RefreshBookmarks"]
-		}
-		else
-		{
-			This:QueueState["HaltBot"]
-		}
-
-		halt:Set[FALSE]
-		This:InsertState["DropOffLoot", 20000]
-		This:InsertState["Cleanup"]
-		This:InsertState["Repair"]
-		return TRUE
-	}
-
-	member:bool InteractAgent(string Action)
-	{
-		if !${Me.InStation} || ${Me.StationID} != ${EVE.Agent[${currentAgentIndex}].StationID}
-		{
-			Move:Agent[${currentAgentIndex}]
-			This:InsertState["InteractAgent", 1500, ${Action}]
-			This:InsertState["Traveling"]
-			return TRUE
-		}
-
-		if !${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}](exists)}
-		{
-			EVE.Agent[${currentAgentIndex}]:StartConversation
-			return FALSE
-		}
-
-		switch ${Action}
-		{
-			case OFFER
-				if ${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["View Mission"](exists)}
-				{
-					EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["View Mission"]:Press
-					return TRUE
-				}
-				if ${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["Request Mission"](exists)}
-				{
-					EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["Request Mission"]:Press
-					return TRUE
-				}
-
-				break
-			case ACCEPT
-				if ${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["Request Mission"](exists)}
-				{
-					EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["Request Mission"]:Press
-					return FALSE
-				}
-				if ${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["View Mission"](exists)}
-				{
-					EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["View Mission"]:Press
-					return FALSE
-				}
-				if ${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["Accept"](exists)}
-				{
-					EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["Accept"]:Press
-					return FALSE
-				}
-				if ${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["Close"](exists)}
-				{
-					EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["Close"]:Press
-					return TRUE
-				}
-				break
-			case DECLINE
-				if !${Agents.CanDeclineMission[${EVE.Agent[${currentAgentIndex}].Name}]}
-				{
-					This:InsertState["CheckForWork"]
-					This:InsertState["PickAgent"]
-					return TRUE
-				}
-				if ${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["View Mission"](exists)}
-				{
-					EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["View Mission"]:Press
-					return FALSE
-				}
-				if ${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["Decline"](exists)}
-				{
-					EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}].Button["Decline"]:Press
-					This:InsertState["CatchDeclineWarning", 1500]
-					return TRUE
-				}
-				break
-		}
-		return TRUE
-	}
-
-	member:bool CatchDeclineWarning()
-	{
-		if ${EVEWindow[byName, modal](exists)} && ${EVEWindow[byName, modal].Text.Find["if you decline a mission"]}
-		{
-			variable string prefix = "If you decline a mission before "
-			variable string text = ${EVEWindow[byName, modal].Text.Mid[${prefix.Length}, 18]}
-
-			variable string dataText = ${text.Token[1, " "]}
-			variable string timeText = ${text.Token[2, " "]}
-
-			variable int year = ${dataText.Token[1, "."]}
-			variable int month = ${dataText.Token[2, "."]}
-			variable int day = ${dataText.Token[3, "."]}
-			variable int hour = ${timeText.Token[1, ":"]}
-			variable int minute = ${timeText.Token[2, ":"]}
-
-			variable time nextDeclineableTime
-			nextDeclineableTime.YearPtr:Set[${Math.Calc[${year} - 1900]}]
-			nextDeclineableTime.MonthPtr:Set[${Math.Calc[${month} - 1]}]
-			nextDeclineableTime.Day:Set[${day}]
-			nextDeclineableTime.Hour:Set[${hour}]
-			nextDeclineableTime.Minute:Set[${minute}]
-			nextDeclineableTime:Update
-
-			EVEWindow[byName, modal]:ClickButtonNo
-			Agents:SetNextDeclineableTime[${EVE.Agent[${currentAgentIndex}].Name}, ${nextDeclineableTime.Timestamp}]
-			Agents:Save
-
-			; This:LogInfo["agent ${EVE.Agent[${currentAgentIndex}].Name} next declineable time ${Agents.NextDeclineableTime[${EVE.Agent[${currentAgentIndex}].Name}]}"]
-			; This:LogInfo["agent ${EVE.Agent[${currentAgentIndex}].Name} availability: ${Agents.CanDeclineMission[${EVE.Agent[${currentAgentIndex}].Name}]}"]
-			; This:LogInfo["agent ${EVE.Agent[${currentAgentIndex}].Name} wait time: ${Agents.SecondsTillDeclineable[${EVE.Agent[${currentAgentIndex}].Name}]}"]
-
-			; Client:Wait[5000]
-
-			return FALSE
-		}
-		This:InsertState["CheckForWork"]
-		return TRUE
-	}
-
+	; Also wondered what the hell this is for. Is it ever even used? Dunno
 	member:bool WaitTill(int timestamp, bool start = TRUE)
 	{
 		if ${start}
@@ -1835,12 +2509,14 @@ objectdef obj_Mission inherits obj_StateQueue
 		return TRUE
 	}
 
+	; Pretty self-explanatory tbh
 	member:bool StackShip()
 	{
 		EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo]:StackAll
 		return TRUE
 	}
 
+	; This doesn't work correctly in a player structure but uh, you don't run Missions from those so who cares.
 	member:bool StackHangars()
 	{
 		if !${Me.InStation}
@@ -1863,38 +2539,18 @@ objectdef obj_Mission inherits obj_StateQueue
 			if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
 			{
 				EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
-				Client:Wait[5000]
 				return FALSE
 			}
 
 			if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
 			{
 				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
-				Client:Wait[5000]
 				return FALSE
 			}
 
-			; Bug: IsRepackable and Repackage are not working
-			; Repackage unloaded drones.
-			; EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
-			; items:GetIterator[itemIterator]
-			; if ${itemIterator:First(exists)}
-			; {
-			; 	do
-			; 	{
-			; 		This:LogInfo[ ${itemIterator.Value.Name} ${itemIterator.Value.Group} is repackageable ${itemIterator.Value.IsRepackable}]
-			; 		if ${itemIterator.Value.Group.Find[Drone]}
-			; 		{
-			; 			echo repackaging ${itemIterator.Value.Name}
-			; 			itemIterator.Value:Repackage
-			; 			return FALSE
-			; 		}
-			; 	}
-			; 	while ${itemIterator:Next(exists)}
-			; }
-			Client:Wait[5000]
+
 			EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:StackAll
-			Client:Wait[5000]
+
 			
 			if ${Config.DropOffToContainer} && ${Config.DropOffContainerName.NotNULLOrEmpty}
 			{
@@ -1907,29 +2563,9 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 
 				EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-				Client:Wait[5000]
 				return FALSE
 			}
 
-			; Bug: IsRepackable and Repackage are not working
-			; Repackage unloaded drones.
-			; EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
-			; items:GetIterator[itemIterator]
-			; if ${itemIterator:First(exists)}
-			; {
-			; 	do
-			; 	{
-			; 		This:LogInfo[ ${itemIterator.Value.Name} ${itemIterator.Value.Group} is repackageable ${itemIterator.Value.IsRepackable}]
-			; 		if ${itemIterator.Value.Group.Find[Drone]}
-			; 		{
-			; 			echo repackaging ${itemIterator.Value.Name}
-			; 			itemIterator.Value:Repackage
-			; 			return FALSE
-			; 		}
-			; 	}
-			; 	while ${itemIterator:Next(exists)}
-			; }
-			
 			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:StackAll
 
 			if ${Config.DropOffToContainer} && ${Config.DropOffContainerName.NotNULLOrEmpty}
@@ -1954,7 +2590,6 @@ objectdef obj_Mission inherits obj_StateQueue
 						(${EVEWindow[Inventory].ChildWindow[${dropOffContainerID}].Capacity} < 0)
 					{
 						EVEWindow[Inventory].ChildWindow[${dropOffContainerID}]:MakeActive
-						Client:Wait[5000]
 						return FALSE
 					}
 
@@ -1966,7 +2601,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 		return TRUE
 	}
-
+	; Who knows.
 	member:bool PrepHangars()
 	{
 		variable index:eveinvchildwindow InvWindowChildren
@@ -1979,13 +2614,13 @@ objectdef obj_Mission inherits obj_StateQueue
 				if ${Iter.Value.Name.Equal[StationCorpHangars]}
 				{
 					Iter.Value:MakeActive
-					Client:Wait[5000]
 				}
 			}
 			while ${Iter:Next(exists)}
 		return TRUE
 	}
 
+	; Who knows.
 	member:string CorporationFolder()
 	{
 		variable string folder
@@ -2016,7 +2651,8 @@ objectdef obj_Mission inherits obj_StateQueue
 
 		return ${folder}
 	}
-
+	
+	; This is actually fairly efficient so we're keeping it.
 	member:bool DropOffLoot()
 	{
 		if !${Me.InStation}
@@ -2029,7 +2665,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			EVE:Execute[OpenInventory]
 			return FALSE
 		}
-		Client:Wait[5000]
+		Client:Wait[500]
 		variable index:item items
 		variable iterator itemIterator
 		variable int64 dropOffContainerID = 0;
@@ -2041,7 +2677,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
 				{
 					EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
-					Client:Wait[5000]
+					Client:Wait[500]
 					return FALSE
 				}
 
@@ -2049,10 +2685,10 @@ objectdef obj_Mission inherits obj_StateQueue
 				{
 
 					EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
-					Client:Wait[5000]
+					Client:Wait[500]
 					return FALSE
 				}
-				Client:Wait[5000]
+				Client:Wait[500]
 				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
 			}
 			elseif ${Config.MunitionStorage.Equal[Personal Hangar]}
@@ -2060,7 +2696,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 				{
 					EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-					Client:Wait[5000]
+					Client:Wait[500]
 					return FALSE
 				}
 				EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
@@ -2083,7 +2719,7 @@ objectdef obj_Mission inherits obj_StateQueue
 							(${EVEWindow[Inventory].ChildWindow[${dropOffContainerID}].Capacity} < 0)
 						{
 							EVEWindow[Inventory].ChildWindow[${dropOffContainerID}]:MakeActive
-							Client:Wait[5000]
+							Client:Wait[500]
 							return FALSE
 						}
 						break
@@ -2096,10 +2732,10 @@ objectdef obj_Mission inherits obj_StateQueue
 		if !${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo](exists)}
 		{
 			EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo]:MakeActive
-			Client:Wait[5000]
+			Client:Wait[500]
 			return FALSE
 		}
-		Client:Wait[5000]
+		Client:Wait[500]
 		EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo]:GetItems[items]
 		items:GetIterator[itemIterator]
 		if ${itemIterator:First(exists)}
@@ -2134,14 +2770,14 @@ objectdef obj_Mission inherits obj_StateQueue
 						if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
 						{
 							EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
-							Client:Wait[5000]
+							Client:Wait[500]
 							return FALSE
 						}
 
 						if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
 						{
 							EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
-							Client:Wait[5000]
+							Client:Wait[500]
 							return FALSE
 						}
 
@@ -2153,7 +2789,7 @@ objectdef obj_Mission inherits obj_StateQueue
 						if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 						{
 							EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-							Client:Wait[5000]
+							Client:Wait[500]
 							return FALSE
 						}
 						itemIterator.Value:MoveTo[MyStationHangar, Hangar]
@@ -2168,144 +2804,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		return TRUE
 	}
 
-	member:bool TryBringGateKey()
-	{
-		if !${gateKey.NotNULLOrEmpty}
-		{
-			return TRUE
-		}
-
-		if (!${EVEWindow[Inventory](exists)})
-		{
-			EVE:Execute[OpenInventory]
-			return FALSE
-		}
-
-		if !${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo](exists)} || ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo].Capacity} < 0
-		{
-			EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo]:MakeActive
-			Client:Wait[5000]
-			return FALSE
-		}
-
-		if ${This.InventoryItemQuantity[${gateKey}, ${Me.ShipID}, "ShipCargo"]} > 0
-		{
-			This:LogInfo["Confirmed gate key \"${gateKey}\" in cargo."]
-			haveGateKeyInCargo:Set[TRUE]
-			gateKeyContainer:Set[""]
-			return TRUE
-		}
-
-		variable index:item items
-		variable iterator itemIterator
-
-		; Try loading from hangar
-		if ${Config.MunitionStorage.Equal[Corporation Hangar]}
-		{
-			if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
-			{
-				EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
-				Client:Wait[5000]
-				return FALSE
-			}
-
-			if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
-			{
-				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
-				Client:Wait[5000]
-				return FALSE
-			}
-
-			EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
-		}
-		elseif ${Config.MunitionStorage.Equal[Personal Hangar]}
-		{
-			if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
-			{
-				EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-				Client:Wait[5000]
-				return FALSE
-			}
-
-			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
-		}
-
-		items:GetIterator[itemIterator]
-		if ${itemIterator:First(exists)}
-		{
-			do
-			{
-				if ${itemIterator.Value.Name.Equal[${gateKey}]}
-				{
-					This:LogInfo["Moving the gate key \"${gateKey}\" to cargo."]
-					itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, 1]
-					return FALSE
-				}
-			}
-			while ${itemIterator:Next(exists)}
-		}
-
-		return TRUE
-	}
-
-	member:bool BringDelivery()
-	{
-		if !${deliverItem.NotNULLOrEmpty}
-		{
-			return TRUE
-		}
-
-		if (!${EVEWindow[Inventory](exists)})
-		{
-			EVE:Execute[OpenInventory]
-			return FALSE
-		}
-
-		if !${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo](exists)} || ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo].Capacity} < 0
-		{
-			EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo]:MakeActive
-			Client:Wait[5000]
-			return FALSE
-		}
-
-		if ${This.InventoryItemQuantity[${deliverItem}, ${Me.ShipID}, "ShipCargo"]} > 0
-		{
-			This:LogInfo["Confirmed the delivery \"${deliverItem}\" in cargo."]
-			haveDeliveryInCargo:Set[TRUE]
-			return TRUE
-		}
-
-		if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
-		{
-			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-			Client:Wait[5000]
-			return FALSE
-		}
-
-		variable index:item items
-		variable iterator itemIterator
-		EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
-
-		items:GetIterator[itemIterator]
-		if ${itemIterator:First(exists)}
-		{
-			do
-			{
-				if ${itemIterator.Value.Name.Equal[${deliverItem}]}
-				{
-					This:LogInfo["Moving the delivery \"${deliverItem}\" to cargo."]
-					itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, 1]
-					return FALSE
-				}
-			}
-			while ${itemIterator:Next(exists)}
-		}
-
-		This:LogCritical["Can't find the delivery ${deliverItem}, halting."]
-		This:Stop
-		return TRUE
-	}
-
+	; This doesn't behave entirely correctly, and probably never has. But whatever, let us re-use it
 	member:bool ReloadAmmoAndDrones()
 	{
 		if ${Config.AmmoAmountToLoad} <= 0
@@ -2337,18 +2836,18 @@ objectdef obj_Mission inherits obj_StateQueue
 			if (!${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay](exists)} || ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay].Capacity} < 0)
 			{
 				EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay]:MakeActive
-				Client:Wait[5000]
+				Client:Wait[500]
 				return FALSE
 			}
 
-			variable float specifiedDroneVolume = ${Drones.Data.GetVolume[${Config.DroneType}]}
+			variable int64 specifiedDroneVolume = ${Drones.Data.GetVolume[${Config.DroneType}]}
 			preferredDroneType:Set[${Drones.Data.SearchSimilarDroneFromRace[${Config.DroneType}, ${useDroneRace}]}]
 			if !${preferredDroneType.Equal[${Config.DroneType}]}
 			{
 				fallbackDroneType:Set[${Config.DroneType}]
 			}
 			
-			Client:Wait[5000]
+			Client:Wait[500]
 			EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay]:GetItems[items]
 			items:GetIterator[itemIterator]
 			if ${itemIterator:First(exists)}
@@ -2360,7 +2859,7 @@ objectdef obj_Mission inherits obj_StateQueue
 						if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
 						{
 							EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
-							Client:Wait[5000]
+							Client:Wait[500]
 							return FALSE
 						}
 
@@ -2368,7 +2867,7 @@ objectdef obj_Mission inherits obj_StateQueue
 						{
 
 							EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
-							Client:Wait[5000]
+							Client:Wait[500]
 							return FALSE
 						}
 
@@ -2383,7 +2882,7 @@ objectdef obj_Mission inherits obj_StateQueue
 						if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 						{
 							EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-							Client:Wait[5000]
+							Client:Wait[500]
 							return FALSE
 						}
 
@@ -2399,7 +2898,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				while ${itemIterator:Next(exists)}
 			}
 
-			variable float remainingDroneSpace = ${Math.Calc[${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay].Capacity} - ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay].UsedCapacity}]}
+			variable int64 remainingDroneSpace = ${Math.Calc[${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay].Capacity} - ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay].UsedCapacity}]}
 
 			if ${specifiedDroneVolume} > 0
 			{
@@ -2410,7 +2909,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		if !${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo](exists)} || ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo].Capacity} < 0
 		{
 			EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo]:MakeActive
-			Client:Wait[5000]
+			Client:Wait[500]
 			return FALSE
 		}
 
@@ -2429,7 +2928,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					if (!${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay](exists)} || ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay].Capacity} < 0)
 					{
 						EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay]:MakeActive
-						Client:Wait[5000]
+						Client:Wait[500]
 						return FALSE
 					}
 
@@ -2470,7 +2969,7 @@ objectdef obj_Mission inherits obj_StateQueue
 						if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
 						{
 							EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
-							Client:Wait[5000]
+							Client:Wait[500]
 							return FALSE
 						}
 
@@ -2478,7 +2977,7 @@ objectdef obj_Mission inherits obj_StateQueue
 						{
 
 							EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
-							Client:Wait[5000]
+							Client:Wait[500]
 							return FALSE
 						}
 
@@ -2490,7 +2989,7 @@ objectdef obj_Mission inherits obj_StateQueue
 						if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 						{
 							EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-							Client:Wait[5000]
+							Client:Wait[500]
 							return FALSE
 						}
 
@@ -2508,14 +3007,14 @@ objectdef obj_Mission inherits obj_StateQueue
 			if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar](exists)}
 			{
 				EVEWindow[Inventory].ChildWindow[StationCorpHangars]:MakeActive
-				Client:Wait[5000]
+				Client:Wait[500]
 				return FALSE
 			}
 
 			if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
 			{
 				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
-				Client:Wait[5000]
+				Client:Wait[500]
 				return FALSE
 			}
 
@@ -2526,7 +3025,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 			{
 				EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-				Client:Wait[5000]
+				Client:Wait[500]
 				return FALSE
 			}
 
@@ -2593,7 +3092,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		if (!${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay](exists)} || ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay].Capacity} < 0)
 		{
 			EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay]:MakeActive
-			Client:Wait[5000]
+			Client:Wait[500]
 			return FALSE
 		}
 
@@ -2676,41 +3175,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 	}
 
-	member:bool RefreshBookmarks()
-	{
-		This:LogInfo["Refreshing bookmarks"]
-		EVE:RefreshBookmarks
-		return TRUE
-	}
-
-	member:bool SalvageCheck(bool refreshdone = FALSE)
-	{
-		variable index:bookmark Bookmarks
-		variable iterator BookmarkIterator
-		variable int totalBookmarks = 0
-
-		EVE:GetBookmarks[Bookmarks]
-		Bookmarks:GetIterator[BookmarkIterator]
-		if ${BookmarkIterator:First(exists)}
-			do
-			{
-				if ${BookmarkIterator.Value.Label.Find[${EVE.Agent[${currentAgentIndex}].Name}]}
-				{
-					totalBookmarks:Inc
-				}
-			}
-			while ${BookmarkIterator:Next(exists)}
-
-		EVE:RefreshBookmarks
-		if ${totalBookmarks} > 15
-		{
-			This:LogInfo["Salvage running behind, waiting 5 minutes"]
-			This:InsertState["RefreshBookmarks", 300000]
-		}
-
-		return TRUE
-	}
-
+	; Guess I'll keep this.
 	member:bool Traveling()
 	{
 		if ${Move.Traveling} || ${Me.ToEntity.Mode} == MOVE_WARPING
@@ -2769,7 +3234,17 @@ objectdef obj_Mission inherits obj_StateQueue
 
 		return TRUE
 	}
+	
+	; 93% sure this doesn't actually help anymore. I've never refreshed bookmarks and look where I am now
+	; rich, successful, spending a hundred hours screwing around with scripts for no good reason.
+	member:bool RefreshBookmarks()
+	{
+		This:LogInfo["Refreshing bookmarks"]
+		EVE:RefreshBookmarks
+		return TRUE
+	}
 
+	; This is vaguely useful, I guess. I'll hold onto it.
 	member:int InventoryItemQuantity(string itemName, string inventoryID, string subFolderName = "")
 	{
 		variable index:item items
@@ -2778,6 +3253,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		if !${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}](exists)} || ${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}].Capacity} < 0
 		{
 			echo must open inventory window before calling this function
+			; I really like how tehtsuo decided that if you did this wrong it should just crash the fuckin bot.
 			echo ${Math.Calc[1 / 0]}
 		}
 
@@ -2800,292 +3276,9 @@ objectdef obj_Mission inherits obj_StateQueue
 		return ${itemQuantity}
 	}
 
-	method ResetAgentPickingStatus()
-	{
-		CheckedAgent:Clear
-		validOfferAgentCandidateIndex:Set[0]
-		validOfferAgentCandidateDistance:Set[0]
-		noOfferAgentCandidateIndex:Set[0]
-		noOfferAgentCandidateDistance:Set[0]
-		invalidOfferAgentCandidateIndex:Set[0]
-		invalidOfferAgentCandidateDistance:Set[0]
-		invalidOfferAgentCandidateDeclineWaitTime:Set[0]
-	}
 
-	member:bool RequestMissionsFromAgentsInStation()
-	{
-		variable iterator agentIterator
-		variable index:agentmission missions
-		EVE:GetAgentMissions[missions]
-		variable iterator missionIterator
-		variable string missionName
-		variable string agentName
-		variable int agentIndex = 0
-		variable bool offered = FALSE
-
-		; Firstly get offer from all the specified agents in the same station.
-		if ${Me.InStation}
-		{
-			AgentList:GetIterator[agentIterator]
-			do
-			{
-				agentName:Set[${agentIterator.Value}]
-				; Somehow direct initialization does not work.
-				agentIndex:Set[${EVE.Agent[${agentName}].Index}]
-
-				if ${agentIndex} == 0
-				{
-					This:LogCritical["Failed to find agent index for ${agentName}."]
-					halt:Set[TRUE]
-					return TRUE
-				}
-
-				offered:Set[FALSE]
-
-				if ${Me.StationID} != ${EVE.Agent[${agentIndex}].StationID}
-				{
-					continue
-				}
-
-				missions:GetIterator[missionIterator]
-				if ${missionIterator:First(exists)}
-				{
-					do
-					{
-						if ${missionIterator.Value.AgentID} == ${EVE.Agent[${agentIndex}].ID}
-						{
-							offered:Set[TRUE]
-							break
-						}
-					}
-					while ${missionIterator:Next(exists)}
-				}
-
-				if !${offered}
-				{
-					currentAgentIndex:Set[${agentIndex}]
-					This:InsertState["RequestMissionsFromAgentsInStation"]
-					This:InsertState["InteractAgent", 1500, "OFFER"]
-					return TRUE
-				}
-			}
-			while ${agentIterator:Next(exists)}
-		}
-
-		currentAgentIndex:Set[0]
-		return TRUE
-	}
-
-	member:bool PickAgent()
-	{
-		; This method is called when:
-		; 1. Starting script.
-		; 2. Current active agent becomes unavailable(invalid offer and can't decline).
-		; 3. Finishes current mission.
-
-		; Assuming all the agents in the same station already have mission offer.
-
-		if !${AgentList.Used}
-		{
-			This:LogCritical["AgentList not set."]
-			halt:Set[TRUE]
-			return TRUE
-		}
-
-		variable iterator agentIterator
-		variable index:agentmission missions
-		EVE:GetAgentMissions[missions]
-		variable iterator missionIterator
-		variable string missionName
-		variable string agentName
-		variable int agentIndex = 0
-		variable bool offered = FALSE
-		variable int agentDistance = 0
-
-		AgentList:GetIterator[agentIterator]
-		do
-		{
-			agentName:Set[${agentIterator.Value}]
-			if ${CheckedAgent.Contains[${agentName}]}
-			{
-				; Avoid dead loop when opening journals of checked agent.
-				continue
-			}
-
-			agentIndex:Set[${EVE.Agent[${agentName}].Index}]
-			if ${agentIndex} == 0
-			{
-				This:LogCritical["Failed to find agent index for ${agentName}."]
-				halt:Set[TRUE]
-				return TRUE
-			}
-
-			; The distance seems to be the shortest path which can go throw low sec no matter the in game setting.
-			agentDistance:Set[${EVE.Station[${EVE.Agent[${agentIndex}].StationID}].SolarSystem.JumpsTo}]
-			if ${Me.InStation} && (${Me.StationID} == ${EVE.Agent[${agentIndex}].StationID})
-			{
-				agentDistance:Set[-1]
-			}
-
-			offered:Set[FALSE]
-			missions:GetIterator[missionIterator]
-			if ${missionIterator:First(exists)}
-			{
-				do
-				{
-					if ${missionIterator.Value.AgentID} == ${EVE.Agent[${agentIndex}].ID}
-					{
-						missionName:Set[${missionIterator.Value.Name.Trim}]
-						This:LogDebug["Found mission for agent ${agentName} \ao${missionName}."]
-
-						; accepted
-						if ${missionIterator.Value.State} == 2
-						{
-							This:LogInfo["Found ongoing mission for agent ${agentName}, skip picking agents."]
-							currentAgentIndex:Set[${agentIndex}]
-							This:ResetAgentPickingStatus
-							return TRUE
-						}
-
-						missionIterator.Value:GetDetails
-						if !${EVEWindow[ByCaption, Mission journal - ${agentName}](exists)}
-						{
-							if ${EVEWindow[ByCaption, Mission journal](exists)}
-							{
-								EVEWindow[ByCaption, Mission journal]:Close
-							}
-							missionIterator.Value:GetDetails
-							return FALSE
-						}
-
-						; Must ensure that ${EVEWindow[ByCaption, Mission journal - ${AgentName}].HTML.Escape} already returns full length
-    					; journal BEFORE using mission parser.
-						variable string missionJournalText = ${EVEWindow[ByCaption, Mission journal - ${agentName}].HTML.Escape}
-						if !${missionJournalText.Find["The following rewards will be yours if you complete this mission"]}
-						{
-							missionIterator.Value:GetDetails
-							return FALSE
-						}
-
-						MissionParser.AgentName:Set[${agentName}]
-
-						This:LogDebug["Found mission for ${agentName} ${missionName} ${missionJournalText.Length}."]
-						This:LogDebug["Mission journal ${missionJournalText}."]
-						This:LogDebug["Mission enemy and damage type: "${MissionParser.EnemyFactionName} - ${MissionParser.EnemyDamageToDeal}]
-						This:LogDebug["Mission aquire item: "${MissionParser.AquireItem}]
-						This:LogDebug["Mission deliver item: "${MissionParser.DeliverItem}]
-
-						offered:Set[TRUE]
-
-						if ${BlackListedMission.Contains[${missionName}]} || (${Config.DeclineLowSec} && ${MissionParser.IsLowSec}) || !${This.AllowFightFaction[${MissionParser.EnemyFactionName}]}
-						{
-							variable int agentDeclineWaitTime
-							agentDeclineWaitTime:Set[${Agents.SecondsTillDeclineable[${agentName}]}]
-
-							if ${invalidOfferAgentCandidateIndex} == 0 || \
-								(${invalidOfferAgentCandidateDeclineWaitTime} > ${agentDeclineWaitTime}) || \
-								((${invalidOfferAgentCandidateDeclineWaitTime} == ${agentDeclineWaitTime}) && (${invalidOfferAgentCandidateDistance} > ${agentDistance}))
-							{
-								invalidOfferAgentCandidateIndex:Set[${agentIndex}]
-								invalidOfferAgentCandidateDeclineWaitTime:Set[${agentDeclineWaitTime}]
-								invalidOfferAgentCandidateDistance:Set[${agentDistance}]
-
-								This:LogInfo["Agent with invalid offer ${agentName} is ${agentDistance} jumps away and can decline again in ${invalidOfferAgentCandidateDeclineWaitTime} secs."]
-							}
-						}
-						else
-						{
-							if ${validOfferAgentCandidateIndex} == 0 || ${validOfferAgentCandidateDistance} > ${agentDistance}
-							{
-								validOfferAgentCandidateIndex:Set[${agentIndex}]
-								validOfferAgentCandidateDistance:Set[${agentDistance}]
-							}
-
-							This:LogInfo["Agent with valid offer ${agentName} is ${agentDistance} jumps away."]
-						}
-
-						; No multiple missions from the same agent.
-						break
-					}
-				}
-				while ${missionIterator:Next(exists)}
-			}
-
-			if !${offered}
-			{
-				This:LogInfo["Agent without offer ${agentName} is ${agentDistance} jumps away."]
-
-				if ${agentDistance} == -1
-				{
-					This:LogCritical["Mission", "	which is unexpected."]
-				}
-
-				if ${noOfferAgentCandidateIndex} == 0 || ${noOfferAgentCandidateDistance} > ${agentDistance}
-				{
-					noOfferAgentCandidateIndex:Set[${agentIndex}]
-					noOfferAgentCandidateDistance:Set[${agentDistance}]
-				}
-			}
-
-			CheckedAgent:Add[${agentName}]
-		}
-		while ${agentIterator:Next(exists)}
-
-
-		; Priority:
-		; 1. Agents within 2 jumps with invalid offers which can be declined now. - if exists, it's guaranteed to be the current candidate.
-		; (Previous steps guaranteed that agents in the same station have offers)
-		; 2. Agents with valid offers.
-		; 3. Agents without offer.
-		; 4. Agents with invalid offers which may needs waiting.
-		; For 1 to 3, pick the nearest agent.
-		; For 4, pick the agent with the earliest decline time and then the shortest distance.
-		if ${invalidOfferAgentCandidateIndex} != 0 && ${invalidOfferAgentCandidateDistance} < 3 && ${invalidOfferAgentCandidateDeclineWaitTime} == 0
-		{
-			currentAgentIndex:Set[${invalidOfferAgentCandidateIndex}]
-			This:LogInfo["Prioritizing declining mission from agent ${EVE.Agent[${currentAgentIndex}].Name} to refresh the decline timer earlier."]
-		}
-		elseif ${validOfferAgentCandidateIndex} != 0
-		{
-			currentAgentIndex:Set[${validOfferAgentCandidateIndex}]
-			This:LogInfo["Do offered mission for agent ${EVE.Agent[${currentAgentIndex}].Name}."]
-		}
-		elseif ${noOfferAgentCandidateIndex} != 0
-		{
-			currentAgentIndex:Set[${noOfferAgentCandidateIndex}]
-			This:LogInfo["Request mission from agent ${EVE.Agent[${currentAgentIndex}].Name}."]
-		}
-		elseif ${invalidOfferAgentCandidateIndex} != 0
-		{
-			currentAgentIndex:Set[${invalidOfferAgentCandidateIndex}]
-			if ${invalidOfferAgentCandidateDeclineWaitTime} > 0
-			{
-				; Schedule waiting AFTER travelling to the agent when necessary.
-				variable time waitUntil
-				waitUntil:Set[${Agents.NextDeclineableTime[${EVE.Agent[${currentAgentIndex}].Name}]}]
-				This:LogInfo["Moving to agent ${EVE.Agent[${currentAgentIndex}].Name} and then wait until ${waitUntil.Date} ${waitUntil.Time24}"]
-				This:InsertState["WaitTill", 1000, ${Agents.NextDeclineableTime[${EVE.Agent[${currentAgentIndex}].Name}]}]
-
-				if ${invalidOfferAgentCandidateDistance} > -1
-				{
-					Move:Agent[${currentAgentIndex}]
-					This:InsertState["Traveling"]
-				}
-			}
-		}
-		else
-		{
-			This:LogCritical["Failed to pick agent."]
-			halt:Set[TRUE]
-			This:ResetAgentPickingStatus
-			return TRUE
-		}
-
-		This:LogInfo["Picked agent ${EVE.Agent[${currentAgentIndex}].Name}."]
-		This:ResetAgentPickingStatus
-		return TRUE
-	}
-
+	; I have absolutely no idea what this is or does. I'm 98% sure it is never called by anything, so let's leave it here
+	; to mystify future code historians.
 	method DeepCopyIndex(string From, string To)
 	{
 		variable iterator i
@@ -3100,6 +3293,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 	}
 
+	; What a weird thing to make. I presume we wanted to keep drones from attacking something that gives off
+	; damage on destruction. No other idea why this exists. Let's leave it as a tribute to hubris.
 	member:bool IsStructure(int64 targetID)
 	{
 		variable string targetClass
@@ -3112,63 +3307,106 @@ objectdef obj_Mission inherits obj_StateQueue
 		return TRUE
 	}
 
-	member:bool AllowFightFaction(string factionName)
-	{
-		variable iterator factionIterator
-		DontFightFaction:GetIterator[factionIterator]
-		if ${factionIterator:First(exists)}
-		{
-			do
-			{
-				if ${factionName.Lower.Find[${factionIterator.Value.Lower}]}
-				{
-					return FALSE
-				}
-			}
-			while ${factionIterator:Next(exists)}
-		}
-
-		return TRUE
-	}
-
 	member:bool HaltBot()
 	{
 		This:Stop
 		return TRUE
 	}
-
-	method ManageThrusterOverload(int64 targetID)
+	;;;;;;;;;;;;;;;;;;;;; Above this point is stuff I just grabbed from the original Missioneer ;;;;;;;;;;;;;;;;;
+	; This is how we ensure Write Ahead Logging.
+	method EnsureWAL()
 	{
-		if !${Entity[${targetID}](exists)}
-		{
-			; keep current status.
-			return
-		}
+		; This will be used to Set WAL. WAL is persistent but I don't know how to read our current journal state sooo.
+		CharacterSQLDB:ExecDML["PRAGMA journal_mode=WAL;"]
+		SharedSQLDB:ExecDML["PRAGMA journal_mode=WAL;"]
+		WalAssurance:Set[TRUE]
+	}
+	; Stealing this function from evebot and making it into a method instead.
+	method ActivateShip(string name)
+	{
+		variable index:item hsIndex
+		variable iterator hsIterator
+		variable string shipName
 
-		if !${Config.OverloadThrust} || \
-			${Ship.ModuleList_Siege.IsActiveOn[TARGET_ANY]} || \
-			${Ship.RegisteredModule.Element[${Ship.ModuleList_Siege.ModuleID.Get[1]}].IsActive} || \
-			(${Entity[${targetID}].Distance} <= 10000)
+		if ${Me.InStation}
 		{
-			; turn off
-			; This:LogDebug["turn off ${Ship.ModuleList_Siege.IsActiveOn[TARGET_ANY]} ${Ship.RegisteredModule.Element[${Ship.ModuleList_Siege.ModuleID.Get[1]}].IsActive} ${Entity[${targetID}].Name} ${Entity[${targetID}].Distance}"]
-			Ship.ModuleList_AB_MWD:SetOverloadHPThreshold[100]
-		}
+			Me:GetHangarShips[hsIndex]
+			hsIndex:GetIterator[hsIterator]
 
-		if ${Config.OverloadThrust} && \
-			${Entity[${targetID}].Distance} > 10000 && \
-			!${Ship.ModuleList_Siege.IsActiveOn[TARGET_ANY]} && \
-			!${Ship.RegisteredModule.Element[${Ship.ModuleList_Siege.ModuleID.Get[1]}].IsActive}
-		{
-			; turn on
-			; This:LogDebug["turn on ${Entity[${targetID}].Name} ${Entity[${targetID}].Distance}"]
-			Ship.ModuleList_AB_MWD:SetOverloadHPThreshold[50]
+			shipName:Set[${MyShip.Name}]
+			if ${shipName.NotEqual[${name}]} && ${hsIterator:First(exists)}
+			{
+				do
+				{
+					if ${hsIterator.Value.Name.Equal[${name}]}
+					{
+						This:LogInfo["Switching to ship named ${hsIterator.Value.Name}."]
+						hsIterator.Value:MakeActive
+						break
+					}
+				}
+				while ${hsIterator:Next(exists)}
+				if ${shipName.NotEqual[${name}]}
+				{
+					This:LogInfo["We were unable to change to the correct ship. Failure state."]
+					FailedToChangeShip:Set[TRUE]
+				}
+			}
+			else
+			{
+				This:LogInfo["We seem to not have... Any ships? I don't think this can happen tbh"]
+				FailedToChangeShip:Set[TRUE]
+			}
 		}
+	}
+	; Need a State where we can refresh the contents of our inventory windows, because what the hell.
+	; This will just open our station inventory, and then our largest bay as determined by some other crap I threw together somewhere else
+	; might also refresh our specific corp hangar folder at some point. Fine I'll just do that now.
+	; ADDENDUM - Have to make one of these fucking states for each of the three, ugh.
+	member:bool RefreshCorpHangarState()
+	{
+		if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+		{
+			if ${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)} && !${CorpHangarRefreshed}
+			{
+				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
+				CorpHangarRefreshed:Set[TRUE]
+				return FALSE
+			}
+		}
+		CorpHangarRefreshed:Set[FALSE]
+		This:LogInfo["Corp Hangar Refreshed"]
+		return TRUE
+	}
+	member:bool RefreshLargestBayState()
+	{
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"](exists)} && !${LargestBayRefreshed}
+		{
+			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"]:MakeActive			
+			LargestBayRefreshed:Set[TRUE]
+			return FALSE
+		}
+		LargestBayRefreshed:Set[FALSE]
+		This:LogInfo["${HaulerLargestBayType} Refreshed"]
+		return TRUE
+	}
+	member:bool RefreshStationItemsState()
+	{
+		if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)} && !${StationHangarRefreshed}
+		{
+			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
+			StationHangarRefreshed:Set[TRUE]
+			return FALSE
+		}
+		StationHangarRefreshed:Set[FALSE]
+		This:LogInfo["Station Items Refreshed"]
+		return TRUE
 	}
 }
 
 
-objectdef obj_MissionUI inherits obj_State
+; 	Once again, no clue what purpose this serves. Might be load bearing I guess. Let's leave it be shall we.
+objectdef obj_MissionUI2 inherits obj_State
 {
 	method Initialize()
 	{
