@@ -518,7 +518,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		;if ${DatabasificationComplete}
 		;{
 			This:LogInfo["Begin Mission Choice"]
-			This:QueueState["ChooseMission", 5000]
+			This:QueueState["CurateMissions", 5000]
 			return TRUE		
 		;}
 		
@@ -1231,7 +1231,8 @@ objectdef obj_Mission inherits obj_StateQueue
 				if ${CourierMissionStationItems} == 0 && ${CourierMissionShipItems} == 0
 				{
 					; The items have phased out of existence.
-					
+					This:QueueState["CheckForWork",2000]
+					return TRUE
 				}				
 			}
 			else

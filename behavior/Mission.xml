@@ -130,10 +130,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetHalt[${This.Checked}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["This will halt the bot after it completes the current mission."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This will halt the bot after it completes the current mission."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Checkbox>
 
@@ -153,10 +153,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetDoCombat[${This.Checked}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["If set, we will do combat missions. This setting does not change whether we do combat storylines in any way. That is another setting. Remember to set the name of your combat ship."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["If set, we will do combat missions. This setting does not change whether we do combat storylines in any way. That is another setting. Remember to set the name of your combat ship."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Checkbox>
 					
@@ -176,10 +176,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetDoCourier[${This.Checked}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["If set, we will do courier missions. If storyline is set, we will do those too. Make sure you have the right ships available and configured."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["If set, we will do courier missions. If storyline is set, we will do those too. Make sure you have the right ships available and configured."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Checkbox>
 					
@@ -199,10 +199,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetDoStoryline[${This.Checked}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["If set, we want to do Storyline missions. By default this causes you to do trade missions. If you have Courier missions set too it will do Storyline Couriers. MAKE SURE YOU HAVE THE PROPER ORE IN LARGE AMOUNTS IN THE STATION WHERE YOUR REGULAR MISSION AGENT IS."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["If set, we want to do Storyline missions. By default this causes you to do trade missions. If you have Courier missions set too it will do Storyline Couriers. MAKE SURE YOU HAVE THE PROPER ORE IN LARGE AMOUNTS IN THE STATION WHERE YOUR REGULAR MISSION AGENT IS."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Checkbox>
 
@@ -222,10 +222,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetDoStorylineCombat[${This.Checked}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["If set, we want to do STORYLINE missions of the COMBAT variety. Don't forget to configure them in your mission data file."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["If set, we want to do STORYLINE missions of the COMBAT variety. Don't forget to configure them in your mission data file."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Checkbox>
 
@@ -245,10 +245,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetRepeatedlyDecline[${This.Checked}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["If set, we will repeatedly decline missions from our primary COMBAT agent regardless of standings loss. This is fine, just set your mission list carefully."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["If set, we will repeatedly decline missions from our primary COMBAT agent regardless of standings loss. This is fine, just set your mission list carefully."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Checkbox>
 					
@@ -268,10 +268,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetDeclineLowSec[${This.Checked}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["If this is checked, the bot will decline missions with low-sec warning."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["If this is checked, the bot will decline missions with low-sec warning."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Checkbox>
 					
@@ -291,10 +291,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetIgnoreNPCSentries[${This.Checked}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["The bot will ignore NPC sentries unless they web or neut you."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The bot will ignore NPC sentries unless they web or neut you."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Checkbox>
 					
@@ -322,10 +322,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetCombatShipName[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["The literal name of your Combat Ship. Please don't leave this blank. Also, I have no idea how many things will go wrong if your ship's name has symbols in it."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The literal name of your Combat Ship. Please don't leave this blank. Also, I have no idea how many things will go wrong if your ship's name has symbols in it."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>
 
@@ -353,10 +353,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetCourierShipName[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["The literal name of your Hauler. The less it can carry the worse the storyline mission with 80k in boxes will be. Deep Space Transports are good, please don't use an Orca."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The literal name of your Hauler. The less it can carry the worse the storyline mission with 80k in boxes will be. Deep Space Transports are good, please don't use an Orca."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>
 					
@@ -384,10 +384,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetFastCourierShipName[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["The literal name of your Fast Courier Ship. This means a shuttle, or interceptor, or fast frigate. It will basically only be used for transaction data delivery and a couple middle of combat chain missions."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The literal name of your Fast Courier Ship. This means a shuttle, or interceptor, or fast frigate. It will basically only be used for transaction data delivery and a couple middle of combat chain missions."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>
 					
@@ -415,10 +415,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetTradeShipName[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["The literal name of your Trade Mission Ship, I suggest a Miasmos. Deep Space Transports, Prospects/Endurances (but not ventures) are also acceptable."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The literal name of your Trade Mission Ship, I suggest a Miasmos. Deep Space Transports, Prospects/Endurances (but not ventures) are also acceptable."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>
 					
@@ -446,10 +446,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetSalvagePrefix[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["The bot will put this at the front of corporate salvage bookmarks it creates.  If it is empty the bot will not create salvage bookmarks.  After this text the bot will add the name of the agent you are running missions for and the current eve time.  Consider putting something unique here to make sure bookmarks will not conflict with each other if you are running multiple mission runners."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The bot will put this at the front of corporate salvage bookmarks it creates.  If it is empty the bot will not create salvage bookmarks.  After this text the bot will add the name of the agent you are running missions for and the current eve time.  Consider putting something unique here to make sure bookmarks will not conflict with each other if you are running multiple mission runners."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>
 					
@@ -477,10 +477,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetSalvageBMFolderName[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["The literal name of your Shared Bookmark Folder. Don't screw this up."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The literal name of your Shared Bookmark Folder. Don't screw this up."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>
 					
@@ -519,10 +519,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetMissionFile[${This.SelectedItem.Text}]
 						</OnSelect>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText["This configures the mission configuration file the bot will use to understand how to run missions.  If you make changes to the file externally, you must stop the bot (or set it to halt after the next mission) and start it again to reload the file."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures the mission configuration file the bot will use to understand how to run missions.  If you make changes to the file externally, you must stop the bot (or set it to halt after the next mission) and start it again to reload the file."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@MainMissionTab@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</combobox>					
 					<Text name='InformationFrameTitle'>
@@ -579,10 +579,10 @@
 							Ammo Supply Configuration
 						</Text>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Text>
 					<Text name='AmmoSupplyValue'>
@@ -595,10 +595,10 @@
 							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
 						</OnLoad>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Text>
 					<button	Name='AmmoInc1'>
@@ -614,10 +614,10 @@
 							UIElement[AmmoSupplyValue@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</button>
 					<button	Name='AmmoInc10'>
@@ -633,10 +633,10 @@
 							UIElement[AmmoSupplyValue@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</button>
 					<button	Name='AmmoInc100'>
@@ -652,10 +652,10 @@
 							UIElement[AmmoSupplyValue@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</button>
 					<button	Name='AmmoDec100'>
@@ -671,10 +671,10 @@
 							UIElement[AmmoSupplyValue@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</button>
 					<button	Name='AmmoDec10'>
@@ -690,10 +690,10 @@
 							UIElement[AmmoSupplyValue@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</button>
 					<button	Name='AmmoDec1'>
@@ -709,10 +709,10 @@
 							UIElement[AmmoSupplyValue@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</button>
 					
@@ -740,10 +740,10 @@
 							}
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["Check this if you'll be using drones to shoot small shit. This tells the bot to make sure to top off drones before running a mission."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["Check this if you'll be using drones to shoot small shit. This tells the bot to make sure to top off drones before running a mission."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Checkbox>
 
@@ -796,10 +796,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetDroneType[${This.SelectedItem.Text}]
 						</OnSelect>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures the type of drone the bot will top off before a mission."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures the type of drone the bot will top off before a mission."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</combobox>
 						
@@ -859,10 +859,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetKineticAmmo[${This.SelectedItem.Text}]
 						</OnSelect>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures the ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures the ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</combobox>
 					<Text name='ThermalAmmoLabel'>
@@ -921,10 +921,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetThermalAmmo[${This.SelectedItem.Text}]
 						</OnSelect>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures the ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures the ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</combobox>
 					<Text name='EMAmmoLabel'>
@@ -983,10 +983,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetEMAmmo[${This.SelectedItem.Text}]
 						</OnSelect>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures the ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures the ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</combobox>
 					<Text name='ExplosiveAmmoLabel'>
@@ -1045,10 +1045,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetExplosiveAmmo[${This.SelectedItem.Text}]
 						</OnSelect>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures the ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures the ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</combobox>
 
@@ -1090,10 +1090,10 @@
 							}
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["If you are flying a ship that needs to swap between a short-range, higher damage ammo and a long-range, lower damage ammo, select this option.  Make sure you have enough cargo space to fit two times the ammo, AND any mission items you need to loot!"]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["If you are flying a ship that needs to swap between a short-range, higher damage ammo and a long-range, lower damage ammo, select this option.  Make sure you have enough cargo space to fit two times the ammo, AND any mission items you need to loot!"]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Checkbox>
 
@@ -1163,10 +1163,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetKineticAmmoSecondary[${This.SelectedItem.Text}]
 						</OnSelect>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures the long range ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures the long range ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</combobox>
 					<Text name='ThermalAmmoLabel2'>
@@ -1235,10 +1235,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetThermalAmmoSecondary[${This.SelectedItem.Text}]
 						</OnSelect>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures the long range ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures the long range ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</combobox>
 					<Text name='EMAmmoLabel2'>
@@ -1307,10 +1307,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetEMAmmoSecondary[${This.SelectedItem.Text}]
 						</OnSelect>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures the long range ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures the long range ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</combobox>
 					<Text name='ExplosiveAmmoLabel2'>
@@ -1379,10 +1379,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetExplosiveAmmoSecondary[${This.SelectedItem.Text}]
 						</OnSelect>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText["This configures the long range ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures the long range ammo the bot will load and shoot when a mission is marked to have enemies weak to this damage type.  Note that the list is populated from the current ship's cargo hold and (if docked) your item hangar.  If you are using a Corporate Hangar, move some ammo to your item hangar while you configure the bot."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</combobox>	
 	
@@ -1447,10 +1447,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetSidekickMode[${This.Checked}]
 						</OnLeftClick>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Storage/Misc@MissionTabs@Tehbot_CombatMissions]:SetText["If checked, and if I implement it, this bot will follow the fleet member named in the Primary Name box. They must be on the same local machine. Sidekick will just follow them through missions, assisting."]
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["If checked, and if I implement it, this bot will follow the fleet member named in the Primary Name box. They must be on the same local machine. Sidekick will just follow them through missions, assisting."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Storage/Misc@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Checkbox>					
 
@@ -1467,7 +1467,7 @@
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
 						<BorderColor>FFFFFFFF</BorderColor>
-						<X>40%</X>
+						<X>50%</X>
 						<Y>4%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
@@ -1478,10 +1478,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetPrimaryName[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Storage/Misc@MissionTabs@Tehbot_CombatMissions]:SetText["This is the name of the pilot the Sidekick will be assisting. They should be in fleet, and they MUST be on the same machine. If I get unlazy I will make the Fleet part happen automatically. Also, I need to implement the whole thing in the first place."]
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This is the name of the pilot the Sidekick will be assisting. They should be in fleet, and they MUST be on the same machine. If I get unlazy I will make the Fleet part happen automatically. Also, I need to implement the whole thing in the first place."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Storage/Misc@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>
 					
@@ -1524,10 +1524,10 @@
 							}
 						</OnSelect>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Storage/Misc@MissionTabs@Tehbot_CombatMissions]:SetText["Use this field to configure where you would like Tehbot to unload salvage loot."]
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["Use this field to configure where you would like Tehbot to unload salvage loot."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Storage/Misc@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</listbox>
 
@@ -1584,10 +1584,10 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetMunitionStorageFolder[${This.SelectedItem.Text}]
 						</OnSelect>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Storage/Misc@MissionTabs@Tehbot_CombatMissions]:SetText["This field is used to further configure your dropoff type for types that have additional options, like Corporate Hangars."]
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This field is used to further configure your dropoff type for types that have additional options, like Corporate Hangars."]
 						</OnMouseEnter>
 						<OnMouseExit>
-							UIElement[Information@InformationFrame@Tehbot_CombatMissions_Frame@Storage/Misc@MissionTabs@Tehbot_CombatMissions]:SetText[""]
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</listbox>
 					
