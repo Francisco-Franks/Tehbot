@@ -622,7 +622,11 @@ objectdef obj_Mission inherits obj_StateQueue
 	{
 		if ${AgentDeclineQueue.Peek}
 		{
-			EVE.Agent[id,${AgentDeclineQueue.Peek}]:StartConversation
+			if !${EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}](exists)}
+			{
+				EVE.Agent[id,${AgentDeclineQueue.Peek}]:StartConversation
+				return FALSE
+			}
 			if ${EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}].Button["View Mission"](exists)}
 			{
 				EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}].Button["View Mission"]:Press
@@ -631,13 +635,14 @@ objectdef obj_Mission inherits obj_StateQueue
 			if ${EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}].Button["Decline"](exists)}
 			{
 				EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}].Button["Decline"]:Press
-				echo DEBUG - Decline Deletion
-				CharacterSQLDB:ExecDMLTransaction["Delete FROM MissionJournal WHERE AgentID=${AgentDeclineQueue.Peek}"]
-				EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}]:Close
-				This:LogInfo["Declining mission from ${AgentDeclineQueue.Peek}"]
-				AgentDeclineQueue:Dequeue
 				return FALSE
-			}				
+			}
+			echo DEBUG - Decline Deletion
+			CharacterSQLDB:ExecDML["Delete FROM MissionJournal WHERE AgentID=${AgentDeclineQueue.Peek};"]
+			EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}]:Close
+			This:LogInfo["Declining mission from ${AgentDeclineQueue.Peek}"]
+			AgentDeclineQueue:Dequeue
+			return FALSE				
 		}
 		else
 		{
@@ -932,7 +937,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			; This calls a state in Move, we need to call Traveling or we will start doing shit while en route. That's no good.
 			Move:Agent[${CurrentAgentIndex}]
-			This:InsertState["Go2Agent",3000]
+			This:InsertState["InitialAgentPreInteraction",4000]
 			This:InsertState["Traveling"]
 			return TRUE
 		}
@@ -940,7 +945,13 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			; Already there I guess. May as well open that Agent Conversation window and commence Databasification.
 			This:LogInfo["At Agent Station"]
+			This:QueueState["InitialAgentPreInteraction",4000]
+			return TRUE
 		}
+	}
+	; This exists to bridge the gap between Go2Agent and InitialAgentInteraction
+	member:bool InitialAgentPreInteraction()
+	{
 		GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE AgentID=${CurrentAgentID};"]}]
 		DEBUG - EIGHTH QUERY
 		if ${GetDBJournalInfo.NumRows} < 1
