@@ -1382,8 +1382,8 @@ objectdef obj_Mission inherits obj_StateQueue
 			}
 		}
 		This:InsertState["CourierMission",5000]
-		;This:InsertState["CourierMissionCheckStation", 2000]
-		;This:InsertState["RefreshStationItemsState", 2000]
+		This:InsertState["CourierMissionCheckStation", 2000]
+		This:InsertState["RefreshStationItemsState", 2000]
 		This:InsertState["CourierMissionCheckShip", 2000]
 		This:InsertState["RefreshLargestBayState", 2000]
 		return TRUE
@@ -1422,8 +1422,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		This:InsertState["CourierMission",5000]
 		This:InsertState["CourierMissionCheckStation", 2000]
 		This:InsertState["RefreshStationItemsState", 2000]
-		;This:InsertState["CourierMissionCheckShip", 2000]
-		;This:InsertState["RefreshLargestBayState", 2000]
+		This:InsertState["CourierMissionCheckShip", 2000]
+		This:InsertState["RefreshLargestBayState", 2000]
 		return TRUE
 	
 	}
