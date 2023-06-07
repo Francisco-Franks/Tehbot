@@ -495,10 +495,10 @@ objectdef obj_Mission inherits obj_StateQueue
 				GetMissionLogCourier:Finalize
 				echo DEBUG - GOING TO MID RUN RECOVERY - NONCOMBAT
 				This:MidRunRecovery["Noncombat"]
-				This:InsertState["CourierMission", 3000]
 				This:InsertState["CourierMissionCheckStation", 2000]
 				This:InsertState["CourierMissionCheckShip", 2000]
 				This:InsertState["GetHaulerDetails",2000]
+				This:QueueState["CourierMission", 3000]
 				return TRUE
 			}
 			; Found nothing currently being "run". On to databasification.
@@ -518,7 +518,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		;if ${DatabasificationComplete}
 		;{
 			This:LogInfo["Begin Mission Choice"]
-			This:QueueState["CurateMissions", 5000]
+			This:QueueState["ChooseMission", 5000]
 			return TRUE		
 		;}
 		
@@ -610,10 +610,10 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 		if ${AgentDeclineQueue.Peek}
 		{
-			This:QueueState["DeclineMissions", 6000]
+			This:InsertState["DeclineMissions", 6000]
 			return TRUE
 		}
-		This:QueueState["ChooseMission", 5000]
+		This:InsertState["ChooseMission", 5000]
 		return TRUE
 	}
 	; This state is needed so we can reliably Decline missions that don't meet our criteria.
@@ -811,6 +811,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			; We aren't at our Primary Agent Station. Move there.
 			Move:Agent[${EVE.Agent[${CurrentAgentIndex}].Index}]
 			This:InsertState["Traveling"]
+			return TRUE
 		}
 		if ${Me.StationID} == ${EVE.Agent[${CurrentAgentIndex}].StationID}
 		{
@@ -956,8 +957,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		DEBUG - EIGHTH QUERY
 		if ${GetDBJournalInfo.NumRows} < 1
 		{
-			This:LogInfo["Begin Databasification"]
-
 			if !${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
 			{
 				GetDBJournalInfo:Finalize
@@ -969,9 +968,9 @@ objectdef obj_Mission inherits obj_StateQueue
 				GetDBJournalInfo:Finalize
 				EVEWindow[AgentConversation_${CurrentAgentID}].Button["Request Mission"]:Press
 				return FALSE
-			}			
+			}	
+			This:LogInfo["Begin Databasification"]		
 			This:InsertState["Databasification",5000]
-			This:QueueState["CurateMissions",5000]
 			return TRUE
 		}
 		else
@@ -1033,7 +1032,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} || ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
 		{
 			; Gotta do this again, we might have swapped ships going from a trade mission to a courier.
-			This:InsertState["GetHaulerDetails",5000]
+			;This:InsertState["GetHaulerDetails",5000]
 			; The following method is basically just to initialize our Current Run stats.
 			; First argument on this will be the capacity of our largest bay, second argument will be the total volume of mission
 			This:SetCurrentRunDetails[${HaulerLargestBayCapacity},${CurrentAgentVolumeTotal}]
@@ -1065,7 +1064,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
 		{
 			; Don't ask, no idea why I did this.
-			This:InsertState["GetHaulerDetails",5000]
+			;This:InsertState["GetHaulerDetails",5000]
 			; Do know why I did this.
 			This:SetCurrentRunDetails[${HaulerLargestBayCapacity},${CurrentAgentVolumeTotal}]
 			This:MissionLogCombatUpsert[${CurrentRunNumber},${Time.Timestamp},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${CurrentRunFinalTimestamp},FALSE]
@@ -1243,7 +1242,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		else
 		{
 			; We are in space, check our ship to see if we have the items or not.
-			This:InsertState["CourierMissionCheckShip",2500]
 			if ${CourierMissionShipItems} > 0
 			{
 				; We have the goods, we must be headed to our dropoff station
@@ -1252,7 +1250,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				This:InsertState["CourierMissionTravel",5000]
 				return TRUE
 			}
-			if ${CourierMissionShipItems} == 0
+			elseif ${CourierMissionShipItems} == 0
 			{
 				; We do not have the goods, we must be headed to the pickup.
 				This:LogInfo["Courier Travel - Pickup - ${CurrentAgentPickup}"]
@@ -1260,6 +1258,9 @@ objectdef obj_Mission inherits obj_StateQueue
 				This:InsertState["CourierMissionTravel",5000]
 				return TRUE
 			}
+			This:InsertState["CourierMission",5000]
+			This:InsertState["CourierMissionCheckShip",2500]
+			return TRUE
 		}
 	}
 	; This state will be for checking the station inventory.
@@ -1544,13 +1545,13 @@ objectdef obj_Mission inherits obj_StateQueue
 		if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"](exists)}
 		{
 			EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"]:Press
-					This:InsertState["Idle", 2000]
+			This:InsertState["Idle", 2000]
 			return FALSE
 		}
 		if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["Complete Mission"](exists)}
 		{
 			EVEWindow[AgentConversation_${CurrentAgentID}].Button["Complete Mission"]:Press
-					This:InsertState["Idle", 2000]
+			This:InsertState["Idle", 2000]
 			return FALSE
 		}
 		; Storing our wallet just after we hit the complete button.
@@ -1592,6 +1593,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		CharacterSQLDB:ExecDML["DELETE From MissionJournal WHERE AgentID=${CurrentAgentID};"]
 		EVEWindow[AgentConversation_${CurrentAgentID}]:Close
 		DatabasificationComplete:Set[FALSE]
+		CheckedMissionLogs:Set[FALSE]
 		This:QueueState["CheckForWork",4000]
 		return TRUE
 	}
@@ -1682,7 +1684,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				MissionName:Set[${missionIterator.Value.Name}]
 				MissionType:Set[${missionIterator.Value.Type}]
 				MissionStatus:Set[${missionIterator.Value.State}]
-				; Data file`
+				; Data file
 				DestroyTarget:Set[""]
 				if ${TargetToDestroy.Element[${MissionName}](exists)}
 				{
@@ -1732,7 +1734,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			DatabasificationComplete:Set[TRUE]
 		}
 		DatabasificationComplete:Set[TRUE]
-		This:QueueState["CheckForWork",5000]
+		This:QueueState["ChooseMission",5000]
 		return TRUE
 
 	}

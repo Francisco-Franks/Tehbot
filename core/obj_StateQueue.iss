@@ -66,6 +66,7 @@ objectdef obj_StateQueue inherits obj_Logger
 					if ${ReportIdle}
 					{
 						This:LogInfo["${This(type)} State Change: ${States.Peek.Name}", TRUE]
+						This:LogInfo["${States.Used} States Currently Queued? Running?", TRUE]
 					}
 					States:Dequeue
 				}
@@ -99,6 +100,7 @@ objectdef obj_StateQueue inherits obj_Logger
 		{
 			do
 			{
+				This:LogInfo["${StateIterator.Value.Name} ${StateIterator.Value.Args.Escape}", TRUE]
 				tempStates:Queue[${StateIterator.Value.Name},${StateIterator.Value.Frequency},"${StateIterator.Value.Args.Escape}"]
 			}
 			while ${StateIterator:Next(exists)}
