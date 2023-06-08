@@ -707,6 +707,10 @@ objectdef obj_Mission inherits obj_StateQueue
 			CurrentAgentIndex:Set[${EVE.Agent[id,${CurrentAgentID}].Index}]
 			GetDBJournalInfo:Finalize
 			This:QueueState["MissionPrePrep", 5000]
+			if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+				This:InsertState["RefreshCorpHangarState",3000]
+			if ${Config.MunitionStorage.Equal[Personal Hangar]}
+				This:InsertState["RefreshStationItemsState",3000]
 			return TRUE
 		}
 		GetDBJournalInfo:Finalize
@@ -764,6 +768,10 @@ objectdef obj_Mission inherits obj_StateQueue
 			echo DEBUG - ${CurrentAgentVolumeTotal} CAVT
 			GetDBJournalInfo:Finalize
 			This:QueueState["MissionPrePrep", 5000]
+			if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+				This:InsertState["RefreshCorpHangarState",3000]
+			if ${Config.MunitionStorage.Equal[Personal Hangar]}
+				This:InsertState["RefreshStationItemsState",3000]
 			return TRUE
 		}
 		else
@@ -773,6 +781,10 @@ objectdef obj_Mission inherits obj_StateQueue
 			CurrentAgentLocation:Set[${EVE.Agent[${AgentList.Get[1]}].Station}]
 			CurrentAgentIndex:Set[${EVE.Agent[${AgentList.Get[1]}].Index}]
 			This:QueueState["MissionPrePrep", 5000]
+			if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+				This:InsertState["RefreshCorpHangarState",3000]
+			if ${Config.MunitionStorage.Equal[Personal Hangar]}
+				This:InsertState["RefreshStationItemsState",3000]
 			This:InsertState["GetHaulerDetails",2000]
 			return TRUE
 		}
@@ -838,12 +850,10 @@ objectdef obj_Mission inherits obj_StateQueue
 				This:LogInfo["Checking for ${CurrentAgentItem} for Trade Mission"]
 				if ${Config.MunitionStorage.Equal[Corporation Hangar]}
 				{
-					EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
 					InStock:Dec[${This.InventoryItemQuantity[${CurrentAgentItem}, "StationCorpHangar", "${Config.MunitionStorageFolder}"]}]
 				}
 				if ${Config.MunitionStorage.Equal[Personal Hangar]}
 				{
-					EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
 					InStock:Dec[${This.InventoryItemQuantity[${CurrentAgentItem}, ${Me.Station.ID}, "StationItems"]}]
 				}
 				; This will reduce the number we need by the number we have, supposedly. Jury is still out on if my tampering will break it.
