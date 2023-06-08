@@ -3432,7 +3432,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		if ${Config.MunitionStorage.Equal[Corporation Hangar]}
 		{
 
-			if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, ${Config.MunitionStorageFolder}](exists)}
+			if ${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
 			{
 				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[itemIndex]
 				itemIndex:GetIterator[itemIterator]
