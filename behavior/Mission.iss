@@ -3276,12 +3276,12 @@ objectdef obj_Mission inherits obj_StateQueue
 		variable index:item items
 		variable iterator itemIterator
 
-		if !${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}](exists)} || ${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}].Capacity} < 0
-		{
-			echo must open inventory window before calling this function
-			; I really like how tehtsuo decided that if you did this wrong it should just crash the fuckin bot.
-			echo ${Math.Calc[1 / 0]}
-		}
+		;if !${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}](exists)} || ${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}].Capacity} < 0
+		;{
+		;	echo must open inventory window before calling this function
+		;	; I really like how tehtsuo decided that if you did this wrong it should just crash the fuckin bot.
+		;	echo ${Math.Calc[1 / 0]}
+		;}
 
 		EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}]:GetItems[items]
 		items:GetIterator[itemIterator]
