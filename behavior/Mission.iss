@@ -837,9 +837,15 @@ objectdef obj_Mission inherits obj_StateQueue
 				TradeItemNeeded:Set[${CurrentAgentItemUnits}]
 				This:LogInfo["Checking for ${CurrentAgentItem} for Trade Mission"]
 				if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+				{
+					EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
 					InStock:Dec[${This.InventoryItemQuantity[${CurrentAgentItem}, "StationCorpHangar", "${Config.MunitionStorageFolder}"]}]
+				}
 				if ${Config.MunitionStorage.Equal[Personal Hangar]}
+				{
+					EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
 					InStock:Dec[${This.InventoryItemQuantity[${CurrentAgentItem}, ${Me.Station.ID}, "StationItems"]}]
+				}
 				; This will reduce the number we need by the number we have, supposedly. Jury is still out on if my tampering will break it.
 				if ${InStock} > 0
 				{
