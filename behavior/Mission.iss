@@ -848,14 +848,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				InStock:Inc[${CurrentAgentItemUnits}]
 				TradeItemNeeded:Set[${CurrentAgentItemUnits}]
 				This:LogInfo["Checking for ${CurrentAgentItem} for Trade Mission"]
-				if ${Config.MunitionStorage.Equal[Corporation Hangar]}
-				{
-					InStock:Dec[${This.InventoryItemQuantity[${CurrentAgentItem}, "StationCorpHangar", "${Config.MunitionStorageFolder}"]}]
-				}
-				if ${Config.MunitionStorage.Equal[Personal Hangar]}
-				{
-					InStock:Dec[${This.InventoryItemQuantity[${CurrentAgentItem}, ${Me.Station.ID}, "StationItems"]}]
-				}
+				InStock:Dec[${This.TradeItemInStock[${CurrentAgentItem}]}]
 				; This will reduce the number we need by the number we have, supposedly. Jury is still out on if my tampering will break it.
 				if ${InStock} > 0
 				{
@@ -3276,12 +3269,12 @@ objectdef obj_Mission inherits obj_StateQueue
 		variable index:item items
 		variable iterator itemIterator
 
-		;if !${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}](exists)} || ${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}].Capacity} < 0
-		;{
-		;	echo must open inventory window before calling this function
-		;	; I really like how tehtsuo decided that if you did this wrong it should just crash the fuckin bot.
-		;	echo ${Math.Calc[1 / 0]}
-		;}
+		if !${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}](exists)} || ${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}].Capacity} < 0
+		{
+			echo must open inventory window before calling this function
+			; I really like how tehtsuo decided that if you did this wrong it should just crash the fuckin bot.
+			echo ${Math.Calc[1 / 0]}
+		}
 
 		EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}]:GetItems[items]
 		items:GetIterator[itemIterator]
@@ -3427,6 +3420,58 @@ objectdef obj_Mission inherits obj_StateQueue
 		StationHangarRefreshed:Set[FALSE]
 		This:LogInfo["Station Items Refreshed"]
 		return TRUE
+	}
+	; Item Quantity from above has failed me, time to make my own member that will work gooder, possibly. Returns the total number of the current needed trade item from either
+	; personal hangar or corp hangar.
+	member:int TradeItemInStock(string NeededItem)
+	{
+		variable index:item itemIndex
+		variable iterator itemIterator
+		; in case you somehow ended up moving multiple stacks of the item, no idea
+		variable int itemtotal = 0
+		if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+		{
+
+			if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, ${Config.MunitionStorageFolder}](exists)}
+			{
+				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[itemIndex]
+				itemIndex:GetIterator[itemIterator]
+				if ${itemIterator:First(exists)}
+				{
+					do
+					{
+						if ${itemIterator.Value.Name.Equal[${NeededItem}]}
+						{
+							itemtotal:Inc[${itemIterator.Value.Quantity}]
+						}
+					}
+					while ${itemIterator:Next(exists)}
+				}
+				This:LogInfo["${itemtotal} x ${CurrentAgentItem} located in Corp Hangar"]				
+				return ${itemtotal}
+			}
+		}
+		if ${Config.MunitionStorage.Equal[Personal Hangar]}
+		{
+			if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+			{
+				EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[itemIndex]
+				itemIndex:GetIterator[itemIterator]
+				if ${itemIterator:First(exists)}
+				{
+					do
+					{
+						if ${itemIterator.Value.Name.Equal[${NeededItem}]}
+						{
+							itemtotal:Inc[${itemIterator.Value.Quantity}]
+						}
+					}
+					while ${itemIterator:Next(exists)}
+				}
+				This:LogInfo["${itemtotal} x ${CurrentAgentItem} located in Corp Hangar"]				
+				return ${itemtotal}
+			}		
+		}
 	}
 }
 
