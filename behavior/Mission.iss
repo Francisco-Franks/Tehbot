@@ -495,10 +495,11 @@ objectdef obj_Mission inherits obj_StateQueue
 				GetMissionLogCourier:Finalize
 				echo DEBUG - GOING TO MID RUN RECOVERY - NONCOMBAT
 				This:MidRunRecovery["Noncombat"]
+				This:QueueState["CourierMission", 3000]
 				This:InsertState["CourierMissionCheckStation", 2000]
 				This:InsertState["CourierMissionCheckShip", 2000]
 				This:InsertState["GetHaulerDetails",2000]
-				This:QueueState["CourierMission", 3000]
+
 				return TRUE
 			}
 			; Found nothing currently being "run". On to databasification.
@@ -519,6 +520,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		;{
 			This:LogInfo["Begin Mission Choice"]
 			This:QueueState["CurateMissions", 5000]
+			This:InsertState["GetHaulerDetails",2000]
 			return TRUE		
 		;}
 		
