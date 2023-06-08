@@ -1540,6 +1540,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		; MissionLogCourierUpdate(int RunNumber, int TripNumber, int UnitsMoved, int64 VolumeMoved, int64 FinalTimestamp, int Historical)
 		This:MissionLogCourierUpdate[${CurrentRunNumber},${CurrentRunTripNumber},${CurrentAgentItemUnits},${CurrentAgentVolumeTotal},${Time.Timestamp},'FALSE'}]
 		This:QueueState["FinishingAgentInteraction",5000]
+		return TRUE
 	}
 	; This state will be where we do our finishing interaction with our Agent. This comes at mission completion.
 	; This is also where we, when we turn in the mission, do our final MissionLog entry in whatever table it belongs to.
