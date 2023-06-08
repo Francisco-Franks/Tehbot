@@ -860,6 +860,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				else
 				{
 					; We presumably have enough of the item, let us try and load it into our ship. But first, need to know some stuff about this ship.
+					This:LogCritical["DEBUG - ${HaulerLargestBayCapacity} HLBC ${CurrentAgentVolumeTotal} CAVT"]
 					if ${HaulerLargestBayCapacity} >= ${CurrentAgentVolumeTotal}
 					{
 						if ${Config.MunitionStorage.Equal[Corporation Hangar]}
