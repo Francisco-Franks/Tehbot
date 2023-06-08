@@ -773,6 +773,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			CurrentAgentLocation:Set[${EVE.Agent[${AgentList.Get[1]}].Station}]
 			CurrentAgentIndex:Set[${EVE.Agent[${AgentList.Get[1]}].Index}]
 			This:QueueState["MissionPrePrep", 5000]
+			This:InsertState["GetHaulerDetails",2000]
 			return TRUE
 		}
 	}
