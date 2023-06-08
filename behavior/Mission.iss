@@ -1607,6 +1607,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		; Delete the row now that the mission is gone.
 		CharacterSQLDB:ExecDML["DELETE From MissionJournal WHERE AgentID=${CurrentAgentID};"]
 		EVEWindow[AgentConversation_${CurrentAgentID}]:Close
+		This:ClearCurrentAgentVariables
 		DatabasificationComplete:Set[FALSE]
 		CheckedMissionLogs:Set[FALSE]
 		This:QueueState["CheckForWork",4000]
@@ -1987,6 +1988,28 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 		else
 			LastLPReward:Set[0]
+	}
+	; This method will be for clearing all Current Agent information when we are done.
+	method ClearCurrentAgentVariables()
+	{
+		CurrentAgentID:Clear
+		CurrentAgentIndex:Clear
+		CurrentAgentLocation:Clear
+		CurrentAgentShip:Clear
+		CurrentAgentItem:Clear
+		CurrentAgentItemUnits:Clear
+		CurrentAgentVolumePer:Clear
+		CurrentAgentVolumeTotal:Clear
+		CurrentAgentPickup:Clear
+		CurrentAgentPickupID:Clear
+		CurrentAgentDropoff:Clear
+		CurrentAgentDropoffID:Clear
+		CurrentAgentDamage:Clear
+		CurrentAgentDestroy:Clear
+		CurrentAgentLoot:Clear
+		CurrentAgentMissionName:Clear
+		CurrentAgentMissionType:Clear
+		CurrentAgentLPReward:Clear
 	}
 	; This method will be used to databasify NPCs in a mission room, or when new NPCs appear during a mission.
 	;	 RoomNPCInfoInsert(int64 EntityID, int RunNumber, int RoomNumber, string NPCName, string NPCGroup, int64 NPCBounty)
