@@ -700,8 +700,12 @@ objectdef obj_Mission inherits obj_StateQueue
 				CurrentAgentVolumeTotal:Set[${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]}]				
 			if ${GetDBJournalInfo.GetFieldValue["PickupLocation",string].NotNULLOrEmpty}
 				CurrentAgentPickup:Set[${GetDBJournalInfo.GetFieldValue["PickupLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["PickupLocationID",int64]} > 0
+				CurrentAgentPickupID:Set[${GetDBJournalInfo.GetFieldValue["PickupLocationID",int64]}]					
 			if ${GetDBJournalInfo.GetFieldValue["DropoffLocation",string].NotNULLOrEmpty}
 				CurrentAgentDropoff:Set[${GetDBJournalInfo.GetFieldValue["DropoffLocation",string]}]
+			if ${GetDBJournalInfo.GetFieldValue["DropoffLocationID",int64]} > 0
+				CurrentAgentDropoffID:Set[${GetDBJournalInfo.GetFieldValue["DropoffLocationID",int64]}]						
 			if ${GetDBJournalInfo.GetFieldValue["Damage2Deal",string].NotNULLOrEmpty}
 				CurrentAgentDamage:Set[${GetDBJournalInfo.GetFieldValue["Damage2Deal",string]}]
 			if ${GetDBJournalInfo.GetFieldValue["DestroyTarget",string].NotNULLOrEmpty}
