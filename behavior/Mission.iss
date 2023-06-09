@@ -245,6 +245,9 @@ objectdef obj_Mission inherits obj_StateQueue
 	; Target list(s)
 	; TargetList for DatabasifyNPCs method.
 	variable obj_TargetList DatabasifyNPC
+
+	; Need to set our Primary Agent's Index. Primary Agent is the first agent in your mission datafile.
+	variable int64 PrimaryAgentIndex
 	
 	method Initialize()
 	{
@@ -344,6 +347,10 @@ objectdef obj_Mission inherits obj_StateQueue
 	; else in this main mode. SQL integration is mandatory. We live in an SQL revolution now. 
 	member:bool CheckForWork()
 	{
+		if ${PrimaryAgentIndex} < 1
+		{
+			PrimaryAgentIndex:Set[${EVE.Agent[${AgentList.Get[1]}].Index}]
+		}
 		; SQL DB related stuff.
 		if !${CharacterSQLDB.ID(exists)} || !${SharedSQLDB.ID(exists)}
 		{
@@ -760,11 +767,11 @@ objectdef obj_Mission inherits obj_StateQueue
 				CurrentAgentVolumeTotal:Set[${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]}]		
 			if ${GetDBJournalInfo.GetFieldValue["PickupLocation",string].NotNULLOrEmpty}
 				CurrentAgentPickup:Set[${GetDBJournalInfo.GetFieldValue["PickupLocation",string]}]
-			if ${GetDBJournalInfo.GetFieldValue["PickupLocationID",int64]}
+			if ${GetDBJournalInfo.GetFieldValue["PickupLocationID",int64]} > 0
 				CurrentAgentPickupID:Set[${GetDBJournalInfo.GetFieldValue["PickupLocationID",int64]}]				
 			if ${GetDBJournalInfo.GetFieldValue["DropoffLocation",string].NotNULLOrEmpty}
 				CurrentAgentDropoff:Set[${GetDBJournalInfo.GetFieldValue["DropoffLocation",string]}]
-			if ${GetDBJournalInfo.GetFieldValue["DropoffLocationID",int64]}
+			if ${GetDBJournalInfo.GetFieldValue["DropoffLocationID",int64]} > 0
 				CurrentAgentDropoffID:Set[${GetDBJournalInfo.GetFieldValue["DropoffLocationID",int64]}]				
 			if ${GetDBJournalInfo.GetFieldValue["Damage2Deal",string].NotNULLOrEmpty}
 				CurrentAgentDamage:Set[${GetDBJournalInfo.GetFieldValue["Damage2Deal",string]}]
@@ -811,6 +818,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	; This state thus exists to ensure we have the right ship for the job, also if its a trade mission, the right ore.
 	;;;; EXTREMELY IMPORTANT NOTE - WE ARE ASSUMING YOU WILL KEEP YOUR ALTERNATE SHIPS IN YOUR PRIMARY AGENT STATION
 	;;;; THAT IS TO SAY, THE STATION WHERE YOUR MAIN MISSION AGENT IS LOCATED. PLEASE DO SO
+	; Addendum - Going to need to break this state up even more.
 	member:bool MissionPrePrep()
 	{
 		; Tired of having 15,000 traveling states queued up after a long trip.
@@ -840,14 +848,36 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 		; We need to figure out if we are already flying what we need, and carrying what we need, if we need anything.
 		; We determined WHAT we need in the previous state.
-		if ${Me.StationID} != ${EVE.Agent[${CurrentAgentIndex}].StationID}
+		if ${Me.StationID} != ${EVE.Agent[${PrimaryAgentIndex}].StationID}
 		{
 			; We aren't at our Primary Agent Station. Move there.
-			Move:Agent[${EVE.Agent[${CurrentAgentIndex}].Index}]
+			Move:Agent[${PrimaryAgentIndex}]
 			This:InsertState["Traveling"]
 			return FALSE
 		}
-		if ${Me.StationID} == ${EVE.Agent[${CurrentAgentIndex}].StationID}
+		; Need to add yet another state, need to have a trigger to jump to that state.
+		if ${Me.StationID} == ${EVE.Agent[${PrimaryAgentIndex}].StationID}
+		{
+			This:LogInfo["At Primary Agent Station - Get Ship And/Or Ore"]
+			This:InsertState["GetShipAndOrOre",3500]
+			return TRUE
+		}
+		return FALSE
+	}
+	; We needed to break PrePrep up because there are two parts to this. Going to our PRIMARY AGENT STATION (not current agent station). Switching ships, grabbing ore if needed, then heading to our (presumably) storyline mission agent
+	; (who would actually be our CurrentAgent).
+	member:bool GetShipAndOrOre()
+	{
+		; Need a variable to decrement to figure out if we have enough of our trade item
+		variable int InStock
+		; Need another for loading that trade item
+		variable int TradeItemNeeded
+		
+		; Inventory variables
+		variable index:item items
+		variable iterator itemIterator	
+	
+		if ${Me.StationID} == ${EVE.Agent[${PrimaryAgentIndex}].StationID}
 		{
 			; We are already at our Primary Agent Station. Here we will A) Ensure that our ship is the ship called for in the last state and B) (optional) ensure that we have the Ore needed for a trade mission, if thats what is next.
 			echo DEBUG - ${CurrentAgentShip}
@@ -966,13 +996,16 @@ objectdef obj_Mission inherits obj_StateQueue
 	; The other 2 are for other things later. Idk, I'm tired.
 	member:bool Go2Agent()
 	{
+		if ${Move.Traveling}
+		{
+			return FALSE
+		}
 		if ${Me.StationID} != ${EVE.Agent[${CurrentAgentIndex}].StationID}
 		{
 			; This calls a state in Move, we need to call Traveling or we will start doing shit while en route. That's no good.
 			Move:Agent[${CurrentAgentIndex}]
-			This:InsertState["InitialAgentPreInteraction",4000]
 			This:InsertState["Traveling"]
-			return TRUE
+			return FALSE
 		}
 		else
 		{
