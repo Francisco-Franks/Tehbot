@@ -779,7 +779,10 @@ objectdef obj_Mission inherits obj_StateQueue
 			GetDBJournalInfo:Finalize
 			This:QueueState["MissionPrePrep", 5000]
 			if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+			{
 				This:InsertState["RefreshCorpHangarState",3000]
+				This:InsertState["PrepHangars"]				
+			}
 			if ${Config.MunitionStorage.Equal[Personal Hangar]}
 				This:InsertState["RefreshStationItemsState",3000]
 			return TRUE
@@ -792,7 +795,10 @@ objectdef obj_Mission inherits obj_StateQueue
 			CurrentAgentIndex:Set[${EVE.Agent[${AgentList.Get[1]}].Index}]
 			This:QueueState["MissionPrePrep", 5000]
 			if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+			{
 				This:InsertState["RefreshCorpHangarState",3000]
+				This:InsertState["PrepHangars"]				
+			}
 			if ${Config.MunitionStorage.Equal[Personal Hangar]}
 				This:InsertState["RefreshStationItemsState",3000]
 			This:InsertState["GetHaulerDetails",2000]
