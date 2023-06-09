@@ -1208,12 +1208,24 @@ objectdef obj_Mission inherits obj_StateQueue
 	; have a recovery method in place in case of disconnect or what have you. Luckily, the DB has all we need.
 	member:bool CourierMission()
 	{
+	
 		echo DEBUG CMSHIPITEMS ${CourierMissionShipItems}
 		echo DEBUG CMSTATIONITEMS ${CourierMissionStationItems}
 		echo DEBUG CurrentAgentPickupID ${CurrentAgentPickupID}
 		; Considering we have all of the information contained here as live variables already, no need to touch this thing below.
-		;GetMissionLogCourier:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCourier WHERE Historical=FALSE;"]}]
-		
+		; Addendum, somewhere we keep losing our freakin CurrentAgentPickupID, I'm tired of that.
+		if ${CurrentAgentPickupID} == 0
+		{
+			GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE AgentID=${CurrentAgentID};"]}]
+			if ${GetMissionLogCourier.NumRows} > 0
+			{
+				if ${GetDBJournalInfo.GetFieldValue["PickupLocationID",int64]} > 0
+					CurrentAgentPickupID:Set[${GetDBJournalInfo.GetFieldValue["PickupLocationID",int64]}]	
+				if ${GetDBJournalInfo.GetFieldValue["DropoffLocationID",int64]} > 0
+					CurrentAgentDropoffID:Set[${GetDBJournalInfo.GetFieldValue["DropoffLocationID",int64]}]						
+				GetDBJournalInfo:Finalize
+			}
+		}
 		; Alright so, my first attempt at this didn't go so well. Using members to get inventory info was a bad call. Whatever amadeus did at some point
 		; to slow down how quickly you can get inventory info is coming back to haunt me. Basically, this is going to go from taking 4 states (Start, dropoff, pickup, finish)
 		; to something like 7 (start, check station inventory, check ship inventory, load, travel, unload, finish).
@@ -1996,7 +2008,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				FindPointyThing:Set[${Math.Calc[${JSONObjectiveString4.AsJSON.Find[d>]} + 2]}]
 				JSONObjectiveString4B:Set[${JSONObjectiveString4.AsJSON.Mid[${FindPointyThing},1000].AsJSON}]
 				FindX1:Set[${Math.Calc[${JSONObjectiveString4B.AsJSON.Find[x]} - 2]}]
-				LastItemUnits:Set[${JSONObjectiveString4B.AsJSON.Mid[2,${FindX1}].Trim.AsJSON}]
+				LastItemUnits:Set[${JSONObjectiveString4B.AsJSON.Mid[2,${FindX1}].ReplaceSubstring[\,,].Trim.AsJSON}]
 				echo LIU ${LastItemUnits}
 			}
 			elseif ${JSONObjective.AsJSON.Find[<td>Cargo</td>]}
@@ -2006,7 +2018,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				FindPointyThing2:Set[${Math.Calc[${JSONObjectiveString5.AsJSON.Find[d>]} + 2]}]
 				JSONObjectiveString5B:Set[${JSONObjectiveString5.AsJSON.Mid[${FindPointyThing2},1000].AsJSON}]
 				FindX2:Set[${Math.Calc[${JSONObjectiveString5B.AsJSON.Find[x]} - 2]}]
-				LastItemUnits:Set[${JSONObjectiveString5B.AsJSON.Mid[2,${FindX2}].Trim.AsJSON}]
+				LastItemUnits:Set[${JSONObjectiveString5B.AsJSON.Mid[2,${FindX2}].ReplaceSubstring[\,,].Trim.AsJSON}]
 				echo LIU ${LastItemUnits}
 			}
 			
@@ -2061,7 +2073,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			JSONObjectiveString8:Set[${JSONObjective.AsJSON.Mid[${FindLP},10].AsJSON}]
 			FindPointyThing3:Set[${Math.Calc[${JSONObjectiveString8.AsJSON.Find[2>]} + 2]}]
 			JSONObjectiveString8B:Set[${JSONObjectiveString8.AsJSON.Mid[${FindPointyThing3},10].AsJSON}]
-			LastLPReward:Set[${JSONObjectiveString8B.ReplaceSubstring[\",].Trim}]
+			LastLPReward:Set[${JSONObjectiveString8B.ReplaceSubstring[\",].ReplaceSubstring[\,,].Trim}]
 			echo Last LP ${LastLPReward}
 		
 		}
