@@ -2326,7 +2326,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			CurrentRunNumber:Set[${GetMissionLogCombined.GetFieldValue["RunNumber",int]}]
 			CurrentRunRoomNumber:Set[${GetMissionLogCombined.GetFieldValue["RoomNumber",int]}]
-			CurrentRunStartTimestamp:Set[${GetMissionLogCombined.GetFieldValue["StartingTimestamp",int]}]
+			CurrentRunStartTimestamp:Set[${GetMissionLogCombined.GetFieldValue["StartingTimestamp",int64]}]
 			CurrentRunKilledTarget:Set[${GetMissionLogCombined.GetFieldValue["KilledTarget",bool]}]
 			CurrentRunVanquisher:Set[${GetMissionLogCombined.GetFieldValue["Vanquisher",bool]}]
 			CurrentRunContainerLooted:Set[${GetMissionLogCombined.GetFieldValue["ContainerLooted",bool]}]
@@ -2337,7 +2337,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		if ${GetMissionLogCombined.NumRows} > 0 && ${Case.Equal[Noncombat]}
 		{
 			CurrentRunNumber:Set[${GetMissionLogCombined.GetFieldValue["RunNumber",int]}]
-			CurrentRunStartTimestamp:Set[${GetMissionLogCombined.GetFieldValue["StartingTimestamp",int]}]
+			CurrentRunStartTimestamp:Set[${GetMissionLogCombined.GetFieldValue["StartingTimestamp",int64]}]
 			CurrentRunTripNumber:Set[${GetMissionLogCombined.GetFieldValue["TripNumber",int]}]
 			CurrentRunExpectedTrips:Set[${GetMissionLogCombined.GetFieldValue["ExpectedTrips",int]}]
 			CurrentRunItemUnitsMoved:Set[${GetMissionLogCombined.GetFieldValue["UnitsMoved",int]}]
