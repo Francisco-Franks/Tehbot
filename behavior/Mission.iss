@@ -1743,7 +1743,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			echo ${missionIterator.Value.AgentID} ID
 			; Lets get a convo window open with this agent.
-			Sorry, but I only work with people I trust.
 			if ${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}].BriefingHTML.AsJSON.Find["Sorry, but I only work with people I trust."]}
 			{
 				EVEWindow[ByCaption, Agent Conversation]:Close
