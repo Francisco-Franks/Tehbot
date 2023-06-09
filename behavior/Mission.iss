@@ -219,6 +219,10 @@ objectdef obj_Mission inherits obj_StateQueue
 	; Doing this so we can get the isk reward for the mission quantified without dealing with parsing HTML.
 	variable int64 ISKBeforeCompletion
 	variable int64 ISKAfterCompletion
+
+	; These had to be pulled out of Databasification due to do:while complications
+	variable index:agentmission missions
+	variable iterator missionIterator
 	
 	; Recycled variables from the original
 	variable string ammo
@@ -816,6 +820,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			This:LogInfo["No Valid Offered Missions - Go To Agent"]
 			; This case is that we are already going back to our Primary Agent Station, and we have no valid missions in our journal. Or we could already be there, but thats outside the scope of this state.
 			; Basically we are just bypassing this state.
+			This:QueueState["MissionPrePrep", 5000]
 			This:InsertState["Go2Agent", 5000]
 			return TRUE			
 		}
@@ -983,7 +988,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				return FALSE
 			}	
 			This:LogInfo["Begin Databasification"]		
-			This:InsertState["Databasification",5000]
+			This:InsertState["Databasification",5000, "1, TRUE"]
 			return TRUE
 		}
 		else
@@ -1158,6 +1163,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	{
 		echo DEBUG CMSHIPITEMS ${CourierMissionShipItems}
 		echo DEBUG CMSTATIONITEMS ${CourierMissionStationItems}
+		echo DEBUG CurrentAgentPickupID ${CurrentAgentPickupID}
 		; Considering we have all of the information contained here as live variables already, no need to touch this thing below.
 		;GetMissionLogCourier:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCourier WHERE Historical=FALSE;"]}]
 		
@@ -1619,7 +1625,10 @@ objectdef obj_Mission inherits obj_StateQueue
 	; Since I worked on this, so I've somewhat lost the plot. Each mission will be placed into the Character Specific MissionJournal Table.
 	; From there we can use that information to accomplish something, surely. I am fairly sure that in order to accomplish this I will have to touch the mission parser
 	; at least a little bit. Also we will need to get some info from that mission data file.
-	member:bool Databasification()
+	; Addendum, the do-while loop is being really stupid so we are going to have to do stupid bullshit again.
+	; DesiredIterator will be the iterator we want to go to. We are assuming the iterator doesn't change order magically somehow.
+	; RefreshMissionsRequested will indicate we want to redo the GetAgentMissions and iteration of such.
+	member:bool Databasification(int DesiredIterator, bool RefreshMissionsRequested)
 	{
 		; Oh god where do I even begin. Well let us look at that MissionJournal Table I made and how its rows are set up.
 		; (AgentID INTEGER PRIMARY KEY, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, AgentLocation TEXT, MissionLocation TEXT, DropoffLocation TEXT, PickupLocation TEXT, Lowsec BOOLEAN, JumpDistance INTEGER, 
@@ -1627,9 +1636,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		; Basically we want to assemble all of this information from what we can pull from the Mission Journal, the Mission Details, and our Mission Data XML, and then finally from some minor calculations from those 3 sources.\
 		; We take that information and fork it over to MissionJournalUpsert method. And hence, it is databasificated.
 		; Guess we should get our limited scope variables in a row here.
-		; These make the mission journal stuff work
-		variable index:agentmission missions
-		variable iterator missionIterator
 		; These we can pull directly from the mission journal
 		variable int64 AgentID
 		variable string MissionName
@@ -1658,99 +1664,125 @@ objectdef obj_Mission inherits obj_StateQueue
 		variable int64 VolumePer
 		
 		; Begin the work. Lets get all our current missions.
-		EVE:GetAgentMissions[missions]
-		missions:GetIterator[missionIterator]
-		if ${missionIterator:First(exists)}
+		; Either we requested a refresh of our agentmissions index, or it is empty.
+		if ${RefreshMissionsRequested} || !${missionIterator.IsValid}
 		{
-				echo ${missionIterator.Value.AgentID} ID
-				; Lets get a convo window open with this agent.
-				if !${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}](exists)}
-				{
-					echo start conversation
-					EVE.Agent[id,${missionIterator.Value.AgentID}]:StartConversation
-				}
-				if ${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}].Button["View Mission"](exists)}
-				{
-					echo press view mission
-					EVEWindow[AgentConversation_${missionIterator.Value.AgentID}].Button["View Mission"]:Press
-					return FALSE
-				}
-				if !${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}].ObjectivesHTML.AsJSON.Find["The following rewards will be yours if you complete this mission"]}
-				{
-					return FALSE
-				}
-				; I guess we will want to skip checking things that are in the Table but haven't changed.
-				GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE AgentID=${missionIterator.Value.AgentID} AND MissionName='${missionIterator.Value.Name}' AND MissionStatus=${missionIterator.Value.State};"]}]
-				echo DEBUG TENTH QUERY
-				if ${GetDBJournalInfo.NumRows} > 0
-				{
-					; If it already exists in the DB, in the same state, the same mission name, from the same agent, it is safe to say it is already there. Skip it.
-					
-				}
-				if ${missionIterator.Value.State} == 3
-				{
-					; If it is an expired mission, don't databasify it.
-					
-				}
-				GetDBJournalInfo:Finalize
-				; To hell with that Mission Parser, why use that when I can make my own thing that might work once in a while.
-				This:ParseMissionDetails[${missionIterator.Value.AgentID}, ${missionIterator.Value.Type}]
-				; Simple stuff
-				AgentID:Set[${missionIterator.Value.AgentID}]
-				MissionName:Set[${missionIterator.Value.Name}]
-				MissionType:Set[${missionIterator.Value.Type}]
-				MissionStatus:Set[${missionIterator.Value.State}]
-				; Data file
-				DestroyTarget:Set[""]
-				if ${TargetToDestroy.Element[${MissionName}](exists)}
-				{
-					This:LogInfo["Destroy target: \ao${TargetToDestroy.Element[${MissionName}]}"]
-					DestroyTarget:Set[${TargetToDestroy.Element[${MissionName}]}]
-				}
-				LootTarget:Set[""]
-				if ${ContainerToLoot.Element[${MissionName}](exists)}
-				{
-					This:LogInfo["Loot container: \ao${ContainerToLoot.Element[${MissionName}]}"]
-					LootTarget:Set[${ContainerToLoot.Element[${MissionName}]}]
-				}
-				Damage2Deal:Set[${DamageType.Element[${MissionName}].Lower}]
-				; Info from parsing the mission details
-				AgentLocation:Set[${LastAgentLocation}]
-				MissionLocation:Set[${LastMissionLocation}]
-				ExpectedItems:Set[${LastExpectedItems}]
-				ItemUnits:Set[${LastItemUnits}]
-				ItemVolume:Set[${LastItemVolume}]
-				PickupLocation:Set[${LastPickup}]
-				PickupLocationID:Set[${LastPickupID}]
-				echo PickupLocationID ${PickupLocationID}
-				DropoffLocation:Set[${LastDropoff}]
-				DropoffLocationID:Set[${LastDropoffID}]
-				echo DropoffLocationID ${DropoffLocationID}
-				echo ${LastDropoffID}
-				echo ${DropoffLocationID.Equal[${LastDropoffID}]}
-				Lowsec:Set[${LastLowsec}]
-				LPReward:Set[${LastLPReward}]
-				; Derived information
-				if ${LastItemUnits} > 0
-					VolumePer:Set[${Math.Calc[${LastItemVolume} / ${LastItemUnits}]}]
-				; Assemble information and prepare to Insert into Table
-				; MissionJournalUpsert(int64 AgentID, string MissionName, string MissionType, int MissionStatus, string AgentLocation, string MissionLocation, string DropoffLocation, int64 DropOffLocationID, string PickupLocation, int64 PickupLocationID, bool Lowsec, int JumpDistance, string ExpectedItems, int ItemUnits, int64 ItemVolume, int MissionLPReward, int64 VolumePer, string DestroyTarget, string LootTarget, string Damage2Deal)
-				echo ${AgentID},${MissionName.ReplaceSubstring[','']}, ${MissionType.ReplaceSubstring[',''].ReplaceSubstring[UI/Agents/MissionTypes/,].ReplaceSubstring[\},]}, ${MissionStatus}, ${AgentLocation.ReplaceSubstring[','']}, ${MissionLocation.ReplaceSubstring[','']}, ${DropoffLocation.ReplaceSubstring[','']}, ${DropoffLocationID}, ${PickupLocation.ReplaceSubstring[','']}, ${PickupLocationID}, ${Lowsec}, ${JumpDistance}, ${ExpectedItems.ReplaceSubstring[','']}, ${ItemUnits}, ${ItemVolume}, ${LPReward}, ${VolumePer}, ${DestroyTarget.ReplaceSubstring[','']},${LootTarget.ReplaceSubstring[','']},${Damage2Deal}
-				This:MissionJournalUpsert[${AgentID},${MissionName.ReplaceSubstring[','']}, ${MissionType.ReplaceSubstring[',''].ReplaceSubstring[UI/Agents/MissionTypes/,].ReplaceSubstring[\},]}, ${MissionStatus}, ${AgentLocation.ReplaceSubstring[','']}, ${MissionLocation.ReplaceSubstring[','']}, ${DropoffLocation.ReplaceSubstring[','']}, ${DropoffLocationID}, ${PickupLocation.ReplaceSubstring[','']}, ${PickupLocationID}, ${Lowsec}, ${JumpDistance}, ${ExpectedItems.ReplaceSubstring[','']}, ${ItemUnits}, ${ItemVolume}, ${LPReward}, ${VolumePer}, ${DestroyTarget.ReplaceSubstring[','']}, ${LootTarget.ReplaceSubstring[','']}, ${Damage2Deal}]
-				if ${EVEWindow[AgentConversation_${AgentID}](exists)}
-				{
-					This:LogInfo["Entry Processed, closing window"]
-					EVEWindow[AgentConversation_${AgentID}]:Close
-				}				
-			
-			; Next up, lets run a quick deletion on all Expired Mission Offers
-			echo DEBUG - Databasification Deletion
-			CharacterSQLDB:ExecDML["Delete FROM MissionJournal WHERE MissionStatus=3;"]
-			; So we know we've completed this.
-			DatabasificationComplete:Set[TRUE]
+			This:LogInfo["Refreshing AgentMissions index and Iterator."]
+			EVE:GetAgentMissions[missions]
+			missions:GetIterator[missionIterator]
 		}
+		while ${missionIterator.Key} < ${DesiredIterator} && ${missionIterator.Key} < ${missions.Used}
+		{
+			missionIterator:Next
+		}
+		if ${missionIterator.Key} == ${DesiredIterator}
+		{
+			echo ${missionIterator.Value.AgentID} ID
+			; Lets get a convo window open with this agent.
+			if !${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}](exists)}
+			{
+				echo start conversation
+				EVE.Agent[id,${missionIterator.Value.AgentID}]:StartConversation
+				This:LogInfo["Opening Agent Window - Restarting Current Loop"]
+				This:QueueState["Databasification", 2000, "${missionIterator.Key}, FALSE"]
+				return TRUE
+			}
+			if ${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}].Button["View Mission"](exists)}
+			{
+				echo press view mission
+				EVEWindow[AgentConversation_${missionIterator.Value.AgentID}].Button["View Mission"]:Press
+				This:LogInfo["View Mission Press - Restarting Current Loop"]
+				This:QueueState["Databasification", 2000, "${missionIterator.Key}, FALSE"]
+				return TRUE
+			}
+			if !${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}].ObjectivesHTML.AsJSON.Find["The following rewards will be yours if you complete this mission"]}
+			{
+				This:LogInfo["Incomplete HTML Grab - Restarting Current Loop"]
+				This:QueueState["Databasification", 2000, "${missionIterator.Key}, FALSE"]
+				return TRUE
+			}
+			; I guess we will want to skip checking things that are in the Table but haven't changed.
+			GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE AgentID=${missionIterator.Value.AgentID} AND MissionName='${missionIterator.Value.Name}' AND MissionStatus=${missionIterator.Value.State};"]}]
+			echo DEBUG TENTH QUERY
+			if ${GetDBJournalInfo.NumRows} > 0
+			{
+				; If it already exists in the DB, in the same state, the same mission name, from the same agent, it is safe to say it is already there. Skip it.
+				This:LogInfo["Entry Already Exists - Skipping"]
+				This:QueueState["Databasification", 2000, "${Math.Calc[${missionIterator.Key} + 1]}, FALSE"]
+				return TRUE
+			}
+			if ${missionIterator.Value.State} == 3
+			{
+				; If it is an expired mission, don't databasify it.
+				This:LogInfo["Expired Mission - Skipping"]
+				This:QueueState["Databasification", 2000, "${Math.Calc[${missionIterator.Key} + 1]}, FALSE"]
+				return TRUE				
+			}
+			GetDBJournalInfo:Finalize
+			; To hell with that Mission Parser, why use that when I can make my own thing that might work once in a while.
+			This:ParseMissionDetails[${missionIterator.Value.AgentID}, ${missionIterator.Value.Type}]
+			; Simple stuff
+			AgentID:Set[${missionIterator.Value.AgentID}]
+			MissionName:Set[${missionIterator.Value.Name}]
+			MissionType:Set[${missionIterator.Value.Type}]
+			MissionStatus:Set[${missionIterator.Value.State}]
+			; Data file
+			DestroyTarget:Set[""]
+			if ${TargetToDestroy.Element[${MissionName}](exists)}
+			{
+				This:LogInfo["Destroy target: \ao${TargetToDestroy.Element[${MissionName}]}"]
+				DestroyTarget:Set[${TargetToDestroy.Element[${MissionName}]}]
+			}
+			LootTarget:Set[""]
+			if ${ContainerToLoot.Element[${MissionName}](exists)}
+			{
+			This:LogInfo["Loot container: \ao${ContainerToLoot.Element[${MissionName}]}"]
+				LootTarget:Set[${ContainerToLoot.Element[${MissionName}]}]
+			}
+			Damage2Deal:Set[${DamageType.Element[${MissionName}].Lower}]
+			; Info from parsing the mission details
+			AgentLocation:Set[${LastAgentLocation}]
+			MissionLocation:Set[${LastMissionLocation}]
+			ExpectedItems:Set[${LastExpectedItems}]
+			ItemUnits:Set[${LastItemUnits}]
+			ItemVolume:Set[${LastItemVolume}]
+			PickupLocation:Set[${LastPickup}]
+			PickupLocationID:Set[${LastPickupID}]
+			echo PickupLocationID ${PickupLocationID}
+			DropoffLocation:Set[${LastDropoff}]
+			DropoffLocationID:Set[${LastDropoffID}]
+			echo DropoffLocationID ${DropoffLocationID}
+			echo ${LastDropoffID}
+			echo ${DropoffLocationID.Equal[${LastDropoffID}]}
+			Lowsec:Set[${LastLowsec}]
+			LPReward:Set[${LastLPReward}]
+			; Derived information
+			if ${LastItemUnits} > 0
+				VolumePer:Set[${Math.Calc[${LastItemVolume} / ${LastItemUnits}]}]
+			; Assemble information and prepare to Insert into Table
+			; MissionJournalUpsert(int64 AgentID, string MissionName, string MissionType, int MissionStatus, string AgentLocation, string MissionLocation, string DropoffLocation, int64 DropOffLocationID, string PickupLocation, int64 PickupLocationID, bool Lowsec, int JumpDistance, string ExpectedItems, int ItemUnits, int64 ItemVolume, int MissionLPReward, int64 VolumePer, string DestroyTarget, string LootTarget, string Damage2Deal)
+			echo ${AgentID},${MissionName.ReplaceSubstring[','']}, ${MissionType.ReplaceSubstring[',''].ReplaceSubstring[UI/Agents/MissionTypes/,].ReplaceSubstring[\},]}, ${MissionStatus}, ${AgentLocation.ReplaceSubstring[','']}, ${MissionLocation.ReplaceSubstring[','']}, ${DropoffLocation.ReplaceSubstring[','']}, ${DropoffLocationID}, ${PickupLocation.ReplaceSubstring[','']}, ${PickupLocationID}, ${Lowsec}, ${JumpDistance}, ${ExpectedItems.ReplaceSubstring[','']}, ${ItemUnits}, ${ItemVolume}, ${LPReward}, ${VolumePer}, ${DestroyTarget.ReplaceSubstring[','']},${LootTarget.ReplaceSubstring[','']},${Damage2Deal}
+			This:MissionJournalUpsert[${AgentID},${MissionName.ReplaceSubstring[','']}, ${MissionType.ReplaceSubstring[',''].ReplaceSubstring[UI/Agents/MissionTypes/,].ReplaceSubstring[\},]}, ${MissionStatus}, ${AgentLocation.ReplaceSubstring[','']}, ${MissionLocation.ReplaceSubstring[','']}, ${DropoffLocation.ReplaceSubstring[','']}, ${DropoffLocationID}, ${PickupLocation.ReplaceSubstring[','']}, ${PickupLocationID}, ${Lowsec}, ${JumpDistance}, ${ExpectedItems.ReplaceSubstring[','']}, ${ItemUnits}, ${ItemVolume}, ${LPReward}, ${VolumePer}, ${DestroyTarget.ReplaceSubstring[','']}, ${LootTarget.ReplaceSubstring[','']}, ${Damage2Deal}]
+			if ${EVEWindow[AgentConversation_${AgentID}](exists)}
+			{
+				This:LogInfo["Entry Processed, closing window"]
+				EVEWindow[AgentConversation_${AgentID}]:Close
+			}				
+			if ${missionIterator.Key} < ${missions.Used}
+			{
+				This:LogInfo["Unprocessed Entries Remain - Looping"]
+				This:QueueState["Databasification", 2000, "${Math.Calc[${missionIterator.Key} + 1]}, FALSE"]
+				return TRUE
+			}
+			else
+				This:LogInfo["All Entries Processed - Leaving Databasification"]
+		}
+		; Next up, lets run a quick deletion on all Expired Mission Offers
+		echo DEBUG - Databasification Deletion
+		CharacterSQLDB:ExecDML["Delete FROM MissionJournal WHERE MissionStatus=3;"]
 		DatabasificationComplete:Set[TRUE]
-		This:QueueState["ChooseMission",5000]
+		This:ClearCurrentAgentVariables
+		This:QueueState["CurateMissions",5000]
 		return TRUE
 
 	}
@@ -1992,24 +2024,24 @@ objectdef obj_Mission inherits obj_StateQueue
 	; This method will be for clearing all Current Agent information when we are done.
 	method ClearCurrentAgentVariables()
 	{
-		CurrentAgentID:Clear
-		CurrentAgentIndex:Clear
-		CurrentAgentLocation:Clear
-		CurrentAgentShip:Clear
-		CurrentAgentItem:Clear
-		CurrentAgentItemUnits:Clear
-		CurrentAgentVolumePer:Clear
-		CurrentAgentVolumeTotal:Clear
-		CurrentAgentPickup:Clear
-		CurrentAgentPickupID:Clear
-		CurrentAgentDropoff:Clear
-		CurrentAgentDropoffID:Clear
-		CurrentAgentDamage:Clear
-		CurrentAgentDestroy:Clear
-		CurrentAgentLoot:Clear
-		CurrentAgentMissionName:Clear
-		CurrentAgentMissionType:Clear
-		CurrentAgentLPReward:Clear
+		CurrentAgentID:Set[0]
+		CurrentAgentIndex:Set[0]
+		CurrentAgentLocation:Set[0]
+		CurrentAgentShip:Set[""]
+		CurrentAgentItem:Set[""]
+		CurrentAgentItemUnits:Set[0]
+		CurrentAgentVolumePer:Set[0]
+		CurrentAgentVolumeTotal:Set[0]
+		CurrentAgentPickup:Set[""]
+		CurrentAgentPickupID:Set[0]
+		CurrentAgentDropoff:Set[""]
+		CurrentAgentDropoffID:Set[0]
+		CurrentAgentDamage:Set[""]
+		CurrentAgentDestroy:Set[""]
+		CurrentAgentLoot:Set[""]
+		CurrentAgentMissionName:Set[""]
+		CurrentAgentMissionType:Set[""]
+		CurrentAgentLPReward:Set[0]
 	}
 	; This method will be used to databasify NPCs in a mission room, or when new NPCs appear during a mission.
 	;	 RoomNPCInfoInsert(int64 EntityID, int RunNumber, int RoomNumber, string NPCName, string NPCGroup, int64 NPCBounty)
@@ -2498,7 +2530,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	;   RoomDuration DATETIME, RunLP INTEGER, RunISK INTEGER, RunDuration DATETIME, RunTotalBounties INTEGER, ShipType TEXT);"]
 	method MissioneerStatsInsert(int64 Timestamp, string CharName, int64 CharID, int RunNumber, int RoomNumber, int TripNumber, string MissionName, string MissionType, string EventType, int64 RoomBounties, bool RoomFactionSpawn, int64 RoomDuration, int RunLP, int64 RunISK, int64 RunDuration, int64 RunTotalBounties, string ShipType)
 	{
-		SharedSQLDB:ExecDML["insert into MissioneerStats (CharName,CharID,RunNumber,RoomNumber,TripNumber,MissionName,MissionType,EventType,RoomBounties,RoomFactionSpawn,RoomDuration,RunLP,RunISK,RunDuration,RunTotalBounties,ShipType) values ('${CharName}',${CharID},${RunNumber},${RoomNumber},${TripNumber},'${MissionName}','${MissionType}','${EventType}',${RoomBounties},${RoomFactionSpawn},${RoomDuration},${RunLP},${RunISK},${RunDuration},${RunTotalBounties},'${ShipType}');"]
+		SharedSQLDB:ExecDML["insert into MissioneerStats (Timestamp,CharName,CharID,RunNumber,RoomNumber,TripNumber,MissionName,MissionType,EventType,RoomBounties,RoomFactionSpawn,RoomDuration,RunLP,RunISK,RunDuration,RunTotalBounties,ShipType) values (${Timestamp},'${CharName}',${CharID},${RunNumber},${RoomNumber},${TripNumber},'${MissionName}','${MissionType}','${EventType}',${RoomBounties},${RoomFactionSpawn},${RoomDuration},${RunLP},${RunISK},${RunDuration},${RunTotalBounties},'${ShipType}');"]
 	}
 	; This method will be for inserting information into the SalvageBMTable table. I don't anticipate this ever needing to be an Upsert.
 	; (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
