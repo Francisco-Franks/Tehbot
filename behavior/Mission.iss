@@ -825,7 +825,6 @@ objectdef obj_Mission inherits obj_StateQueue
 			This:LogInfo["No Valid Offered Missions - Go To Agent"]
 			; This case is that we are already going back to our Primary Agent Station, and we have no valid missions in our journal. Or we could already be there, but thats outside the scope of this state.
 			; Basically we are just bypassing this state.
-			This:QueueState["MissionPrePrep", 5000]
 			This:InsertState["Go2Agent", 5000]
 			return TRUE			
 		}
@@ -836,7 +835,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			; We aren't at our Primary Agent Station. Move there.
 			Move:Agent[${EVE.Agent[${CurrentAgentIndex}].Index}]
 			This:InsertState["Traveling"]
-			return TRUE
+			return FALSE
 		}
 		if ${Me.StationID} == ${EVE.Agent[${CurrentAgentIndex}].StationID}
 		{
