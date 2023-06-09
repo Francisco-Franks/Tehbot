@@ -1746,8 +1746,8 @@ objectdef obj_Mission inherits obj_StateQueue
 			if ${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}].BriefingHTML.AsJSON.Find["Sorry, but I only work with people I trust."]}
 			{
 				EVEWindow[ByCaption, Agent Conversation]:Close
-				This:LogInfo["Old Agent Window Detected - Restarting Current Loop"]
-				This:QueueState["Databasification", 2000, "${missionIterator.Key}, FALSE"]
+				This:LogInfo["Old Agent Window Detected - Skipping"]
+				This:QueueState["Databasification", 2000, "${Math.Calc[${missionIterator.Key} + 1]}, FALSE"]
 				return TRUE
 			}
 			if !${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}](exists)}
