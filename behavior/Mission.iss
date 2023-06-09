@@ -652,7 +652,10 @@ objectdef obj_Mission inherits obj_StateQueue
 			}
 			echo DEBUG - Decline Deletion
 			CharacterSQLDB:ExecDML["Delete FROM MissionJournal WHERE AgentID=${AgentDeclineQueue.Peek};"]
-			EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}]:Close
+			if ${EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}](exists)}
+			{
+				EVEWindow[AgentConversation_${AgentDeclineQueue.Peek}]:Close
+			}
 			This:LogInfo["Declining mission from ${AgentDeclineQueue.Peek}"]
 			AgentDeclineQueue:Dequeue
 			return FALSE				
@@ -1740,6 +1743,14 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			echo ${missionIterator.Value.AgentID} ID
 			; Lets get a convo window open with this agent.
+			Sorry, but I only work with people I trust.
+			if ${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}].BriefingHTML.AsJSON.Find["Sorry, but I only work with people I trust."]}
+			{
+				EVEWindow[ByCaption, Agent Conversation]:Close
+				This:LogInfo["Old Agent Window Detected - Restarting Current Loop"]
+				This:QueueState["Databasification", 2000, "${missionIterator.Key}, FALSE"]
+				return TRUE
+			}
 			if !${EVEWindow[AgentConversation_${missionIterator.Value.AgentID}](exists)}
 			{
 				echo start conversation
