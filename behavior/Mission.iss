@@ -2331,7 +2331,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			CurrentRunVanquisher:Set[${GetMissionLogCombined.GetFieldValue["Vanquisher",bool]}]
 			CurrentRunContainerLooted:Set[${GetMissionLogCombined.GetFieldValue["ContainerLooted",bool]}]
 			CurrentRunHaveItems:Set[${GetMissionLogCombined.GetFieldValue["HaveItems",bool]}]
-			CurrentRunTechnicalComplete:Set[${GetMissionLogCombined.GetFieldValue["TechnicalCompletionr",bool]}]
+			CurrentRunTechnicalComplete:Set[${GetMissionLogCombined.GetFieldValue["TechnicalCompletion",bool]}]
 			CurrentRunTrueComplete:Set[${GetMissionLogCombined.GetFieldValue["TrueCompletion",bool]}]
 		}
 		if ${GetMissionLogCombined.NumRows} > 0 && ${Case.Equal[Noncombat]}
@@ -2344,7 +2344,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			CurrentRunVolumeMoved:Set[${GetMissionLogCombined.GetFieldValue["VolumeMoved",int64]}]
 		}			
 		; Presumably you will only have one active mission at a time. But lets make sure the mission names are the same.
-		GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE MissionStatus=2 AND MissionName='${GetMissionLogCombined.GetFieldValue["MissionName",string]}';"]}]
+		GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE MissionStatus=2 AND MissionName='${GetMissionLogCombined.GetFieldValue["MissionName",string].ReplaceSubstring[','']}';"]}]
 		echo DEBUG SEVENTEENTH QUERY
 		if ${GetDBJournalInfo.NumRows} > 0
 		{
