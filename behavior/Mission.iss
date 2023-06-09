@@ -860,6 +860,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			This:LogInfo["At Primary Agent Station - Get Ship And/Or Ore"]
 			This:InsertState["GetShipAndOrOre",3500]
+			This:InsertState["PrepHangars"]
+			
 			return TRUE
 		}
 		return FALSE
@@ -2741,19 +2743,23 @@ objectdef obj_Mission inherits obj_StateQueue
 	; Who knows.
 	member:bool PrepHangars()
 	{
-		variable index:eveinvchildwindow InvWindowChildren
-		variable iterator Iter
-		EVEWindow[Inventory]:GetChildren[InvWindowChildren]
-		InvWindowChildren:GetIterator[Iter]
-		if ${Iter:First(exists)}
-			do
-			{
-				if ${Iter.Value.Name.Equal[StationCorpHangars]}
-				{
-					Iter.Value:MakeActive
-				}
-			}
-			while ${Iter:Next(exists)}
+		;variable index:eveinvchildwindow InvWindowChildren
+		;variable iterator Iter
+		;EVEWindow[Inventory]:GetChildren[InvWindowChildren]
+		;InvWindowChildren:GetIterator[Iter]
+		;if ${Iter:First(exists)}
+		;	do
+		;	{
+		;		if ${Iter.Value.Name.Equal[StationCorpHangars]}
+		;		{
+		;			Iter.Value:MakeActive
+		;		}
+		;	}
+		;	while ${Iter:Next(exists)}
+		;return TRUE
+		
+		; To hell with that noise.
+		EVEWindow[Inventory].ChildWindow[StationCorpHangars,StationCorpHangars]:MakeActive
 		return TRUE
 	}
 
