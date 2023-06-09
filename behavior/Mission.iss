@@ -803,6 +803,11 @@ objectdef obj_Mission inherits obj_StateQueue
 	;;;; THAT IS TO SAY, THE STATION WHERE YOUR MAIN MISSION AGENT IS LOCATED. PLEASE DO SO
 	member:bool MissionPrePrep()
 	{
+		; Tired of having 15,000 traveling states queued up after a long trip.
+		if ${Move.Traveling}
+		{
+			return FALSE
+		}
 		; Need a variable to decrement to figure out if we have enough of our trade item
 		variable int InStock
 		; Need another for loading that trade item
