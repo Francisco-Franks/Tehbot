@@ -47,12 +47,12 @@ objectdef obj_Configuration_Mission inherits obj_Configuration_Base
 	; Do storyline combat missions
 	Setting(bool, DoStorylineCombat, SetDoStorylineCombat)
 	; The literal names of your combat and courier ships. In case we need to swap between them.
-	Setting(string, CombatShipName, SetCombatShipName)
-	Setting(string, CourierShipName, SetCourierShipName)
+	Setting(string, CombatShipType, SetCombatShipType)
+	Setting(string, CourierShipType, SetCourierShipType)
 	; Literal name of your ore hauler for trade missions
-	Setting(string, TradeShipName, SetTradeShipName)
+	Setting(string, TradeShipType, SetTradeShipType)
 	; Literal name of a fast, low volume courier ship.
-	Setting(string, FastCourierShipName, SetFastCourierShipName)
+	Setting(string, FastCourierShipType, SetFastCourierShipType)
 	; These will be settings taken from the original that still go on page 1 of the UIElement
 	Setting(bool, IgnoreNPCSentries, SetIgnoreNPCSentries)
 	; This is just what we name our Salvage BMs. If we are going to use the new salvager that I am supposedly making
@@ -594,14 +594,14 @@ objectdef obj_Mission inherits obj_StateQueue
 					GetDBJournalInfo:NextRow
 					continue
 				}
-				if ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} > 1000 && !${Config.CourierShipName.NotNULLOrEmpty} && !${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
+				if ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} > 1000 && !${Config.CourierShipType.NotNULLOrEmpty} && !${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
 				{	
 					This:LogInfo["High Volume and No Hauler Configured - Declining"]
 					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
 					GetDBJournalInfo:NextRow
 					continue
 				}
-				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]} && !${Config.TradeShipName.NotNULLOrEmpty}
+				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]} && !${Config.TradeShipType.NotNULLOrEmpty}
 				{	
 					This:LogInfo["Trade Mission and No Trade Ship Configured - Declining"]
 					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
@@ -678,26 +678,26 @@ objectdef obj_Mission inherits obj_StateQueue
 			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
 			{
 				This:LogInfo["Encounter - Combat Ship Needed"]
-				CurrentAgentShip:Set[${Config.CombatShipName}]
+				CurrentAgentShip:Set[${Config.CombatShipType}]
 
 			}
 			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} > 10 )
 			{	
 				This:LogInfo["Large Courier - Hauler Needed"]
-				CurrentAgentShip:Set[${Config.CourierShipName}]
+				CurrentAgentShip:Set[${Config.CourierShipType}]
 			}
 			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} <= 10 )
 			{
 				This:LogInfo["Small Courier - Shuttle Needed"]
-				if ${Config.FastCourierShipName.NotNULLOrEmpty}
-					CurrentAgentShip:Set[${Config.FastCourierShipName}]
+				if ${Config.FastCourierShipType.NotNULLOrEmpty}
+					CurrentAgentShip:Set[${Config.FastCourierShipType}]
 				else
-					CurrentAgentShip:Set[${Config.CourierShipName}]
+					CurrentAgentShip:Set[${Config.CourierShipType}]
 			}
 			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
 			{
 				This:LogInfo["Trade Mission - Ore Hauler Needed"]
-				CurrentAgentShip:Set[${Config.TradeShipName}]
+				CurrentAgentShip:Set[${Config.TradeShipType}]
 			}
 			; Pulling our current (agent) variables back out.
 			if ${GetDBJournalInfo.GetFieldValue["ExpectedItems",string].NotNULLOrEmpty}
@@ -742,20 +742,20 @@ objectdef obj_Mission inherits obj_StateQueue
 			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
 			{
 				This:LogInfo["Encounter - Combat Ship Needed"]
-				CurrentAgentShip:Set[${Config.CombatShipName}]
+				CurrentAgentShip:Set[${Config.CombatShipType}]
 			}
 			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} > 10 )
 			{	
 				This:LogInfo["Large Courier - Hauler Needed"]
-				CurrentAgentShip:Set[${Config.CourierShipName}]
+				CurrentAgentShip:Set[${Config.CourierShipType}]
 			}
 			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} && ( ${GetDBJournalInfo.GetFieldValue["ItemVolume",int64]} <= 10 )
 			{
 				This:LogInfo["Small Courier - Shuttle Needed"]
-				if ${Config.FastCourierShipName.NotNULLOrEmpty}
-					CurrentAgentShip:Set[${Config.FastCourierShipName}]
+				if ${Config.FastCourierShipType.NotNULLOrEmpty}
+					CurrentAgentShip:Set[${Config.FastCourierShipType}]
 				else
-					CurrentAgentShip:Set[${Config.CourierShipName}]
+					CurrentAgentShip:Set[${Config.CourierShipType}]
 			}
 			; Pulling our current (agent) variables back out.
 			if ${GetDBJournalInfo.GetFieldValue["MissionLPReward",int]} > 0
@@ -3486,33 +3486,32 @@ objectdef obj_Mission inherits obj_StateQueue
 		WalAssurance:Set[TRUE]
 	}
 	; Stealing this function from evebot and making it into a method instead.
-	method ActivateShip(string name)
+	method ActivateShip(string type)
 	{
 		variable index:item hsIndex
 		variable iterator hsIterator
-		variable string shipName
+		variable string shipType
 
-		echo ACTIVATE SHIP: ${name} ${MyShip.Name}
 		if ${Me.InStation}
 		{
 			Me:GetHangarShips[hsIndex]
 			hsIndex:GetIterator[hsIterator]
 			
-			shipName:Set[${MyShip.Name}]
-			if ${shipName.NotEqual[${name}]} && ${hsIterator:First(exists)}
+			shipType:Set[${MyShip.ToItem.Type}]
+			if ${shipType.NotEqual[${type}]} && ${hsIterator:First(exists)}
 			{
 				do
 				{
-					if ${hsIterator.Value.GivenName.Equal[${name}]}
+					if ${hsIterator.Value.Type.Equal[${type}]}
 					{
-						This:LogInfo["Switching to ship named ${hsIterator.Value.GivenName}."]
+						This:LogInfo["Switching to ship of Type ${hsIterator.Value.Type}."]
 						hsIterator.Value:MakeActive
 						break
 					}
-					echo DEBUG WRONG SHIP ${hsIterator.Value.GivenName}
+					echo DEBUG WRONG SHIP ${hsIterator.Value.Type}
 				}
 				while ${hsIterator:Next(exists)}
-				if ${shipName.NotEqual[${name}]}
+				if ${MyShip.ToItem.Type.NotEqual[${type}]}
 				{
 					This:LogInfo["We were unable to change to the correct ship. Failure state."]
 					FailedToChangeShip:Set[TRUE]

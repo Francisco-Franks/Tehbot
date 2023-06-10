@@ -298,15 +298,15 @@
 						</OnMouseExit>
 					</Checkbox>
 					
-					<Text name='CombatShipNameTitle'>
+					<Text name='CombatShipTypeTitle'>
 						<X>35%</X>
 						<Y>4%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<Alignment>Center</Alignment>
-						<Text>Combat Ship Name</Text>
+						<Text>Combat Ship TYPE</Text>
 					</Text>
-					<Textentry Name="CombatShipName">
+					<Textentry Name="CombatShipType">
 						<Font template='Information.Font' />
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
@@ -316,28 +316,28 @@
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<OnLoad>
-							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.CombatShipName}]
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.CombatShipType}]
 						</OnLoad>
 						<OnChange>
-							Script[Tehbot].VariableScope.Mission.Config:SetCombatShipName[${This.Text}]
+							Script[Tehbot].VariableScope.Mission.Config:SetCombatShipType[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The literal name of your Combat Ship. Please don't leave this blank. Also, I have no idea how many things will go wrong if your ship's name has symbols in it."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The TYPE of your combat ship. If you have a Paladin named Squidward you want to use for COMBAT MISSIONS, you put Paladin in this box."]
 						</OnMouseEnter>
 						<OnMouseExit>
 							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>
 
-					<Text name='CourierShipNameTitle'>
+					<Text name='CourierShipTypeTitle'>
 						<X>35%</X>
 						<Y>9%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<Alignment>Center</Alignment>
-						<Text>Hauling Ship Name</Text>
+						<Text>Hauling Ship TYPE</Text>
 					</Text>
-					<Textentry Name="CourierShipName">
+					<Textentry Name="CourierShipType">
 						<Font template='Information.Font' />
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
@@ -347,28 +347,28 @@
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<OnLoad>
-							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.CourierShipName}]
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.CourierShipType}]
 						</OnLoad>
 						<OnChange>
-							Script[Tehbot].VariableScope.Mission.Config:SetCourierShipName[${This.Text}]
+							Script[Tehbot].VariableScope.Mission.Config:SetCourierShipType[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The literal name of your Hauler. The less it can carry the worse the storyline mission with 80k in boxes will be. Deep Space Transports are good, please don't use an Orca."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The TYPE of your larger Hauling ship. If you have a Mastodon named Spongebob you want to use for LARGER COURIER MISSIONS, you put Spongebob in this box. Deep Space Transports are good, please don't use an Orca."]
 						</OnMouseEnter>
 						<OnMouseExit>
 							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>
 					
-					<Text name='FastCourierShipNameTitle'>
+					<Text name='FastCourierShipTypeTitle'>
 						<X>35%</X>
 						<Y>14%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<Alignment>Center</Alignment>
-						<Text>Fast Courier Ship Name</Text>
+						<Text>Fast Courier Ship TYPE</Text>
 					</Text>
-					<Textentry Name="FastCourierShipName">
+					<Textentry Name="FastCourierShipType">
 						<Font template='Information.Font' />
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
@@ -378,28 +378,28 @@
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<OnLoad>
-							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.FastCourierShipName}]
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.FastCourierShipType}]
 						</OnLoad>
 						<OnChange>
-							Script[Tehbot].VariableScope.Mission.Config:SetFastCourierShipName[${This.Text}]
+							Script[Tehbot].VariableScope.Mission.Config:SetFastCourierShipType[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The literal name of your Fast Courier Ship. This means a shuttle, or interceptor, or fast frigate. It will basically only be used for transaction data delivery and a couple middle of combat chain missions."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The TYPE of your small Hauling ship. If you have a Taranis named Plankton that you want to use for SMALL COURIER MISSIONS, you put Taranis in this box. Very small cargo means a shuttle, or interceptor, or fast frigate. It will basically only be used for transaction data delivery and a couple middle of combat chain missions."]
 						</OnMouseEnter>
 						<OnMouseExit>
 							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>
 					
-					<Text name='TradeShipNameTitle'>
+					<Text name='TradeShipTypeTitle'>
 						<X>35%</X>
 						<Y>19%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<Alignment>Center</Alignment>
-						<Text>Ore Hauler Ship Name</Text>
+						<Text>Ore Hauler Ship TYPE</Text>
 					</Text>
-					<Textentry Name="TradeShipName">
+					<Textentry Name="TradeShipType">
 						<Font template='Information.Font' />
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
@@ -409,13 +409,13 @@
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<OnLoad>
-							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.TradeShipName}]
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.TradeShipType}]
 						</OnLoad>
 						<OnChange>
-							Script[Tehbot].VariableScope.Mission.Config:SetTradeShipName[${This.Text}]
+							Script[Tehbot].VariableScope.Mission.Config:SetTradeShipType[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The literal name of your Trade Mission Ship, I suggest a Miasmos. Deep Space Transports, Prospects/Endurances (but not ventures) are also acceptable."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The TYPE of your ORE HAULER, if you have an Endurance named Patrick that you want to use for ORE TRADE MISSIONS, you would put Endurance in this box. I suggest a Miasmos. Deep Space Transports, Prospects/Endurances (but not ventures) are also acceptable."]
 						</OnMouseEnter>
 						<OnMouseExit>
 							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
