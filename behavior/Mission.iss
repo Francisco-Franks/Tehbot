@@ -2482,7 +2482,8 @@ objectdef obj_Mission inherits obj_StateQueue
 			HaulerLargestBayCapacity:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity}]
 			TempStorage1:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity}]
 			HaulerLargestBayType:Set["ShipFleetHangar"]
-			HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].LocationFlag}]
+			;HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].LocationFlag}]
+			HaulerLargestBayLocationFlag:Set["FleetHold"]
 			HaulerLargestBayOreLimited:Set[FALSE]
 			echo DEBUG GHD6
 		}
@@ -2508,7 +2509,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			HaulerLargestBayCapacity:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity}]
 			HaulerLargestBayType:Set["ShipGeneralMiningHold"]
-			HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].LocationFlag}]
+			;HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].LocationFlag}]
+			HaulerLargestBayLocationFlag:Set["OreHold"]
 			HaulerLargestBayOreLimited:Set[TRUE]
 			echo DEBUG GHD8
 		}
