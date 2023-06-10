@@ -925,7 +925,8 @@ objectdef obj_Mission inherits obj_StateQueue
 							{
 								EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
 								GetDBJournalInfo:Finalize
-								return FALSE
+								This:InsertState["GetShipAndOrOre",3500]
+								return TRUE
 							}
 							EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
 							items:GetIterator[itemIterator]
@@ -953,7 +954,8 @@ objectdef obj_Mission inherits obj_StateQueue
 							if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 							{
 								EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-								return FALSE
+								This:InsertState["GetShipAndOrOre",3500]
+								return TRUE
 							}
 							EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
 							items:GetIterator[itemIterator]
@@ -1362,8 +1364,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 		{
 			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-			This:InsertState["Idle",3000]
-			return FALSE
+			This:InsertState["CourierMissionCheckStation",2500]
+			return TRUE
 		}
 		
 		if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
@@ -1409,8 +1411,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		if !${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"](exists)}
 		{
 			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"]:MakeActive
-			This:InsertState["Idle",3000]
-			return FALSE
+			This:InsertState["CourierMissionCheckShip",2500]
+			return TRUE
 		}
 		
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"](exists)}
