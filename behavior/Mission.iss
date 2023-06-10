@@ -3503,13 +3503,13 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				do
 				{
-					if ${hsIterator.Value.Name.Equal[${name}]}
+					if ${hsIterator.Value.GivenName.Equal[${name}]}
 					{
-						This:LogInfo["Switching to ship named ${hsIterator.Value.Name}."]
+						This:LogInfo["Switching to ship named ${hsIterator.Value.GivenName}."]
 						hsIterator.Value:MakeActive
 						break
 					}
-					echo DEBUG WRONG SHIP ${hsIterator.Value.Name}
+					echo DEBUG WRONG SHIP ${hsIterator.Value.GivenName}
 				}
 				while ${hsIterator:Next(exists)}
 				if ${shipName.NotEqual[${name}]}
