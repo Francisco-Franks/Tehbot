@@ -886,7 +886,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			; We are already at our Primary Agent Station. Here we will A) Ensure that our ship is the ship called for in the last state and B) (optional) ensure that we have the Ore needed for a trade mission, if thats what is next.
 			echo DEBUG - ${CurrentAgentShip}
-			if !${MyShip.Name.Find[${CurrentAgentShip}]}
+			if !${MyShip.Type.Find[${CurrentAgentShip}]}
 			{
 				; Ship isn't right. Let's see if we can switch our ship with isxeve still.
 				if !${ShipHangar}
