@@ -871,7 +871,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	}
 	; We needed to break PrePrep up because there are two parts to this. Going to our PRIMARY AGENT STATION (not current agent station). Switching ships, grabbing ore if needed, then heading to our (presumably) storyline mission agent
 	; (who would actually be our CurrentAgent).
-	member:bool GetShipAndOrOre()
+	member:bool GetShipAndOrOre(bool ShipHangar)
 	{
 		; Need a variable to decrement to figure out if we have enough of our trade item
 		variable int InStock
@@ -889,6 +889,12 @@ objectdef obj_Mission inherits obj_StateQueue
 			if !${MyShip.Name.Find[${CurrentAgentShip}]}
 			{
 				; Ship isn't right. Let's see if we can switch our ship with isxeve still.
+				if !${ShipHangar}
+				{
+					EVEWindow[Inventory].ChildWindow[StationShips]:MakeActive
+					This:InsertState["GetShipAndOrOre",3500,"TRUE"]
+					return TRUE
+				}
 				This:ActivateShip[${CurrentAgentShip}]
 				if ${FailedToChangeShip}
 				{
@@ -897,6 +903,9 @@ objectdef obj_Mission inherits obj_StateQueue
 					This:Stop
 					return TRUE
 				}
+				This:InsertState["GetShipAndOrOre",3500,"FALSE"]
+				This:InsertState["PrepHangars"]
+				return TRUE
 				; Presumably, we are in the right ship now.
 			}
 			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
