@@ -3492,11 +3492,12 @@ objectdef obj_Mission inherits obj_StateQueue
 		variable iterator hsIterator
 		variable string shipName
 
+		echo ACTIVATE SHIP: ${name} ${MyShip.Name}
 		if ${Me.InStation}
 		{
 			Me:GetHangarShips[hsIndex]
 			hsIndex:GetIterator[hsIterator]
-
+			
 			shipName:Set[${MyShip.Name}]
 			if ${shipName.NotEqual[${name}]} && ${hsIterator:First(exists)}
 			{
@@ -3508,6 +3509,7 @@ objectdef obj_Mission inherits obj_StateQueue
 						hsIterator.Value:MakeActive
 						break
 					}
+					echo DEBUG WRONG SHIP
 				}
 				while ${hsIterator:Next(exists)}
 				if ${shipName.NotEqual[${name}]}
