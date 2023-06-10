@@ -2437,13 +2437,13 @@ objectdef obj_Mission inherits obj_StateQueue
 			return TRUE
 			
 		}
-		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} < 0 && !${ShipCargoChecked}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} < 0 && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"](exists)}
 		{
 			echo DEBUG GHD2
 			This:InsertState["GetHaulerDetails",3000]
 			return TRUE
 		}
-		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} > 0 && !${ShipCargoChecked}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} > 0 && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"](exists)}
 		{
 			HaulerLargestBayCapacity:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity}]
 			TempStorage1:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity}]
@@ -2464,13 +2464,13 @@ objectdef obj_Mission inherits obj_StateQueue
 			This:InsertState["GetHaulerDetails",3000]
 			return TRUE
 		}
-		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity} < 0 !${ShipFleetHangarChecked}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity} < 0 && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"](exists)}
 		{
 			echo DEBUG GHD5
 			This:InsertState["GetHaulerDetails",3000]
 			return TRUE
 		}
-		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity} > 0 !${ShipFleetHangarChecked}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity} > 0 && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"](exists)}
 		{
 			HaulerLargestBayCapacity:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity}]
 			TempStorage1:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity}]
@@ -2492,13 +2492,13 @@ objectdef obj_Mission inherits obj_StateQueue
 			This:InsertState["GetHaulerDetails",3000]
 			return TRUE
 		}
-		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} < 0 && !${ShipOreBayChecked}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} < 0 && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"](exists)}
 		{
 			echo DEBUG GHD8
 			This:InsertState["GetHaulerDetails",3000]
 			return TRUE
 		}
-		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} > 0 && !${ShipOreBayChecked}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} > ${HaulerLargestBayCapacity} && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"](exists)}
 		{
 			HaulerLargestBayCapacity:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity}]
 			HaulerLargestBayType:Set["ShipGeneralMiningHold"]
