@@ -2794,8 +2794,11 @@ objectdef obj_Mission inherits obj_StateQueue
 		;return TRUE
 		
 		; To hell with that noise.
-		EVEWindow[Inventory].ChildWindow[StationCorpHangars,StationCorpHangar]:MakeActive
-		return TRUE
+		if ${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[StationCorpHangars,StationCorpHangar]:MakeActive
+			return TRUE
+		}
 	}
 
 	; Who knows.
