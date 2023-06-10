@@ -2800,6 +2800,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			EVEWindow[Inventory].ChildWindow[StationCorpHangars,StationCorpHangar]:MakeActive
 			return TRUE
 		}
+		return TRUE
 	}
 
 	; Who knows.
