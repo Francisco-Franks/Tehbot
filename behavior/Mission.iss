@@ -891,7 +891,10 @@ objectdef obj_Mission inherits obj_StateQueue
 				; Ship isn't right. Let's see if we can switch our ship with isxeve still.
 				if !${ShipHangar}
 				{
-					EVEWindow[Inventory].ChildWindow[StationShips]:MakeActive
+					if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar, "Folder1"](exists)}
+					{
+						EVEWindow[Inventory].ChildWindow[StationShips]:MakeActive
+					}
 					This:InsertState["GetShipAndOrOre",3500,"TRUE"]
 					return TRUE
 				}
