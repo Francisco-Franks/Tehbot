@@ -899,13 +899,6 @@ objectdef obj_Mission inherits obj_StateQueue
 					return TRUE
 				}
 				This:ActivateShip[${CurrentAgentShip}]
-				if ${FailedToChangeShip}
-				{
-					GetDBJournalInfo:Finalize
-					This:LogInfo["Ship doesn't exist here, awooga, stopping"]
-					This:Stop
-					return TRUE
-				}
 				This:InsertState["GetShipAndOrOre",3500,"FALSE"]
 				This:InsertState["PrepHangars"]
 				return TRUE
@@ -3514,11 +3507,6 @@ objectdef obj_Mission inherits obj_StateQueue
 					echo DEBUG WRONG SHIP ${hsIterator.Value.Type}
 				}
 				while ${hsIterator:Next(exists)}
-				if ${MyShip.ToItem.Type.NotEqual[${TheType}]}
-				{
-					This:LogInfo["We were unable to change to the correct ship. Failure state."]
-					FailedToChangeShip:Set[TRUE]
-				}
 			}
 			else
 			{
