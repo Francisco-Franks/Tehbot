@@ -862,26 +862,16 @@ objectdef obj_Mission inherits obj_StateQueue
 		if ${Me.StationID} == ${EVE.Agent[${PrimaryAgentIndex}].StationID}
 		{
 			This:LogInfo["At Primary Agent Station - Get Ship And/Or Ore"]
-			This:InsertState["GetShipAndOrOre",6000]
-			This:InsertState["PrepHangars"]
-			
+			This:InsertState["GetShip",6000]
 			return TRUE
 		}
 		return FALSE
 	}
 	; We needed to break PrePrep up because there are two parts to this. Going to our PRIMARY AGENT STATION (not current agent station). Switching ships, grabbing ore if needed, then heading to our (presumably) storyline mission agent
 	; (who would actually be our CurrentAgent).
-	member:bool GetShipAndOrOre(bool ShipHangar)
+	; Addendum, going to need to break this up into 2 states. Inventory is hell. First state we verify/change ship. Second state, if the mission is a trade mission, we will get ore. If not we skip it.
+	member:bool GetShip(bool ShipHangar)
 	{
-		; Need a variable to decrement to figure out if we have enough of our trade item
-		variable int InStock
-		; Need another for loading that trade item
-		variable int TradeItemNeeded
-		
-		; Inventory variables
-		variable index:item items
-		variable iterator itemIterator	
-	
 		if ${Me.StationID} == ${EVE.Agent[${PrimaryAgentIndex}].StationID}
 		{
 			; We are already at our Primary Agent Station. Here we will A) Ensure that our ship is the ship called for in the last state and B) (optional) ensure that we have the Ore needed for a trade mission, if thats what is next.
@@ -891,119 +881,135 @@ objectdef obj_Mission inherits obj_StateQueue
 				; Ship isn't right. Let's see if we can switch our ship with isxeve still.
 				if !${ShipHangar}
 				{
-					if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar, "Folder1"](exists)}
-					{
-						EVEWindow[Inventory].ChildWindow[StationShips]:MakeActive
-					}
-					This:InsertState["GetShipAndOrOre",5000,"TRUE"]
+					EVEWindow[Inventory].ChildWindow[StationShips]:MakeActive
+					This:InsertState["GetShip",5000,"TRUE"]
 					return TRUE
 				}
 				This:ActivateShip[${CurrentAgentShip}]
-				This:InsertState["GetShipAndOrOre",6000,"FALSE"]
-				This:InsertState["PrepHangars"]
+				This:InsertState["GetShip",6000,"FALSE"]
 				return TRUE
 				; Presumably, we are in the right ship now.
 			}
 			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
 			{
-				InStock:Inc[${CurrentAgentItemUnits}]
-				TradeItemNeeded:Set[${CurrentAgentItemUnits}]
-				This:LogInfo["Checking for ${CurrentAgentItem} for Trade Mission"]
-				InStock:Dec[${This.TradeItemInStock[${CurrentAgentItem}]}]
-				; This will reduce the number we need by the number we have, supposedly. Jury is still out on if my tampering will break it.
-				if ${InStock} > 0
-				{
-					GetDBJournalInfo:Finalize
-					This:LogCritical["Insufficient Quantity of ${CurrentAgentItem}, Stopping."]
-					This:Stop
-					return TRUE					
-				}
-				else
-				{
-					; We presumably have enough of the item, let us try and load it into our ship. But first, need to know some stuff about this ship.
-					This:LogCritical["DEBUG - ${HaulerLargestBayCapacity} HLBC ${CurrentAgentVolumeTotal} CAVT"]
-					if ${HaulerLargestBayCapacity} >= ${CurrentAgentVolumeTotal}
-					{
-						if ${Config.MunitionStorage.Equal[Corporation Hangar]}
-						{
-							if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
-							{
-								EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
-								GetDBJournalInfo:Finalize
-								This:InsertState["GetShipAndOrOre",3500]
-								return TRUE
-							}
-							EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
-							items:GetIterator[itemIterator]
-							do
-							{
-								if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
-								{
-									if ${itemIterator.Value.Quantity} >= ${TradeItemNeeded}
-									{
-										itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayLocationFlag}, ${TradeItemNeeded}]
-										break
-									}
-									else
-									{
-										itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayLocationFlag}, ${itemIterator.Value.Quantity}]
-										TradeItemNeeded:Dec[${itemIterator.Value.Quantity}]
-										continue
-									}
-								}
-							}
-							while ${itemIterator:Next(exists)}
-						}
-						if ${Config.MunitionStorage.Equal[Personal Hangar]}
-						{
-							if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
-							{
-								EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-								This:InsertState["GetShipAndOrOre",3500]
-								return TRUE
-							}
-							EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
-							items:GetIterator[itemIterator]
-							do
-							{
-								if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
-								{
-									if ${itemIterator.Value.Quantity} >= ${TradeItemNeeded}
-									{
-										itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayLocationFlag}, ${TradeItemNeeded}]
-										break
-									}
-									else
-									{
-										itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayLocationFlag}, ${itemIterator.Value.Quantity}]
-										TradeItemNeeded:Dec[${itemIterator.Value.Quantity}]
-										continue
-									}
-								}
-							}
-							while ${itemIterator:Next(exists)}
-						}
-					}
-					else
-					{
-						This:LogCritical["Picked a ship that can't haul ${CurrentAgentVolumeTotal} ore. I suggest a Miasmos."]
-						GetDBJournalInfo:Finalize
-						This:Stop
-						return TRUE
-					}
-				}
 				GetDBJournalInfo:Finalize
-				This:LogInfo["Ore Loaded, Headed out"]
-				This:QueueState["Go2Agent",8000]
+				This:InsertState["GetOre",4000,"FALSE"]
+				This:InsertState["RefreshCorpHangarState",3000]
 				return TRUE
 			}
 			else
 			{
+				GetDBJournalInfo:Finalize
 				This:QueueState["Go2Agent", 5000]
 				return TRUE		
 			}
 		}
 	}
+	; This state is the second half of the original GetShipAndOrOre. If Trade mission, we get ore. If not, we skipped this. If no ore available, we stop.
+	member:bool GetOre()
+	{
+		; Need a variable to decrement to figure out if we have enough of our trade item
+		variable int InStock
+		; Need another for loading that trade item
+		variable int TradeItemNeeded
+		
+		; Inventory variables
+		variable index:item items
+		variable iterator itemIterator
+		
+
+		InStock:Inc[${CurrentAgentItemUnits}]
+		TradeItemNeeded:Set[${CurrentAgentItemUnits}]
+		This:LogInfo["Checking for ${CurrentAgentItem} for Trade Mission"]
+		InStock:Dec[${This.TradeItemInStock[${CurrentAgentItem}]}]
+		; This will reduce the number we need by the number we have, supposedly. Jury is still out on if my tampering will break it.
+		if ${InStock} > 0
+		{
+			GetDBJournalInfo:Finalize
+			This:LogCritical["Insufficient Quantity of ${CurrentAgentItem}, Stopping."]
+			This:Stop
+			return TRUE					
+		}
+		else
+		{
+			; We presumably have enough of the item, let us try and load it into our ship. But first, need to know some stuff about this ship.
+			This:LogCritical["DEBUG - ${HaulerLargestBayCapacity} HLBC ${CurrentAgentVolumeTotal} CAVT"]
+			if ${HaulerLargestBayCapacity} >= ${CurrentAgentVolumeTotal}
+			{
+				if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+				{
+					if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
+					{
+						EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
+						GetDBJournalInfo:Finalize
+						This:InsertState["GetOre",3500]
+						return TRUE
+					}
+					EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
+					items:GetIterator[itemIterator]
+					do
+					{
+						if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+						{
+							if ${itemIterator.Value.Quantity} >= ${TradeItemNeeded}
+							{
+								itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayLocationFlag}, ${TradeItemNeeded}]
+								break
+							}
+							else
+							{
+								itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayLocationFlag}, ${itemIterator.Value.Quantity}]
+								TradeItemNeeded:Dec[${itemIterator.Value.Quantity}]
+								continue
+							}
+						}
+					}
+					while ${itemIterator:Next(exists)}
+				}
+				if ${Config.MunitionStorage.Equal[Personal Hangar]}
+				{
+					if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+					{
+						EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
+						This:InsertState["GetOre",3500]
+						return TRUE
+					}
+					EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
+					items:GetIterator[itemIterator]
+					do
+					{
+						if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+						{
+							if ${itemIterator.Value.Quantity} >= ${TradeItemNeeded}
+							{
+								itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayLocationFlag}, ${TradeItemNeeded}]
+								break
+							}
+							else
+							{
+								itemIterator.Value:MoveTo[${MyShip.ID}, ${HaulerLargestBayLocationFlag}, ${itemIterator.Value.Quantity}]
+								TradeItemNeeded:Dec[${itemIterator.Value.Quantity}]
+								continue
+							}
+						}
+					}
+					while ${itemIterator:Next(exists)}
+				}
+			}
+			else
+			{
+				This:LogCritical["Picked a ship that can't haul ${CurrentAgentVolumeTotal} ore. I suggest a Miasmos."]
+				GetDBJournalInfo:Finalize
+				This:Stop
+				return TRUE
+			}
+			GetDBJournalInfo:Finalize
+		This:LogInfo["Ore Loaded, Headed out"]
+		This:QueueState["Go2Agent",8000]
+		return TRUE
+	}
+	
+
 	; This state exists to get us to wherever our agent is. We will use 3 variables about our Current Agent to make this easier, probably. Actually... We only need their location.
 	; The other 2 are for other things later. Idk, I'm tired.
 	member:bool Go2Agent()
@@ -2781,8 +2787,11 @@ objectdef obj_Mission inherits obj_StateQueue
 		;return TRUE
 		
 		; To hell with that noise.
-		EVEWindow[Inventory].ChildWindow[StationCorpHangars,StationCorpHangars]:MakeActive
-		return TRUE
+		if !${EVEWindow[Inventory].ChildWindow[StationCorpHangar, "Folder1"](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[StationCorpHangars,StationCorpHangars]:MakeActive
+			return TRUE
+		}
 	}
 
 	; Who knows.
