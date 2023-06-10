@@ -886,7 +886,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			; We are already at our Primary Agent Station. Here we will A) Ensure that our ship is the ship called for in the last state and B) (optional) ensure that we have the Ore needed for a trade mission, if thats what is next.
 			echo DEBUG - ${CurrentAgentShip}
-			if !${MyShip.Type.Find[${CurrentAgentShip}]}
+			if !${MyShip.ToItem.Type.Find[${CurrentAgentShip}]}
 			{
 				; Ship isn't right. Let's see if we can switch our ship with isxeve still.
 				if !${ShipHangar}
@@ -3486,7 +3486,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		WalAssurance:Set[TRUE]
 	}
 	; Stealing this function from evebot and making it into a method instead.
-	method ActivateShip(string type)
+	method ActivateShip(string TheType)
 	{
 		variable index:item hsIndex
 		variable iterator hsIterator
@@ -3498,11 +3498,11 @@ objectdef obj_Mission inherits obj_StateQueue
 			hsIndex:GetIterator[hsIterator]
 			
 			shipType:Set[${MyShip.ToItem.Type}]
-			if ${shipType.NotEqual[${type}]} && ${hsIterator:First(exists)}
+			if ${shipType.NotEqual[${TheType}]} && ${hsIterator:First(exists)}
 			{
 				do
 				{
-					if ${hsIterator.Value.Type.Equal[${type}]}
+					if ${hsIterator.Value.Type.Equal[${TheType}]}
 					{
 						This:LogInfo["Switching to ship of Type ${hsIterator.Value.Type}."]
 						hsIterator.Value:MakeActive
@@ -3511,7 +3511,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					echo DEBUG WRONG SHIP ${hsIterator.Value.Type}
 				}
 				while ${hsIterator:Next(exists)}
-				if ${MyShip.ToItem.Type.NotEqual[${type}]}
+				if ${MyShip.ToItem.Type.NotEqual[${TheType}]}
 				{
 					This:LogInfo["We were unable to change to the correct ship. Failure state."]
 					FailedToChangeShip:Set[TRUE]
