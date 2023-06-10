@@ -2498,7 +2498,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			This:InsertState["GetHaulerDetails",3000]
 			return TRUE
 		}
-		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} > 0 &&  && !${ShipOreBayChecked}
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} > 0 && !${ShipOreBayChecked}
 		{
 			HaulerLargestBayCapacity:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity}]
 			HaulerLargestBayType:Set["ShipGeneralMiningHold"]
