@@ -893,7 +893,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
 			{
 				GetDBJournalInfo:Finalize
-				This:InsertState["GetOre",4000,"FALSE"]
+				This:InsertState["GetOre",4000]
 				This:InsertState["RefreshCorpHangarState",3000]
 				return TRUE
 			}
@@ -906,7 +906,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 	}
 	; This state is the second half of the original GetShipAndOrOre. If Trade mission, we get ore. If not, we skipped this. If no ore available, we stop.
-	member:bool GetOre()
+	; The argument is how many times we've cycled through that initial CheckInventoryValid member. If we go through 18 seconds worth of that something is fucked or there are genuinely no items in the inventory.
+	member:bool GetOre(int Cycles)
 	{
 		; Need a variable to decrement to figure out if we have enough of our trade item
 		variable int InStock
@@ -916,8 +917,11 @@ objectdef obj_Mission inherits obj_StateQueue
 		; Inventory variables
 		variable index:item items
 		variable iterator itemIterator
-		
-
+		if ${This.CheckInventoryValid} < 1 && ${Cycles} <= 5
+		{
+			This:InsertState["GetOre",3500,"${Math.Calc[${Cycles} + 1]}"]
+			return TRUE	
+		}
 		InStock:Inc[${CurrentAgentItemUnits}]
 		TradeItemNeeded:Set[${CurrentAgentItemUnits}]
 		This:LogInfo["Checking for ${CurrentAgentItem} for Trade Mission"]
@@ -941,7 +945,6 @@ objectdef obj_Mission inherits obj_StateQueue
 					if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
 					{
 						EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
-						GetDBJournalInfo:Finalize
 						This:InsertState["GetOre",3500]
 						return TRUE
 					}
@@ -999,11 +1002,9 @@ objectdef obj_Mission inherits obj_StateQueue
 			else
 			{
 				This:LogCritical["Picked a ship that can't haul ${CurrentAgentVolumeTotal} ore. I suggest a Miasmos."]
-				GetDBJournalInfo:Finalize
 				This:Stop
 				return TRUE
 			}
-			GetDBJournalInfo:Finalize
 			This:LogInfo["Ore Loaded, Headed out"]
 			This:QueueState["Go2Agent",8000]
 			return TRUE
@@ -3624,6 +3625,47 @@ objectdef obj_Mission inherits obj_StateQueue
 				return ${itemtotal}
 			}		
 		}
+	}
+	; This member is so I can tell if the FUCKING INVENTORY WILL INDEX YET HOLY SHIT. How can this be so fucked up? I'm seeing like 15 second waits required for some of these!
+	member:int CheckInventoryValid()
+	{
+		variable index:item itemIndex
+		
+		if ${Config.MunitionStorage.Equal[Corporation Hangar]}
+		{
+
+			if ${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
+			{
+				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[itemIndex]
+				if ${itemIndex.Used}
+				{
+					This:LogInfo["Items Present in Inventory Index!"]
+					return ${itemIndex.Used}
+				}
+				else
+				{
+					This:LogInfo["Returned an empty index"]
+					return 0
+				}
+			}
+		}
+		if ${Config.MunitionStorage.Equal[Personal Hangar]}
+		{
+			if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+			{
+				EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[itemIndex]
+				if ${itemIndex.Used}
+				{
+					This:LogInfo["Items Present in Inventory Index!"]
+					return ${itemIndex.Used}
+				}
+				else
+				{
+					This:LogInfo["Returned an empty index"]
+					return 0
+				}
+			}		
+		}	
 	}
 }
 
