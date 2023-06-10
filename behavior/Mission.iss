@@ -1035,6 +1035,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			; Already there I guess. May as well open that Agent Conversation window and commence Databasification.
 			This:LogInfo["At Agent Station"]
 			This:QueueState["InitialAgentPreInteraction",4000]
+			This:InsertState["PrepHangars"]		
 			return TRUE
 		}
 	}
