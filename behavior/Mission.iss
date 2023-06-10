@@ -2433,13 +2433,15 @@ objectdef obj_Mission inherits obj_StateQueue
 			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"]:MakeActive
 			ShipCargoChecked:Set[TRUE]
 			echo DEBUG GHD1
-			return FALSE
+			This:InsertState["GetHaulerDetails",3000]
+			return TRUE
 			
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} < 0
 		{
 			echo DEBUG GHD2
-			return FALSE
+			This:InsertState["GetHaulerDetails",3000]
+			return TRUE
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} > 0
 		{
@@ -2448,7 +2450,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			HaulerLargestBayType:Set["ShipCargo"]
 			HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].LocationFlag}]
 			HaulerLargestBayOreLimited:Set[FALSE]
-			echo DEBUG GHD3
+			return FALSE
 		}
 		else
 		{
@@ -2459,12 +2461,14 @@ objectdef obj_Mission inherits obj_StateQueue
 			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"]:MakeActive
 			ShipFleetHangarChecked:Set[TRUE]
 			echo DEBUG GHD4
-			return FALSE
+			This:InsertState["GetHaulerDetails",3000]
+			return TRUE
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity} < 0
 		{
 			echo DEBUG GHD5
-			return FALSE
+			This:InsertState["GetHaulerDetails",3000]
+			return TRUE
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity} > 0
 		{
@@ -2474,6 +2478,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].LocationFlag}]
 			HaulerLargestBayOreLimited:Set[FALSE]
 			echo DEBUG GHD6
+			return FALSE
 		}
 		else
 		{
@@ -2484,12 +2489,14 @@ objectdef obj_Mission inherits obj_StateQueue
 			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"]:MakeActive
 			ShipOreBayChecked:Set[TRUE]
 			echo DEBUG GHD7
-			return FALSE
+			This:InsertState["GetHaulerDetails",3000]
+			return TRUE
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} < 0
 		{
 			echo DEBUG GHD8
-			return FALSE
+			This:InsertState["GetHaulerDetails",3000]
+			return TRUE
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} > 0 &&  (${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} > ${TempStorage1})
 		{
