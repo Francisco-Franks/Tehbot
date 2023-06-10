@@ -1004,9 +1004,10 @@ objectdef obj_Mission inherits obj_StateQueue
 				return TRUE
 			}
 			GetDBJournalInfo:Finalize
-		This:LogInfo["Ore Loaded, Headed out"]
-		This:QueueState["Go2Agent",8000]
-		return TRUE
+			This:LogInfo["Ore Loaded, Headed out"]
+			This:QueueState["Go2Agent",8000]
+			return TRUE
+		}
 	}
 	
 
