@@ -3509,7 +3509,7 @@ objectdef obj_Mission inherits obj_StateQueue
 						hsIterator.Value:MakeActive
 						break
 					}
-					echo DEBUG WRONG SHIP
+					echo DEBUG WRONG SHIP ${hsIterator.Value.Name}
 				}
 				while ${hsIterator:Next(exists)}
 				if ${shipName.NotEqual[${name}]}
