@@ -2508,7 +2508,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			HaulerLargestBayCapacity:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity}]
 			HaulerLargestBayType:Set["ShipGeneralMiningHold"]
-			HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold""].LocationFlag}]
+			HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].LocationFlag}]
 			HaulerLargestBayOreLimited:Set[TRUE]
 			echo DEBUG GHD8
 		}
