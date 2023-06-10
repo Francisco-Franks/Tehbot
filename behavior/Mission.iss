@@ -862,7 +862,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		if ${Me.StationID} == ${EVE.Agent[${PrimaryAgentIndex}].StationID}
 		{
 			This:LogInfo["At Primary Agent Station - Get Ship And/Or Ore"]
-			This:InsertState["GetShipAndOrOre",3500]
+			This:InsertState["GetShipAndOrOre",6000]
 			This:InsertState["PrepHangars"]
 			
 			return TRUE
@@ -895,11 +895,11 @@ objectdef obj_Mission inherits obj_StateQueue
 					{
 						EVEWindow[Inventory].ChildWindow[StationShips]:MakeActive
 					}
-					This:InsertState["GetShipAndOrOre",3500,"TRUE"]
+					This:InsertState["GetShipAndOrOre",5000,"TRUE"]
 					return TRUE
 				}
 				This:ActivateShip[${CurrentAgentShip}]
-				This:InsertState["GetShipAndOrOre",3500,"FALSE"]
+				This:InsertState["GetShipAndOrOre",6000,"FALSE"]
 				This:InsertState["PrepHangars"]
 				return TRUE
 				; Presumably, we are in the right ship now.
