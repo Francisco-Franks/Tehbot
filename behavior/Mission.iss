@@ -2450,7 +2450,6 @@ objectdef obj_Mission inherits obj_StateQueue
 			HaulerLargestBayType:Set["ShipCargo"]
 			HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].LocationFlag}]
 			HaulerLargestBayOreLimited:Set[FALSE]
-			return FALSE
 		}
 		else
 		{
@@ -2478,7 +2477,6 @@ objectdef obj_Mission inherits obj_StateQueue
 			HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].LocationFlag}]
 			HaulerLargestBayOreLimited:Set[FALSE]
 			echo DEBUG GHD6
-			return FALSE
 		}
 		else
 		{
