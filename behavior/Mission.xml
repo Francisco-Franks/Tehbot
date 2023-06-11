@@ -1467,7 +1467,7 @@
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
 						<BorderColor>FFFFFFFF</BorderColor>
-						<X>50%</X>
+						<X>60%</X>
 						<Y>4%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
@@ -1590,6 +1590,37 @@
 							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</listbox>
+					
+					<Text name='InventoryPulseRateModifierTitle'>
+						<X>1%</X>
+						<Y>40%</Y>
+						<Width>30%</Width>
+						<Height>5%</Height>
+						<Alignment>Center</Alignment>
+						<Text>Inventory Pulse Rate Modifier</Text>
+					</Text>
+					<Textentry Name="InventoryPulseRateModifier">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>41%</X>
+						<Y>40%</Y>
+						<Width>5%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.InventoryPulseRateModifier}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetInventoryPulseRateModifier[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This will be a multiplier for how long inventory actions are to take. Higher is safer, and slower. Lower is faster and stupid don't go super low. This should be in the form of a number like 1.2 or something."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>	
 					
 					<Text name='InformationFrameTitle'>
 						<X>1%</X>

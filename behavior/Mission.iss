@@ -28,6 +28,7 @@ objectdef obj_Configuration_Mission inherits obj_Configuration_Base
 	{
 		ConfigManager.ConfigRoot:AddSet[${This.SetName}]
 		This.ConfigRef:AddSetting[RunNumberInt, 1]
+		This.ConfigRef:AddSetting[InventoryPulseRateModifier, 1.0]
 	}
 	Setting(bool, Halt, SetHalt)
 	; This bool indicates we want to repeatedly Decline missions despite the standings damage
@@ -95,6 +96,10 @@ objectdef obj_Configuration_Mission inherits obj_Configuration_Base
 	Setting(bool, SidekickMode, SetSidekickMode)
 	; Literal character name of whoever you are helping as a sidekick.
 	Setting(string, PrimaryName, SetPrimaryName)
+	
+	; Since inventory is so wildly fucking variable per client, I will need to create a way to modify the pulse on inventory actions.
+	; This will be multiplier with the pulse for inventory actions. Higher number means slower actions.
+	Setting(float, InventoryPulseRateModifier, SetInventoryPulseRateModifier)
 
 	; This won't go in the UI anywhere, just need a persistent storage for our Run Number because I'm lazy.
 	; To be honest, mostly just need this to initialize the number the first time around. This will be incremented after each mission completion.
@@ -295,13 +300,6 @@ objectdef obj_Mission inherits obj_StateQueue
 			This:LogCritical["You need to specify a Mission file!"]
 			return
 		}
-		if !${ISXSQLiteTest.TheSQLDatabase.ID(exists)}
-		{
-			This:LogCritical["SQL is not optional. Check the readme for how to get the extension. It is free."]
-			This:LogCritical["If you have the extension. Enable ISXSQLiteTest on the minimodes tab."]
-			return 
-		}
-		
 		variable filepath MissionData = "${Script[Tehbot].CurrentDirectory}/data/${Config.MissionFile}"
 		runscript "${MissionData}"
 		
@@ -350,6 +348,13 @@ objectdef obj_Mission inherits obj_StateQueue
 		if ${PrimaryAgentIndex} < 1
 		{
 			PrimaryAgentIndex:Set[${EVE.Agent[${AgentList.Get[1]}].Index}]
+		}
+		if !${ISXSQLiteTest.TheSQLDatabase.ID(exists)}
+		{
+			This:LogCritical["SQL is not optional. Check the readme for how to get the extension. It is free."]
+			This:LogCritical["If you have the extension. Enable ISXSQLiteTest on the minimodes tab."]
+			This:Stop
+			return TRUE
 		}
 		; SQL DB related stuff.
 		if !${CharacterSQLDB.ID(exists)} || !${SharedSQLDB.ID(exists)}
@@ -507,9 +512,9 @@ objectdef obj_Mission inherits obj_StateQueue
 				echo DEBUG - GOING TO MID RUN RECOVERY - NONCOMBAT
 				This:MidRunRecovery["Noncombat"]
 				This:QueueState["CourierMission", 3000]
-				This:InsertState["CourierMissionCheckStation", 2000]
-				This:InsertState["CourierMissionCheckShip", 2000]
-				This:InsertState["GetHaulerDetails",2000]
+				This:InsertState["CourierMissionCheckStation", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				This:InsertState["CourierMissionCheckShip", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				This:InsertState["GetHaulerDetails",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 
 				return TRUE
 			}
@@ -531,7 +536,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		;{
 			This:LogInfo["Begin Mission Choice"]
 			This:QueueState["CurateMissions", 5000]
-			This:InsertState["GetHaulerDetails",2000]
+			This:InsertState["GetHaulerDetails",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE		
 		;}
 		
@@ -729,11 +734,11 @@ objectdef obj_Mission inherits obj_StateQueue
 			This:QueueState["MissionPrePrep", 5000]
 			if ${Config.MunitionStorage.Equal[Corporation Hangar]}
 			{
-				This:InsertState["RefreshCorpHangarState",3000]
+				This:InsertState["RefreshCorpHangarState",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 				This:InsertState["PrepHangars"]			
 			}
 			if ${Config.MunitionStorage.Equal[Personal Hangar]}
-				This:InsertState["RefreshStationItemsState",3000]
+				This:InsertState["RefreshStationItemsState",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE
 		}
 		GetDBJournalInfo:Finalize
@@ -793,11 +798,11 @@ objectdef obj_Mission inherits obj_StateQueue
 			This:QueueState["MissionPrePrep", 5000]
 			if ${Config.MunitionStorage.Equal[Corporation Hangar]}
 			{
-				This:InsertState["RefreshCorpHangarState",3000]
+				This:InsertState["RefreshCorpHangarState",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 				This:InsertState["PrepHangars"]				
 			}
 			if ${Config.MunitionStorage.Equal[Personal Hangar]}
-				This:InsertState["RefreshStationItemsState",3000]
+				This:InsertState["RefreshStationItemsState",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE
 		}
 		else
@@ -809,12 +814,12 @@ objectdef obj_Mission inherits obj_StateQueue
 			This:QueueState["MissionPrePrep", 5000]
 			if ${Config.MunitionStorage.Equal[Corporation Hangar]}
 			{
-				This:InsertState["RefreshCorpHangarState",3000]
+				This:InsertState["RefreshCorpHangarState",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 				This:InsertState["PrepHangars"]				
 			}
 			if ${Config.MunitionStorage.Equal[Personal Hangar]}
-				This:InsertState["RefreshStationItemsState",3000]
-			This:InsertState["GetHaulerDetails",2000]
+			This:InsertState["RefreshStationItemsState",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+			This:InsertState["GetHaulerDetails",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE
 		}
 	}
@@ -897,7 +902,9 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				GetDBJournalInfo:Finalize
 				This:InsertState["GetOre",4000]
-				This:InsertState["RefreshCorpHangarState",3000]
+				This:InsertState["RefreshCorpHangarState",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				This:InsertState["PrepHangars"]
+				This:InsertState["GetHaulerDetails",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 				return TRUE
 			}
 			else
@@ -922,7 +929,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		variable iterator itemIterator
 		if ${This.CheckInventoryValid} < 1 && ${Cycles} <= 5
 		{
-			This:InsertState["GetOre",3500,"${Math.Calc[${Cycles} + 1]}"]
+			This:InsertState["GetOre",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int},"${Math.Calc[${Cycles} + 1]}"]
 			return TRUE	
 		}
 		InStock:Inc[${CurrentAgentItemUnits}]
@@ -948,7 +955,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
 					{
 						EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
-						This:InsertState["GetOre",3500]
+						This:InsertState["GetOre",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 						return TRUE
 					}
 					EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:GetItems[items]
@@ -977,7 +984,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 					{
 						EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-						This:InsertState["GetOre",3500]
+						This:InsertState["GetOre",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 						return TRUE
 					}
 					EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[items]
@@ -1009,7 +1016,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				return TRUE
 			}
 			This:LogInfo["Ore Loaded, Headed out"]
-			This:QueueState["Go2Agent",8000]
+			This:QueueState["Go2Agent",${Math.Calc[(4000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE
 		}
 	}
@@ -1139,11 +1146,11 @@ objectdef obj_Mission inherits obj_StateQueue
 				GetDBJournalInfo:Finalize
 				EVEWindow[AgentConversation_${CurrentAgentID}]:Close
 				This:QueueState["CourierMission",5000]
-				This:InsertState["CourierMissionCheckStation", 2000]
-				This:InsertState["RefreshStationItemsState", 2000]
-				This:InsertState["CourierMissionCheckShip", 2000]
-				This:InsertState["RefreshLargestBayState", 2000]
-				This:InsertState["GetHaulerDetails",2000]
+				This:InsertState["CourierMissionCheckStation", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				This:InsertState["RefreshStationItemsState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				This:InsertState["CourierMissionCheckShip", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				This:InsertState["RefreshLargestBayState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				This:InsertState["GetHaulerDetails",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 
 				return TRUE
 			}
@@ -1280,7 +1287,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				{
 					; We have not loaded the items
 					This:LogInfo["Courier Start - Loading"]					
-					This:InsertState["CourierMissionLoadShip",5000]
+					This:InsertState["CourierMissionLoadShip",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 					return TRUE
 				}
 				if ${CourierMissionStationItems} == 0 && ${CourierMissionShipItems} == 0
@@ -1288,11 +1295,11 @@ objectdef obj_Mission inherits obj_StateQueue
 					; The items have phased out of existence.
 					echo DEBUG - END OF THE LINE
 					This:QueueState["CourierMission",5000]
-					This:InsertState["CourierMissionCheckStation", 2000]
-					This:InsertState["RefreshStationItemsState", 2000]
-					This:InsertState["CourierMissionCheckShip", 2000]
-					This:InsertState["RefreshLargestBayState", 2000]
-					This:InsertState["GetHaulerDetails",2000]
+					This:InsertState["CourierMissionCheckStation", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+					This:InsertState["RefreshStationItemsState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+					This:InsertState["CourierMissionCheckShip", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+					This:InsertState["RefreshLargestBayState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+					;This:InsertState["GetHaulerDetails",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 					return TRUE
 				}
 			}
@@ -1303,7 +1310,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				{
 					; We have not unloaded the items
 					This:LogInfo["Courier Start - Unloading"]					
-					This:InsertState["CourierMissionUnloadShip",5000]
+					This:InsertState["CourierMissionUnloadShip",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 					return TRUE					
 				}
 				if ${CourierMissionStationItems} > 0 && ${CourierMissionShipItems} == 0
@@ -1330,12 +1337,19 @@ objectdef obj_Mission inherits obj_StateQueue
 					}
 					
 				}
-				if ${CourierMissionStationItems} == 0 && ${CourierMissionShipItems} == 0
+				if ${CourierMissionStationItems} == 0 && ${CourierMissionShipItems} == 0 && ${Me.StationID} == ${CurrentAgentDropoffID}
 				{
 					; The items have phased out of existence.
-					This:QueueState["CheckForWork",2000]
+					This:LogInfo["Items missing, or Dropoff Location is Agent Location - Go to Pickup"]
+					CourierMissionTravelState:Set["Pickup"]
+					This:InsertState["CourierMissionTravel",5000]					
 					return TRUE
-				}				
+				}
+				else
+				{
+					; Edge case I haven't figured out yet
+				
+				}
 			}
 			else
 			{
@@ -1362,12 +1376,12 @@ objectdef obj_Mission inherits obj_StateQueue
 				return TRUE
 			}
 			This:InsertState["CourierMission",5000]
-			This:InsertState["CourierMissionCheckShip",2500]
+			This:InsertState["CourierMissionCheckShip",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE
 		}
 	}
 	; This state will be for checking the station inventory.
-	member:bool CourierMissionCheckStation()
+	member:bool CourierMissionCheckStation(int Cycles)
 	{
 		variable index:item itemIndex
 		variable iterator itemIterator
@@ -1381,13 +1395,20 @@ objectdef obj_Mission inherits obj_StateQueue
 		if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 		{
 			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-			This:InsertState["CourierMissionCheckStation",2500]
+			This:InsertState["CourierMissionCheckStation",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE
 		}
 		
 		if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 		{
 			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[itemIndex]
+			if ${itemIndex.Used} < 1 && ${Cycles} < 3
+			{
+				; Theoretically, for Load and Unload, we wouldn't have gotten here if there wasn't something to move.
+				This:LogInfo["Returned Empty Index - Cycling"]
+				This:InsertState["CourierMissionCheckStation",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int},"${Math.Calc[${Cycles} + 1]}"]
+				return TRUE
+			}			
 			itemIndex:GetIterator[itemIterator]
 			if ${itemIterator:First(exists)}
 			{
@@ -1417,7 +1438,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		}			
 	}
 	; This state will be for checking your ship's inventory.
-	member:bool CourierMissionCheckShip()
+	member:bool CourierMissionCheckShip(int Cycles)
 	{
 		variable index:item itemIndex
 		variable iterator itemIterator
@@ -1428,13 +1449,20 @@ objectdef obj_Mission inherits obj_StateQueue
 		if !${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"](exists)}
 		{
 			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"]:MakeActive
-			This:InsertState["CourierMissionCheckShip",2500]
+			This:InsertState["CourierMissionCheckShip",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE
 		}
 		
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"](exists)}
 		{
 			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"]:GetItems[itemIndex]
+			if ${itemIndex.Used} < 1 && ${Cycles} < 3
+			{
+				; Theoretically, for Load and Unload, we wouldn't have gotten here if there wasn't something to move.
+				This:LogInfo["Returned Empty Index - Cycling"]
+				This:InsertState["CourierMissionCheckShip",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int},"${Math.Calc[${Cycles} + 1]}"]
+				return TRUE
+			}
 			itemIndex:GetIterator[itemIterator]
 			if ${itemIterator:First(exists)}
 			{
@@ -1463,11 +1491,18 @@ objectdef obj_Mission inherits obj_StateQueue
 		if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 		{
 			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
-			return FALSE
+			This:InsertState["CourierMissionLoadShip",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+			return TRUE
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
 		{
 			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[itemIndex]
+			if ${itemIndex.Used} < 1
+			{
+				; Theoretically, for Load and Unload, we wouldn't have gotten here if there wasn't something to move.
+				This:LogInfo["Returned Empty Index - Cycling"]
+				return FALSE
+			}
 			itemIndex:GetIterator[itemIterator]
 			if ${itemIterator:First(exists)}
 			{
@@ -1492,10 +1527,10 @@ objectdef obj_Mission inherits obj_StateQueue
 			}
 		}
 		This:InsertState["CourierMission",5000]
-		This:InsertState["CourierMissionCheckStation", 2000]
-		This:InsertState["RefreshStationItemsState", 2000]
-		This:InsertState["CourierMissionCheckShip", 2000]
-		This:InsertState["RefreshLargestBayState", 2000]
+		This:InsertState["CourierMissionCheckStation", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+		This:InsertState["RefreshStationItemsState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+		This:InsertState["CourierMissionCheckShip", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+		This:InsertState["RefreshLargestBayState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 		return TRUE
 	}
 	; This state will be for unloading.
@@ -1507,12 +1542,20 @@ objectdef obj_Mission inherits obj_StateQueue
 		if !${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"](exists)}
 		{
 			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"]:MakeActive
-			return FALSE
+			This:InsertState["CourierMissionUnloadShip",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+			return TRUE
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"](exists)}
 		{
 			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"]:GetItems[itemIndex]
 			itemIndex:GetIterator[itemIterator]
+			if ${itemIndex.Used} < 1
+			{
+				; Theoretically, for Load and Unload, we wouldn't have gotten here if there wasn't something to move.
+				This:LogInfo["Returned Empty Index - Cycling"]
+				return FALSE
+				
+			}
 			if ${itemIterator:First(exists)}
 			{
 				do
@@ -1530,10 +1573,10 @@ objectdef obj_Mission inherits obj_StateQueue
 			
 		}
 		This:InsertState["CourierMission",5000]
-		This:InsertState["CourierMissionCheckStation", 2000]
-		This:InsertState["RefreshStationItemsState", 2000]
-		This:InsertState["CourierMissionCheckShip", 2000]
-		This:InsertState["RefreshLargestBayState", 2000]
+		This:InsertState["CourierMissionCheckStation", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+		This:InsertState["RefreshStationItemsState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+		This:InsertState["CourierMissionCheckShip", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+		This:InsertState["RefreshLargestBayState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 		return TRUE
 	
 	}
@@ -1563,10 +1606,10 @@ objectdef obj_Mission inherits obj_StateQueue
 				;if ${Me.StationID} == ${CurrentAgentDropoffID}
 				;{
 				;	CourierMissionTravelState:Set[""]
-				;	This:InsertState["CourierMissionCheckStation", 2000]
-				;	This:InsertState["RefreshStationItemsState", 2000]
-				;	This:InsertState["CourierMissionCheckShip", 2000]
-				;	This:InsertState["RefreshLargestBayState", 2000]
+				;	This:InsertState["CourierMissionCheckStation", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				;	This:InsertState["RefreshStationItemsState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				;	This:InsertState["CourierMissionCheckShip", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				;	This:InsertState["RefreshLargestBayState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 				;	return TRUE
 				;}
 				;else
@@ -1584,10 +1627,10 @@ objectdef obj_Mission inherits obj_StateQueue
 				;if ${Me.StationID} == ${CurrentAgentPickupID}
 				;{
 				;	CourierMissionTravelState:Set[""]
-				;	This:InsertState["CourierMissionCheckStation", 2000]
-				;	This:InsertState["RefreshStationItemsState", 2000]
-				;	This:InsertState["CourierMissionCheckShip", 2000]
-				;	This:InsertState["RefreshLargestBayState", 2000]
+				;	This:InsertState["CourierMissionCheckStation", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				;	This:InsertState["RefreshStationItemsState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				;	This:InsertState["CourierMissionCheckShip", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				;	This:InsertState["RefreshLargestBayState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 				;	return TRUE 
 				;}
 				;else
@@ -1597,10 +1640,10 @@ objectdef obj_Mission inherits obj_StateQueue
 			;}
 			Move:AgentBookmark[${This.CourierMissionDestination}]
 			This:InsertState["CourierMission",5000]
-			This:InsertState["CourierMissionCheckStation", 2000]
-			This:InsertState["RefreshStationItemsState", 2000]
-			This:InsertState["CourierMissionCheckShip", 2000]
-			This:InsertState["RefreshLargestBayState", 2000]
+			This:InsertState["CourierMissionCheckStation", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+			This:InsertState["RefreshStationItemsState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+			This:InsertState["CourierMissionCheckShip", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+			This:InsertState["RefreshLargestBayState", ${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
 			This:InsertState["Traveling"]
 			return TRUE
 		}
@@ -1702,7 +1745,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		This:QueueState["CheckForWork",4000]
 		return TRUE
 	}
-	
 	; This is a great name for a state. Anyways, here in Databasification we will take our Mission Journal, go through all of the missions
 	; Then we will place the information in the SQL database for easier consumption presumably. I won't lie, it has been more than one day
 	; Since I worked on this, so I've somewhat lost the plot. Each mission will be placed into the Character Specific MissionJournal Table.
@@ -1993,7 +2035,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			LastMissionLocation:Set[${JSONObjectiveString1.AsJSON.Mid[2,${FirstSlashA}]}]
 			echo LML ${LastMissionLocation}
 		}
-		; Courier mission, The location is whatever location we scrape that isn't the agent's location. I think I am going to have to bite the bullet
+				; Courier mission, The location is whatever location we scrape that isn't the agent's location. I think I am going to have to bite the bullet
 		; and parse both the pickup and the dropoff location. I also will need to adjust the tables and crap above. RIP.
 		if ${MissionType.Find[Courier]}
 		{
@@ -2445,14 +2487,14 @@ objectdef obj_Mission inherits obj_StateQueue
 			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"]:MakeActive
 			ShipCargoChecked:Set[TRUE]
 			echo DEBUG GHD1
-			This:InsertState["GetHaulerDetails",3000]
+			This:InsertState["GetHaulerDetails",${Math.Calc[(4000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE
 			
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} < 0 && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"](exists)}
 		{
 			echo DEBUG GHD2
-			This:InsertState["GetHaulerDetails",3000]
+			This:InsertState["GetHaulerDetails",${Math.Calc[(4000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} > 0 && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"](exists)}
@@ -2472,13 +2514,13 @@ objectdef obj_Mission inherits obj_StateQueue
 			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"]:MakeActive
 			ShipFleetHangarChecked:Set[TRUE]
 			echo DEBUG GHD4
-			This:InsertState["GetHaulerDetails",3000]
+			This:InsertState["GetHaulerDetails",${Math.Calc[(4000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity} < 0 && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"](exists)}
 		{
 			echo DEBUG GHD5
-			This:InsertState["GetHaulerDetails",3000]
+			This:InsertState["GetHaulerDetails",${Math.Calc[(4000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"].Capacity} > 0 && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipFleetHangar"](exists)}
@@ -2500,13 +2542,13 @@ objectdef obj_Mission inherits obj_StateQueue
 			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"]:MakeActive
 			ShipOreBayChecked:Set[TRUE]
 			echo DEBUG GHD7
-			This:InsertState["GetHaulerDetails",3000]
+			This:InsertState["GetHaulerDetails",${Math.Calc[(4000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} < 0 && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"](exists)}
 		{
 			echo DEBUG GHD8
-			This:InsertState["GetHaulerDetails",3000]
+			This:InsertState["GetHaulerDetails",${Math.Calc[(4000) * ${InventoryPulseRateModifier}].Int}]
 			return TRUE
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"].Capacity} > ${HaulerLargestBayCapacity} && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipGeneralMiningHold"](exists)}
@@ -2795,7 +2837,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		;return TRUE
 		
 		; To hell with that noise.
-		if ${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
+		if !${EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}](exists)}
 		{
 			EVEWindow[Inventory].ChildWindow[StationCorpHangars,StationCorpHangar]:MakeActive
 			return TRUE
@@ -3550,7 +3592,8 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				EVEWindow[Inventory].ChildWindow["StationCorpHangar", ${Config.MunitionStorageFolder}]:MakeActive
 				CorpHangarRefreshed:Set[TRUE]
-				return FALSE
+				This:InsertState["RefreshCorpHangarState",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+				return TRUE
 			}
 		}
 		CorpHangarRefreshed:Set[FALSE]
@@ -3563,7 +3606,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"${HaulerLargestBayType}"]:MakeActive			
 			LargestBayRefreshed:Set[TRUE]
-			return FALSE
+			This:InsertState["RefreshLargestBayState",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+			return TRUE
 		}
 		LargestBayRefreshed:Set[FALSE]
 		This:LogInfo["${HaulerLargestBayType} Refreshed"]
@@ -3575,7 +3619,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
 			StationHangarRefreshed:Set[TRUE]
-			return FALSE
+			This:InsertState["RefreshStationItemsState",${Math.Calc[(3000) * ${InventoryPulseRateModifier}].Int}]
+			return TRUE
 		}
 		StationHangarRefreshed:Set[FALSE]
 		This:LogInfo["Station Items Refreshed"]
