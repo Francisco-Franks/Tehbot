@@ -357,28 +357,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		if ${PrimaryAgentIndex} < 1
 		{
 			PrimaryAgentIndex:Set[${EVE.Agent[${AgentList.Get[1]}].Index}]
-		}
-		; No more telling people what Minimodes to enable. I will enable them for them. They will still need configuring though
-		if !${This.Config.EnabledMiniModes.FindSetting[ISXSQLiteTest](exists)}
-		{
-			This:LogCritical["ISXSQLiteTest Minimode Has Been Enabled - Configure it"]
-			Dynamic:ActivateMinimode["ISXSQLiteTest"]
-		}
-		if !${This.Config.EnabledMiniModes.FindSetting[AutoThrust](exists)}
-		{
-			This:LogCritical["AutoThrust Minimode Has Been Enabled - Configure it"]
-			Dynamic:ActivateMinimode["AutoThrust"]
-		}
-		if !${This.Config.EnabledMiniModes.FindSetting[ISXSQLiteTest](exists)}
-		{
-			This:LogCritical["AutoModule Minimode Has Been Enabled - Configure it"]
-			Dynamic:ActivateMinimode["AutoModule"]
-		}
-		if !${This.Config.EnabledMiniModes.FindSetting[FightOrFlight](exists)}
-		{
-			This:LogCritical["FightOrFlight Minimode Has Been Enabled "]
-			Dynamic:ActivateMinimode["FightOrFlight"]
-		}			
+		}		
 		; SQL DB related stuff.
 		if !${CharacterSQLDB.ID(exists)} || !${SharedSQLDB.ID(exists)}
 		{
@@ -1151,15 +1130,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		;  DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume INTEGER, UnitsMoved INTEGER, VolumeMoved INTEGER, FinalTimestamp DATETIME, Historical BOOLEAN);"]
 		if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} || ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
 		{
-			; We're going to try something weird here. Since we may be swapping between combat missions and otherwise, I want to turn off states that aren't required.
-			if ${This.Config.EnabledMiniModes.FindSetting[TargetManager](exists)}
-			{
-				Dynamic:DeactivateMinimode["TargetManager"]
-			}
-			if ${This.Config.EnabledMiniModes.FindSetting[DroneControl](exists)}
-			{
-				Dynamic:DeactivateMinimode["DroneControl"]
-			}			
 			; Gotta do this again, we might have swapped ships going from a trade mission to a courier.
 			;This:InsertState["GetHaulerDetails",5000]
 			; The following method is basically just to initialize our Current Run stats.
@@ -1192,14 +1162,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		;   TrueCompletion BOOLEAN, FinalTimestamp DATETIME, Historical BOOLEAN);"]
 		if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
 		{
-			if !${This.Config.EnabledMiniModes.FindSetting[TargetManager](exists)}
-			{
-				Dynamic:ActivateMinimode["TargetManager"]
-			}
-			if !${This.Config.EnabledMiniModes.FindSetting[DroneControl](exists)}
-			{
-				Dynamic:ActivateMinimode["DroneControl"]
-			}
 			This:SetCurrentRunDetails[${HaulerLargestBayCapacity},${CurrentAgentVolumeTotal}]
 			This:MissionLogCombatUpsert[${CurrentRunNumber},${Time.Timestamp},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${CurrentRunFinalTimestamp},FALSE]
 			GetDBJournalInfo:Finalize
