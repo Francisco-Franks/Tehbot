@@ -1303,7 +1303,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			if ${Cycles} <= 3
 			{
 				This:LogInfo["Awaiting next spawn wave (if it exists). Cycle Number ${Cycles}."]
-				This:InsertState["CombatMission", 4000,"${Math.Calc[{Cycles} + 1]}"]
+				This:InsertState["CombatMission", 4000,"${Math.Calc[${Cycles} + 1]}"]
 				return TRUE
 			}
 			; We waited for a spawn and nothing happened, proceed.
