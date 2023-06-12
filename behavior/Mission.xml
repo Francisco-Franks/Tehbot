@@ -585,137 +585,28 @@
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Text>
-					<Text name='AmmoSupplyValue'>
+					<Textentry Name="AmmoSupplyValue">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
 						<X>1%</X>
 						<Y>21%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
-						<Alignment>Center</Alignment>
 						<OnLoad>
 							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
 						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetAmmoAmountToLoad[${This.Text}]
+						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["How much ammo will you carry? Make sure you have enough room for double this amount and whatever you need to pick up in the mission."]
 						</OnMouseEnter>
 						<OnMouseExit>
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
-					</Text>
-					<button	Name='AmmoInc1'>
-						<Font template='Button.Font' />
-						<BackgroundColor>FF000000</BackgroundColor>
-						<X>22%</X>
-						<Y>19%</Y>
-						<Width>3%</Width>
-						<Height>5%</Height>
-						<Text>1</Text>
-						<OnLeftClick>
-							Script[Tehbot].VariableScope.Mission.Config:SetAmmoAmountToLoad[${Math.Calc[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad} + 1]}]
-							UIElement[AmmoSupplyValue@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
-						</OnLeftClick>
-						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
-						</OnMouseEnter>
-						<OnMouseExit>
-							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
-						</OnMouseExit>
-					</button>
-					<button	Name='AmmoInc10'>
-						<Font template='Button.Font' />
-						<BackgroundColor>FF000000</BackgroundColor>
-						<X>25%</X>
-						<Y>19%</Y>
-						<Width>3%</Width>
-						<Height>5%</Height>
-						<Text>10</Text>
-						<OnLeftClick>
-							Script[Tehbot].VariableScope.Mission.Config:SetAmmoAmountToLoad[${Math.Calc[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad} + 10]}]
-							UIElement[AmmoSupplyValue@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
-						</OnLeftClick>
-						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
-						</OnMouseEnter>
-						<OnMouseExit>
-							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
-						</OnMouseExit>
-					</button>
-					<button	Name='AmmoInc100'>
-						<Font template='Button.Font' />
-						<BackgroundColor>FF000000</BackgroundColor>
-						<X>28%</X>
-						<Y>19%</Y>
-						<Width>3%</Width>
-						<Height>5%</Height>
-						<Text>100</Text>
-						<OnLeftClick>
-							Script[Tehbot].VariableScope.Mission.Config:SetAmmoAmountToLoad[${Math.Calc[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad} + 100]}]
-							UIElement[AmmoSupplyValue@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
-						</OnLeftClick>
-						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
-						</OnMouseEnter>
-						<OnMouseExit>
-							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
-						</OnMouseExit>
-					</button>
-					<button	Name='AmmoDec100'>
-						<Font template='Button.Font' />
-						<BackgroundColor>FF000000</BackgroundColor>
-						<X>1%</X>
-						<Y>19%</Y>
-						<Width>3%</Width>
-						<Height>5%</Height>
-						<Text>100</Text>
-						<OnLeftClick>
-							Script[Tehbot].VariableScope.Mission.Config:SetAmmoAmountToLoad[${Math.Calc[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad} - 100]}]
-							UIElement[AmmoSupplyValue@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
-						</OnLeftClick>
-						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
-						</OnMouseEnter>
-						<OnMouseExit>
-							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
-						</OnMouseExit>
-					</button>
-					<button	Name='AmmoDec10'>
-						<Font template='Button.Font' />
-						<BackgroundColor>FF000000</BackgroundColor>
-						<X>4%</X>
-						<Y>19%</Y>
-						<Width>3%</Width>
-						<Height>5%</Height>
-						<Text>10</Text>
-						<OnLeftClick>
-							Script[Tehbot].VariableScope.Mission.Config:SetAmmoAmountToLoad[${Math.Calc[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad} - 10]}]
-							UIElement[AmmoSupplyValue@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
-						</OnLeftClick>
-						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
-						</OnMouseEnter>
-						<OnMouseExit>
-							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
-						</OnMouseExit>
-					</button>
-					<button	Name='AmmoDec1'>
-						<Font template='Button.Font' />
-						<BackgroundColor>FF000000</BackgroundColor>
-						<X>7%</X>
-						<Y>19%</Y>
-						<Width>3%</Width>
-						<Height>5%</Height>
-						<Text>1</Text>
-						<OnLeftClick>
-							Script[Tehbot].VariableScope.Mission.Config:SetAmmoAmountToLoad[${Math.Calc[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad} - 1]}]
-							UIElement[AmmoSupplyValue@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[${Script[Tehbot].VariableScope.Mission.Config.AmmoAmountToLoad}]
-						</OnLeftClick>
-						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
-						</OnMouseEnter>
-						<OnMouseExit>
-							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
-						</OnMouseExit>
-					</button>
-					
+					</Textentry>					
 					<Checkbox name='UseDrones'>
 						<X>1%</X>
 						<Y>49%</Y>
