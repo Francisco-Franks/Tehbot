@@ -27,6 +27,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 	variable obj_Configuration_DroneControl Config
 	variable obj_TargetList ActiveNPCs
 	variable obj_TargetList NPC
+	
 	variable obj_TargetList Marshal
 	variable obj_TargetList RemoteRepJerkz
 	variable obj_TargetList StarvingJerks

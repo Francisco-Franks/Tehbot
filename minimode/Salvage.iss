@@ -223,9 +223,11 @@ objectdef obj_Salvage inherits obj_StateQueue
 						{
 							Ship.ModuleList_TractorBeams:DeactivateOn[${wreckIterator.Value.ID}]
 						}
-
-						This:LogInfo["Activating salvager - \ap${wreckIterator.Value.Name}"]
-						Ship.ModuleList_Salvagers:ActivateOne[${wreckIterator.Value.ID}]
+						if !${Mission.CurrentAgentLoot.Equal["Cargo Container"]}
+						{
+							This:LogInfo["Activating salvager - \ap${wreckIterator.Value.Name}"]
+							Ship.ModuleList_Salvagers:ActivateOne[${wreckIterator.Value.ID}]
+						}
 						return FALSE
 					}
 

@@ -153,8 +153,8 @@ function main(string Character="")
 	declarevariable Drones obj_Drones script
 	
 	;Just what everyone likes, global variables. Need these for information sharing between Offense Manager, Position Manager, and Target Manager
-	declarevariable CurrentOffenseRange int global
-	declarevariable CurrentRepRange int global
+	declarevariable CurrentOffenseRange float global
+	declarevariable CurrentRepRange float global
 	declarevariable CurrentOffenseTarget int64 global
 	declarevariable CurrentRepTarget int64 global
 	

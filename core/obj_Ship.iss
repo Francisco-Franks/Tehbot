@@ -73,6 +73,7 @@ objectdef obj_Ship inherits obj_StateQueue
 		This:AddModuleList[EnergyTransfer, "ToItem.GroupID = GROUP_ENERGY_TRANSFER"]
 		This:AddModuleList[AutoTarget, "ToItem.GroupID = GROUP_AUTOMATED_TARGETING_SYSTEM"]
 		This:AddModuleList[Siege, "ToItem.GroupID = GROUP_SIEGEMODULE"]
+		This:AddModuleList[MJD, "ToItem.GroupID = 1189"]
 		
 		This:AddModuleList[OreMining, "ToItem.GroupID = GROUP_MININGLASER || ToItem.GroupID = GROUP_STRIPMINER || ToItem.GroupID = GROUP_FREQUENCYMININGLASER"]
 		This:AddModuleList[GasMining, "ToItem.GroupID = GROUP_GASCLOUDHARVESTER	 || ToItem.GroupID = GROUP_GASCLOUDSCOOP"]

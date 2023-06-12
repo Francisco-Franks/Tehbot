@@ -72,6 +72,7 @@ objectdef obj_Abyssal inherits obj_StateQueue
 	variable int maxAttackTime
 	variable int switchTargetAfter = 120
 
+
 	variable set AllowDronesOnNpcClass
 	variable obj_TargetList NPCs
 	variable obj_TargetList ActiveNPCs

@@ -81,7 +81,7 @@ objectdef obj_TargetManager inherits obj_StateQueue
 		This[parent]:Initialize
 
 		DynamicAddMiniMode("TargetManager", "TargetManager")
-		This.PulseFrequency:Set[500]
+		This.PulseFrequency:Set[1000]
 
 		This.NonGameTiedPulse:Set[TRUE]
 
@@ -302,7 +302,7 @@ objectdef obj_TargetManager inherits obj_StateQueue
 		NPCs:AddAllNPCs
 		NPCs:AddQueryString["GroupID = 4033"]
 
-		if ${Config.IgnoreNPCSentries}
+		if ${Mission.Config.IgnoreNPCSentries}
 		{
 			ActiveNPCs:AddTargetExceptionByPartOfName["Battery"]
 			ActiveNPCs:AddTargetExceptionByPartOfName["Batteries"]
@@ -321,7 +321,11 @@ objectdef obj_TargetManager inherits obj_StateQueue
 	method PlagiarisedOffense()
 	{
 		variable bool allowSiegeModule
-		allowSiegeModule:Set[TRUE]
+		; Mission controls this itself.
+		if !${CommonConfig.Tehbot_Mode.Equal["Mission"]}
+		{
+			allowSiegeModule:Set[TRUE]
+		}
 		
 		if !${Entity[${CurrentOffenseTarget}]} || ${Entity[${CurrentOffenseTarget}].IsMoribund} || !(${Entity[${CurrentOffenseTarget}].IsLockedTarget} || ${Entity[${CurrentOffenseTarget}].BeingTargeted})
 		{
@@ -906,26 +910,29 @@ objectdef obj_TargetManager inherits obj_StateQueue
 		}
 
 		This:BuildNpcQueries
-		Marshalz.AutoLock:Set[TRUE]
-		Marshalz:RequestUpdate
-		RemoteRepJerks.AutoLock:Set[TRUE]
-		RemoteRepJerks:RequestUpdate
-		StarvingJerks.AutoLock:Set[TRUE]
-		StarvingJerks:RequestUpdate
-		Leshaks.Autolock:Set[TRUE]
-		Leshaks:RequestUpdate
-		Kikimoras.Autolock:Set[TRUE]
-		Kikimoras:RequestUpdate
-		Damaviks.Autolock:Set[TRUE]
-		Damaviks:RequestUpdate
-		Vedmaks.Autolock:Set[TRUE]
-		Vedmaks:RequestUpdate
-		Drekavacs.Autolock:Set[TRUE]
-		Drekavacs:RequestUpdate
-		Cynabals.Autolock:Set[TRUE]
-		Cynabals:RequestUpdate
-		Dramiels.Autolock:Set[TRUE]
-		Dramiels:RequestUpdate
+		if ${CommonConfig.Tehbot_Mode.Equal["Abyssal"]}
+		{
+			Marshalz.AutoLock:Set[TRUE]
+			Marshalz:RequestUpdate
+			RemoteRepJerks.AutoLock:Set[TRUE]
+			RemoteRepJerks:RequestUpdate
+			StarvingJerks.AutoLock:Set[TRUE]
+			StarvingJerks:RequestUpdate
+			Leshaks.Autolock:Set[TRUE]
+			Leshaks:RequestUpdate
+			Kikimoras.Autolock:Set[TRUE]
+			Kikimoras:RequestUpdate
+			Damaviks.Autolock:Set[TRUE]
+			Damaviks:RequestUpdate
+			Vedmaks.Autolock:Set[TRUE]
+			Vedmaks:RequestUpdate
+			Drekavacs.Autolock:Set[TRUE]
+			Drekavacs:RequestUpdate
+			Cynabals.Autolock:Set[TRUE]
+			Cynabals:RequestUpdate
+			Dramiels.Autolock:Set[TRUE]
+			Dramiels:RequestUpdate
+		}
 		NPCs.AutoLock:Set[TRUE]
 		ActiveNPCs.AutoLock:Set[TRUE]
 		ActiveNPCs:RequestUpdate

@@ -187,6 +187,9 @@ objectdef obj_Mission inherits obj_StateQueue
 	variable int	CurrentRunItemUnitsMoved
 	variable int64	CurrentRunVolumeMoved
 	variable int64	CurrentRunISKReward
+	; Going to try an advanced tactic here. This will be a collection of Acceleration Gates we have used during the current mission.
+	; Key is the Name of the Gate. Value is the Entity ID (int64)
+	variable collection:int64 CurrentRunGatesUsed
 	
 	; Courier Mission State Specific Variables
 	variable int	CourierMissionShipItems
@@ -196,7 +199,11 @@ objectdef obj_Mission inherits obj_StateQueue
 	;variable int	CourierMissionDropoffStationItems
 	variable string	CourierMissionTravelState
 
-
+	; Combat Mission Stat Specific Variables
+	variable collection:int64 CombatMissionCloseTargets
+	variable collection:int64 CombatMissionMidrangeTargets
+	variable collection:int64 CombatMissionDistantTargets
+	variable bool	CombatMissionDestroyTargetSeen
 
 	; Some variable for our current room
 	variable int64	CurrentRoomStartTime
@@ -250,6 +257,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	; Target list(s)
 	; TargetList for DatabasifyNPCs method.
 	variable obj_TargetList DatabasifyNPC
+	variable obj_TargetList Lootables
 
 	; Need to set our Primary Agent's Index. Primary Agent is the first agent in your mission datafile.
 	variable int64 PrimaryAgentIndex
@@ -305,7 +313,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		
 		This:QueueState["CheckForWork",5000]
 		UIElement[Run@TitleBar@Tehbot]:SetText[Stop]
-
+		DatabasifyNPC:AddAllNPCs
+		Lootables:AddQueryString["(GroupID = GROUP_WRECK || GroupID = GROUP_CARGOCONTAINER) && !IsMoribund"]
 	}
 
 	method Stop()
@@ -349,13 +358,27 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			PrimaryAgentIndex:Set[${EVE.Agent[${AgentList.Get[1]}].Index}]
 		}
-		if !${ISXSQLiteTest.TheSQLDatabase.ID(exists)}
+		; No more telling people what Minimodes to enable. I will enable them for them. They will still need configuring though
+		if !${This.Config.EnabledMiniModes.FindSetting[ISXSQLiteTest](exists)}
 		{
-			This:LogCritical["SQL is not optional. Check the readme for how to get the extension. It is free."]
-			This:LogCritical["If you have the extension. Enable ISXSQLiteTest on the minimodes tab."]
-			This:Stop
-			return TRUE
+			This:LogCritical["ISXSQLiteTest Minimode Has Been Enabled - Configure it"]
+			Dynamic:ActivateMinimode["ISXSQLiteTest"]
 		}
+		if !${This.Config.EnabledMiniModes.FindSetting[AutoThrust](exists)}
+		{
+			This:LogCritical["AutoThrust Minimode Has Been Enabled - Configure it"]
+			Dynamic:ActivateMinimode["AutoThrust"]
+		}
+		if !${This.Config.EnabledMiniModes.FindSetting[ISXSQLiteTest](exists)}
+		{
+			This:LogCritical["AutoModule Minimode Has Been Enabled - Configure it"]
+			Dynamic:ActivateMinimode["AutoModule"]
+		}
+		if !${This.Config.EnabledMiniModes.FindSetting[FightOrFlight](exists)}
+		{
+			This:LogCritical["FightOrFlight Minimode Has Been Enabled "]
+			Dynamic:ActivateMinimode["FightOrFlight"]
+		}			
 		; SQL DB related stuff.
 		if !${CharacterSQLDB.ID(exists)} || !${SharedSQLDB.ID(exists)}
 		{
@@ -1121,12 +1144,22 @@ objectdef obj_Mission inherits obj_StateQueue
 		This:MissionJournalUpdateStatus[${CurrentAgentID},2]
 		CurrentAgentMissionName:Set[${GetDBJournalInfo.GetFieldValue["MissionName",string]}]
 		CurrentAgentMissionType:Set[${GetDBJournalInfo.GetFieldValue["MissionType",string]}]
+		MissionParser.AgentName:Set[${EVE.Agent[${CurrentAgentIndex}].Name}]
 		; We have a journal row, as expected. This should have already been curated, so this mission should, without fail, be one we want.
 		; Let us establish the mission parameters, so we can put it in the correct mission log table.
 		; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER,
 		;  DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume INTEGER, UnitsMoved INTEGER, VolumeMoved INTEGER, FinalTimestamp DATETIME, Historical BOOLEAN);"]
 		if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} || ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
 		{
+			; We're going to try something weird here. Since we may be swapping between combat missions and otherwise, I want to turn off states that aren't required.
+			if ${This.Config.EnabledMiniModes.FindSetting[TargetManager](exists)}
+			{
+				Dynamic:DeactivateMinimode["TargetManager"]
+			}
+			if ${This.Config.EnabledMiniModes.FindSetting[DroneControl](exists)}
+			{
+				Dynamic:DeactivateMinimode["DroneControl"]
+			}			
 			; Gotta do this again, we might have swapped ships going from a trade mission to a courier.
 			;This:InsertState["GetHaulerDetails",5000]
 			; The following method is basically just to initialize our Current Run stats.
@@ -1159,9 +1192,14 @@ objectdef obj_Mission inherits obj_StateQueue
 		;   TrueCompletion BOOLEAN, FinalTimestamp DATETIME, Historical BOOLEAN);"]
 		if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
 		{
-			; Don't ask, no idea why I did this.
-			;This:InsertState["GetHaulerDetails",5000]
-			; Do know why I did this.
+			if !${This.Config.EnabledMiniModes.FindSetting[TargetManager](exists)}
+			{
+				Dynamic:ActivateMinimode["TargetManager"]
+			}
+			if !${This.Config.EnabledMiniModes.FindSetting[DroneControl](exists)}
+			{
+				Dynamic:ActivateMinimode["DroneControl"]
+			}
 			This:SetCurrentRunDetails[${HaulerLargestBayCapacity},${CurrentAgentVolumeTotal}]
 			This:MissionLogCombatUpsert[${CurrentRunNumber},${Time.Timestamp},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${CurrentRunFinalTimestamp},FALSE]
 			GetDBJournalInfo:Finalize
@@ -1209,8 +1247,8 @@ objectdef obj_Mission inherits obj_StateQueue
 						if ${bookmarkIterator.Value.LocationType.Equal[dungeon]}
 						{
 							Move:AgentBookmark[${bookmarkIterator.Value.ID}]
-							;ActiveNPCs.AutoLock:Set[FALSE]
-							;NPCs.AutoLock:Set[FALSE]
+							TargetManager.ActiveNPCs.AutoLock:Set[FALSE]
+							TargetManager.NPCs.AutoLock:Set[FALSE]
 							This:InsertState["Traveling", 5000]
 							reload:Set[TRUE]
 							This:QueueState["CombatMission", 4000]
@@ -1224,16 +1262,451 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 	}
 	; This state will be the start of Primary Logic for Combat Missions.Basically this state here will be our hub for combat missions.
-	member:bool CombatMission()
+	member:bool CombatMission(int Cycles)
 	{
-
+		variable index:bookmark BookmarkIndex
+		variable index:bookmark BookmarkIndex2
+		variable iterator		BookmarkIterator2
 		; Considering we have all of the information contained here as live variables already, no need to touch this thing below.
 		;GetMissionLogCombat:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCombat WHERE Historical=FALSE;"]}]
 		
-	
+		; Ok so we are at this point. Theoretically we should have a mission, we should be in the correct Ship, it should be loaded with the right Ammo and Drones.
+		; We should already be at the bookmark for the mission itself, in space.
+		; TargetManager and DroneControl will do all the work here. They will manage locks, targets, shooting, bastion, etc.
+		; All this needs to do here is navigation. We will want to linger about until all enemies are dead. Then we will Shoot
+		; and or Loot things that need to be shot and looted (if any exist). Then we take a gate to the next room and repeat.
+		; I am thinking we will want to keep track of gates that we have passed through as well.
+		; So, this particular state being our Hub, it will dispatch other states and also check for completion criteria. It will also handle
+		; submitting information to the DB for stats/watchdog purposes.
+		; I envision 3 more states being required. CombatMissionFight (fighting). CombatMissionTransition (changing rooms, also will handle creating the Salvage Bookmark). CombatMissionObjectives (dealing with our mission objectives if any exist in the mission and the room).
+		; We jump between those states, and if we are done we kick out to a final mini-state CombatMissionFinish (which will handle final stats/watchdog updates and bring us back to station).
+		; Addendum, 6th state required. CheckForCompletion might not behave as a method.
+		; Alright, let us begin.
+		; Initial watchdog update for the Combat mode.
+		This:UpdateWatchDog
+		if (${CurrentRunTechnicalComplete} && ${Config.BlitzMissions}) || ${CurrentRunTrueComplete}
+		{
+			This:LogInfo["Mission Completed - Transition to CombatMissionFinish"]
+			This:InsertState["CombatMissionFinish", 4000]
+			return TRUE				
+		}
+		if ${This.JerksPresent}
+		{
+			; Jerks Present means bad NPCs are around as determined by TargetManager.		
+			This:LogInfo["Enemies Present - Going to Fight State"]
+			This:InsertState["CombatMissionFight", 4000]
+			return TRUE		
+		}
+		else
+		{
+			; Things get a little tricky here. Sometimes it takes a bit for the enemies to Appear. We will cycle through this a few times before we determine a room is Done.
+			if ${Cycles} <= 3
+			{
+				This:LogInfo["Awaiting next spawn wave (if it exists). Cycle Number ${Cycles}."]
+				This:InsertState["CombatMission", 4000,"${Math.Calc[{Cycles} + 1]}"]
+				return TRUE
+			}
+			; We waited for a spawn and nothing happened, proceed.
+			if ${CurrentAgentDestroy.NotNULLOrEmpty} && !${CurrentRunKilledTarget}
+			{
+				; If we have a target to Destroy and it hasn't already died. Look for it in this room.
+				This:LogInfo["Checking room for ${CurrentAgentDestroy} to Destroy."]
+				if ${Entity[Name == "${CurrentAgentDestroy.Escape}"](exists)}
+				{
+					This:LogInfo["${CurrentAgentDestroy} detected. Destroy."]
+					This:InsertState["CombatMissionObjectives",5000,"Destroy","${Entity[Name == \"${CurrentAgentDestroy.Escape}\"].ID}"}]
+					return TRUE
+				}
+			}
+			elseif !${CurrentAgentDestroy.NotNULLOrEmpty} || ${CurrentRunKilledTarget}
+			{
+				; Target was already destroyed, skip.
+			}
+			if ${CurrentAgentLoot.NotNULLOrEmpty} && !${CurrentRunContainerLooted}
+			{
+				; If we have a target to Loot and it hasn't already been looted. Look for it in this room.
+				This:LogInfo["Checking room for ${CurrentAgentLoot} to Loot."]
+				if ${Entity[Name == \"${CurrentAgentLoot.Escape}\"](exists)}
+				{
+					This:LogInfo["${CurrentAgentLoot} detected. Loot."]
+					if ${CurrentAgentLoot.Find[Wreck]}
+					{
+						This:InsertState["CombatMissionObjectives",5000,"LootWreck","${Entity[Name == \"${CurrentAgentLoot.Escape}\" && IsWreckEmpty == FALSE].ID}"}]
+					}
+					if !${CurrentAgentLoot.Find[Wreck]}
+					{
+						This:InsertState["CombatMissionObjectives",5000,"LootContainer","${Entity[Name == \"${CurrentAgentLoot.Escape}\"].ID}"}]
+					}
+					return TRUE
+				}				
+			}
+			elseif !${CurrentAgentLoot.NotNULLOrEmpty} || ${CurrentRunContainerLooted}
+			{
+				; Target was already looted, skip.
+			}
+			; Either there was no Target here, or we already handled it. Check for another gate.
+			if ${Entity[Type = "Acceleration Gate"](exists)}
+			{
+				; There is a gate lets pass it off to CombatMissionTransition after we Check for Technical Completion (for stats purposes and maybe a future Blitz mode)
+				This:LogInfo["Gate Detected"]
+				This:InsertState["CombatMissionTransition",4000]
+				This:InsertState["CheckForCompletion",5000]
+				return TRUE				
+			}
+			else
+			{
+				; Need to do this somewhere. We are making a Salvage BM and also placing an entry in the SalvageBM DB.
+				Lootables:RequestUpdate
+				if (${Lootables.TargetList.Used} > 13 && ${Config.SalvagePrefix.NotNULLOrEmpty}) || (${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "State"](exists)})
+				{
+					EVE:GetBookmarks[BookmarkIndex]
+					BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
+					BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[Distance < 200000]}, FALSE]
+					BookmarkIndex:Collapse
+
+					if !${BookmarkIndex.Used}
+					{
+						Lootables.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Lootables.TargetList.Used} ${EVETime.Time.Left[5]}", "", "${Config.SalvageBMFolderName}", 1]			
+					}
+					EVE:GetBookmarks[BookmarkIndex2]
+					BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
+					BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[Distance < 200000]}, FALSE]
+					BookmarkIndex2:Collapse
+					BookmarkIndex2:GetIterator[BookmarkIterator2]
+					if ${BookmarkIterator2:First(exists)}
+					{
+						This:SalvageBMTableInsert[${BookmarkIterator2.Value.ID},${BookmarkIterator2.Value.Label.ReplaceSubstring[','']},${Lootables.TargetList.Used},${Universe[${Me.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator2.Value.Created.AsInt64} + 71000000000]},0,0,0}
+					}
+				}
+				
+				; (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
+				; There is no gate here, let's check for both completion types (technical and true).
+				This:LogInfo["Checking for Completion"]
+				This:InsertState["CombatMission", 4000]
+				This:InsertState["CheckForCompletion",5000]
+				return TRUE	
+			}
+		}
+		return FALSE
+	}
+	; This state will handle the fighting in a room in a combat mission site.
+	member:bool CombatMissionFight()
+	{
+		variable iterator CombatIterator
+		TargetManager.ActiveNPCs.TargetList:GetIterator[CombatIterator]
+		if ${CombatIterator:First(exists)}
+		{
+			do
+			{
+				; Need to track if we've killed our Destroy Target while clearing the room.Other than Anire Scarlet who runs through all the rooms.
+				if ${CombatIterator.Value.Name.Find["${CurrentAgentDestroy}"]} && !${CurrentAgentDestroy.Equal["Anire Scarlet"]}
+				{
+					CombatMissionDestroyTargetSeen:Set[TRUE]
+				}
+				; Things that are too far for us
+				;if ${CombatIterator.Value.Distance} > ${CurrentOffenseRange} || ${CombatIterator.Value.Distance} > ${MyShip.MaxTargetRange}
+				;{
+				;	CombatMissionDistantTargets:Set[${CombatIterator.Value.Name},${CombatIterator.Value.ID}]
+				;	CombatMissionMidrangeTargets:Erase[${CombatIterator.Value.Name}]
+				;	CombatMissionCloseTargets:Erase[${CombatIterator.Value.Name}]
+				;}
+				; Things at an acceptable range
+				;if ( ${CombatIterator.Value.Distance} < ${CurrentOffenseRange} && (${CombatIterator.Value.Distance} > 20000) ) || ((${CombatIterator.Value.Distance} < ${CurrentOffenseRange}) && ${Ship.ModuleList_MJD.Count} < 1 )
+				;{
+				;	CombatMissionMidrangeTargets:Set[${CombatIterator.Value.Name},${CombatIterator.Value.ID}]
+				;	CombatMissionDistantTargets:Erase[${CombatIterator.Value.Name}]
+				;	CombatMissionCloseTargets:Erase[${CombatIterator.Value.Name}]
+				;}
+				; Things that are too close (if we are in a turret based ship AND have a MJD). This information might be used for MJD usage, if I code it.
+				;if (${CombatIterator.Value.Distance} < 20000) && ${Ship.ModuleList_Turret.Count} && ${Ship.ModuleList_MJD.Count}
+				;{
+				;	CombatMissionCloseTargets:Set[${CombatIterator.Value.Name},${CombatIterator.Value.ID}]
+				;	CombatMissionDistantTargets:Erase[${CombatIterator.Value.Name}]
+				;	CombatMissionMidrangeTargets:Erase[${CombatIterator.Value.Name}]
+				;}				
+			}
+			while ${CombatIterator:Next(exists)}
+		}
+		; Ostensibly, this bot is intended to be used by a Marauder. However, the Blaster Kronos and the AC Vargur can require some
+		; maneuvering. TargetManager has had its movement disabled, and it can also put us in Bastion Mode, so this might be kinda difficult.
+		; I might also want to do something tricky with MJDs at some point.	
+		if ${This.JerksPresent}
+		{
+			
+			; Databasify NPCs on each loop. They will be added to the SQL DB so we can know things about the mission.
+			This:DatabasifyNPCs
+			This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0}]
+			This:UpdateWatchDog
+			; Bad guys still here. Fighting loop.
+			if ${MyShip.ToEntity.Group.Find["Marauder"]}
+			{
+				;;; This will be implemented in the future.
+				; Marauders play by much different rules. We don't move, we bastion and obliterate. Unless you are a Blaster Kronos.
+				;if ${CombatMissionMidrangeTargets.Used} > ${CombatMissionDistantTargets}
+				;{
+				;	; More enemies are in range than are not.
+				;	TargetManager.allowSiegeModule:Set[TRUE]
+				;	
+				;}
+				;if (${CombatMissionMidrangeTargets.Used} < ${CombatMissionDistantTargets})
+				;{
+				;	; More enemies are out of range than in range.
+				;	TargetManager.allowSiegeModule:Set[FALSE]
+				;	
+				;}	
+				;if ${CombatMissionCloseTargets.Used} > ${CombatMissionMidrangeTargets.Used}
+				;{
+				;	; MJD usage will go here. If too many enemies are close we will MJD away, again, only if we are a Turret based ship and if we have an MJD.
+				;	TargetManager.allowSiegeModule:Set[FALSE]
+				;}
+				if ${Entity[${CurrentOffenseTarget}](exists)}
+				{
+					TargetManager:RegisterCurrentPrimaryWeaponRange
+					if ${Entity[${CurrentOffenseTarget}].Distance} < ${CurrentOffenseRange} 
+					{
+						; In range, Bastion.
+						TargetManager.allowSiegeModule:Set[TRUE]
+					}
+					if (${Entity[${CurrentOffenseTarget}].Distance} > ${CurrentOffenseRange}) || (${Entity[${CurrentOffenseTarget}].Distance} > ${MyShip.MaxTargetRange})
+					{
+						; Out of target or offense range. Orbit Target
+						TargetManager.allowSiegeModule:Set[FALSE]
+						Move:Orbit[${CurrentOffenseTarget},5000]
+					}
+				}
+			}
+			else
+			{
+				; Why aren't you using a Marauder, god damn you.
+				if (${Entity[${CurrentOffenseTarget}].Distance} > ${CurrentOffenseRange}) || (${Entity[${CurrentOffenseTarget}].Distance} > ${MyShip.MaxTargetRange})
+				{
+					; Out of target or offense range. Orbit Target
+					Move:Orbit[${CurrentOffenseTarget},5000]
+				}				
+			}
+		}
+		else
+		{
+			; Exit condition
+			; If we saw the destroy target, and it wasn't Anire Scarlet, they died in this room.
+			if ${CombatMissionDestroyTargetSeen}
+			{
+				This:LogInfo["Destroyed Target - ${CurrentAgentDestroy}."]
+				CurrentRunKilledTarget:Set[TRUE]
+			}
+			if !${Entity[TypeID == 17831](exists)}
+			{
+				This:LogInfo["Room is Gateless, We have Vanquished all Enemies."]
+				CurrentRunVanquisher:Set[TRUE]
+			}
+			if ${CurrentRunGatesUsed.Used} >= 5 && ${CurrentRunGatesUsed.Key["Gate To The Research Outpost"].Value} > 0
+			{
+				This:LogInfo["Went through all gates in World's Collide, We have Vanquished all Enemies."]
+				CurrentRunVanquisher:Set[TRUE]			
+			}
+			This:LogInfo["Enemies destroyed in room ${CurrentRunRoom}."]
+			This:InsertState["CombatMission", 4000]
+			return TRUE
+		}
 	
 	}
-	
+	; This state will handle room transitions in a combat mission site.
+	member:bool CombatMissionTransition()
+	{
+		variable index:bookmark BookmarkIndex
+		variable index:bookmark BookmarkIndex2
+		variable iterator		BookmarkIterator2
+		; The Salvage BM thing also has to go here. We either are changing rooms, or we are in a room with no gate so the one in the main CombatMission state will get it on exit.
+		Lootables:RequestUpdate
+		if (${Lootables.TargetList.Used} > 13 && ${Config.SalvagePrefix.NotNULLOrEmpty}) || (${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "State"](exists)})
+		{
+			EVE:GetBookmarks[BookmarkIndex]
+			BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
+			BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[Distance < 200000]}, FALSE]
+			BookmarkIndex:Collapse
+			if !${BookmarkIndex.Used}
+			{
+				Lootables.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Lootables.TargetList.Used} ${EVETime.Time.Left[5]}", "", "${Config.SalvageBMFolderName}", 1]			
+			}
+			EVE:GetBookmarks[BookmarkIndex2]
+			BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
+			BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[Distance < 200000]}, FALSE]
+			BookmarkIndex2:Collapse
+			BookmarkIndex2:GetIterator[BookmarkIterator2]
+			if ${BookmarkIterator2:First(exists)}
+			{
+				This:SalvageBMTableInsert[${BookmarkIterator2.Value.ID},${BookmarkIterator2.Value.Label.ReplaceSubstring[','']},${Lootables.TargetList.Used},${Universe[${Me.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator2.Value.Created.AsInt64} + 71000000000]},0,0,0}
+			}
+		}
+		
+		; We're going to examine the available gates. If the gate hasn't been taken before in this run (excluding a disconnect/crash) we will use it IF THERE IS ANOTHER GATE TO USE.
+		; If there is only one gate then we will ignore that used gate list. This is going to be a shitload of work for the like, 1? 2? mission(s) with branches.
+		; There are next to no checks in this because we shouldn't be here unless Combat Missioneer has ordered a room transition.
+		variable index:entity GateIndex
+		variable iterator GateIterator
+		
+		EVE:QueryEntities[GateIndex, "TypeID = 17831"]
+		GateIndex:GetIterator[GateIterator]	
+		if ${GateIndex.Used} > 1
+		{
+			; This should mean that we have entered the gate into the collecition already, meaning we used it.
+			if ${CurrentRunGatesUsed.Key[${GateIterator.Value.Name}].Value} > 0
+			{
+				This:LogInfo["We've used this gate before, trying the other one."]
+				GateIterator:Next
+			}
+		}
+		Move:Gate[${GateIterator.Value.ID}]
+		CurrentRunGatesUsed:Set[${GateIterator.Value.Name},${GateIterator.Value.ID}]
+		; Theoretically if we are here we went through the gate to a new room. If this doesn't hold true then I will make a coordinate based detection method.
+		This:UpdateMissioneerStats["RoomComplete"]
+		CurrentRoomNumber:Inc[1]
+		; MissionLogCombatUpdate(int RunNumber, int RoomNumber, bool KilledTarget, bool Vanquisher, bool ContainerLooted, bool HaveItems, bool TechnicalCompletion, bool TrueCompletion, int64 FinalTimestamp, int Historical)
+		This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0}]
+		This:UpdateWatchDog
+		This:InsertState["CombatMission", 4000]
+		return TRUE		
+	}
+	; This state will handle the mission Objectives. String will be what we should do, int64 will be the objective's entity ID.
+	member:bool CombatMissionObjectives(string ObjectiveAction, int64 ObjectiveTarget)
+	{
+		if ${ObjectiveAction.Equal["Destroy"]}
+		{
+			if ${Entity[${ObjectiveTarget}].Distance} > ${CurrentOffenseRange}
+			{
+				Move:Approach[${ObjectiveTarget},2500]
+				CurrentOffenseTarget:Set[${ObjectiveTarget}]
+			}
+			if !${Entity[${ObjectiveTarget}](exists)}
+			{
+				This:LogInfo["Destroyed Target - ${CurrentAgentDestroy}"]
+				CurrentRunKilledTarget:Set[TRUE]
+				This:InsertState["CombatMission", 4000]
+				return TRUE						
+			}
+		}
+		if ${ObjectiveAction.Equal["LootWreck"]}
+		{
+			if ${Entity[${ObjectiveTarget}].Distance} > 2500
+			{
+				Move:Approach[${ObjectiveTarget},2000]
+			}
+			if ${Entity[${ObjectiveTarget}].Distance} < 2500
+			{
+				Entity[${ObjectiveTarget}]:Open
+				EVEWindow[Inventory]:LootAll
+				return FALSE
+			}			
+			if ${Entity[${ObjectiveTarget}].IsWreckEmpty}
+			{
+				; Check our cargo for the stupid item.
+				if ${MyShip.Cargo[${CurrentAgentItem}](exists)} && ${MyShip.Cargo[${CurrentAgentItem}].Quantity} >= ${CurrentAgentItemUnits}
+				{
+					CurrentRunContainerLooted:Set[TRUE]
+					CurrentRunHaveItems:Set[TRUE]
+					This:LogInfo["Acquired ${CurrentAgentItemUnits} of ${CurrentAgentItem}"]
+					This:InsertState["CombatMission", 4000]
+					return TRUE							
+				}
+				elseif ${MyShip.Cargo[${CurrentAgentItem}](exists)} && ${MyShip.Cargo[${CurrentAgentItem}].Quantity} < ${CurrentAgentItemUnits}
+				{
+					This:LogInfo["Acquired ${CurrentAgentItemUnits} of ${CurrentAgentItem}, More Remain"]
+					This:InsertState["CombatMission", 4000]
+					return TRUE						
+				}
+				else
+				{
+					; Dunno 
+				}
+			}
+			if ${Entity[Name == \"${CurrentAgentLoot.Escape}\" && IsWreckEmpty == FALSE](exists)}
+			{
+				if ${Entity[Name == \"${CurrentAgentLoot.Escape}\" && IsWreckEmpty == FALSE].Distance} > 2500
+				{
+					Move:Approach[${ObjectiveTarget},2000]
+				}
+				if ${Entity[Name == \"${CurrentAgentLoot.Escape}\" && IsWreckEmpty == FALSE].Distance} < 2500
+				{
+					Entity[${ObjectiveTarget}]:Open
+					EVEWindow[Inventory]:LootAll
+					return FALSE
+				}			
+			}
+		}
+		if ${ObjectiveAction.Equal["LootContainer"]}
+		{
+			; So uh, this can be awkward if the container is a Cargo Container. I think I will disable the Salvage Minimode's ability to Salvage things for the couple missions where this hapens.
+			if ${Entity[Name == "${CurrentAgentLoot}"].Distance} > 2500
+			{
+				Move:Approach[${ObjectiveTarget},2000]
+			}
+			if ${Entity[Name == "${CurrentAgentLoot}"].Distance} < 2500
+			{
+				Entity[Name == "${CurrentAgentLoot}" && Distance <= 2500]:Open
+				EVEWindow[Inventory]:LootAll
+				return FALSE
+			}
+			; Check our cargo for the stupid item.
+			if ${MyShip.Cargo[${CurrentAgentItem}](exists)} && ${MyShip.Cargo[${CurrentAgentItem}].Quantity} >= ${CurrentAgentItemUnits}
+			{
+				CurrentRunContainerLooted:Set[TRUE]
+				CurrentRunHaveItems:Set[TRUE]
+				This:LogInfo["Acquired ${CurrentAgentItemUnits} of ${CurrentAgentItem}"]
+				This:InsertState["CombatMission", 4000]
+				return TRUE							
+			}
+			elseif ${MyShip.Cargo[${CurrentAgentItem}](exists)} && ${MyShip.Cargo[${CurrentAgentItem}].Quantity} < ${CurrentAgentItemUnits}
+			{
+				This:LogInfo["Acquired ${CurrentAgentItemUnits} of ${CurrentAgentItem}, More Remain"]
+				This:InsertState["CombatMission", 4000]
+				return TRUE						
+			}
+			else
+			{
+				; Dunno 
+			}		
+		}
+		return FALSE
+	}
+	; This state will be used to see if we have Technically Completed a mission (we can turn it in, but there are rooms left) or Truely Completed a mission
+	; (everything is dead, objectives done). 
+	member:bool CheckForCompletion()
+	{
+		; What defines Technical Completion? We can use the Original Mission Parser to figure it out easily. I think I will do that.
+		if ${MissionParser.IsComplete}
+		{
+			CurrentRunTechnicalComplete:Set[TRUE]
+		}
+		; What defines True Completion? We have seen every room, Killed every enemy, and accomplished Technical Completion.
+		if ${CurrentRunTechnicalComplete}
+		{
+			; Vanquisher will be set either A) when we are in the last room without a gate and everything is dead or B) Have a full list of traversed gates for World's Collide.
+			if ${CurrentRunVanquisher}
+			{
+				CurrentRunTrueComplete:Set[TRUE]
+				This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0}]
+				This:UpdateWatchDog
+			}
+		}
+		return TRUE
+	}
+	; This state will handle the bridge between CombatMission and FinishingAgentInteraction
+	member:bool CombatMissionFinish()
+	{
+		; Literally forgot what I was going to put here. Oh right, we should go to the Agent's station before the next thing.
+		if ${Move.Traveling}
+		{
+			return FALSE
+		}
+		if !${Me.InStation}
+		{
+			Move:Agent[${CurrentAgentIndex}]
+			This:InsertState["Traveling"]
+			return FALSE			
+		}
+		This:QueueState["FinishingAgentInteraction",5000]
+		return TRUE	
+	}
 	; This state will be the Start of Primary Logic for Courier Missions. Basically this state here will be our hub for courier missions.
 	; We need to figure out where we are, whether we have our cargo loaded, how much cargo remains, where are we going, etc. We also need to
 	; have a recovery method in place in case of disconnect or what have you. Luckily, the DB has all we need.
@@ -1733,6 +2206,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	{
 		if ${CurrentAgentMissionType.Find["Encounter"]}
 		{
+			relay "all" -event Tehbot_SalvageBookmark ${Me.ID}
 			This:InsertState["DropOffLoot", 10000]			
 			This:InsertState["Repair"]
 		}
@@ -2182,7 +2656,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		
 		variable iterator DBNPC
 		; Lets just use TargetList to make this easier.
-		DatabasifyNPC:AddAllNPCs
+		DatabasifyNPC:RequestUpdate
 		if ${DatabasifyNPC.TargetList.Used} > 0
 		{
 			DatabasifyNPC.TargetList:GetIterator[DBNPC]
@@ -3718,6 +4192,18 @@ objectdef obj_Mission inherits obj_StateQueue
 				}
 			}		
 		}	
+	}
+	; This member will be used by Combat Missioneer to tell if there are bad guys around.
+	member:bool JerksPresent()
+	{
+		if ${TargetManager.ActiveNPCs.TargetList.Used} || ${TargetManager.NPCs.TargetList.Used}
+		{
+			return TRUE
+		}
+		else
+		{
+			return FALSE
+		}
 	}
 }
 

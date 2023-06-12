@@ -28,6 +28,8 @@ objectdef obj_MinerForeman inherits obj_StateQueue
 	
 	variable int MaxTarget = ${MyShip.MaxLockedTargets}
 
+
+	
 	; This will literally just be all (hostile) NPCs within 300km or so.
 	variable obj_TargetList ActiveNPCs
 	; This will be our Fleet Members on grid.
