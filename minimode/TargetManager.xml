@@ -81,69 +81,6 @@
 							Script[Tehbot].VariableScope.TargetManager.Config:SetLogLevelBar[${This.Value:Inc}]
 						</OnChange>
 					</Slider>
-					<Checkbox name='IgnoreNPCTargets'>
-						<X>1%</X>
-						<Y>21%</Y>
-						<Width>30%</Width>
-						<Height>3%</Height>
-						<Text>Ignore NPC Targets</Text>
-						<OnLoad>
-							if ${Script[Tehbot].VariableScope.TargetManager.Config.IgnoreNPCTargets}
-							{
-								This:SetChecked
-							}
-						</OnLoad>
-						<OnLeftClick>
-							Script[Tehbot].VariableScope..TargetManager.Config:SetIgnoreNPCTargets[${This.Checked}]
-						</OnLeftClick>
-					</Checkbox>
-					<Checkbox name='IgnorePCTargets'>
-						<X>1%</X>
-						<Y>25%</Y>
-						<Width>30%</Width>
-						<Height>3%</Height>
-						<Text>Ignore PC Targets</Text>
-						<OnLoad>
-							if ${Script[Tehbot].VariableScope.TargetManager.Config.IgnorePCTargets}
-							{
-								This:SetChecked
-							}
-						</OnLoad>
-						<OnLeftClick>
-							Script[Tehbot].VariableScope..TargetManager.Config:SetIgnorePCTargets[${This.Checked}]
-						</OnLeftClick>
-					</Checkbox>
-					<Checkbox name='BroadCastPriorityTargets'>
-						<X>1%</X>
-						<Y>29%</Y>
-						<Width>30%</Width>
-						<Height>3%</Height>
-						<Text>Broadcast Priority Targets</Text>
-						<OnLoad>
-							if ${Script[Tehbot].VariableScope.TargetManager.Config.BroadCastPriorityTargets}
-							{
-								This:SetChecked
-							}
-						</OnLoad>
-						<OnLeftClick>
-							Script[Tehbot].VariableScope..TargetManager.Config:SetBroadCastPriorityTargets[${This.Checked}]
-						</OnLeftClick>
-					</Checkbox>
-					<Checkbox name='UseSecondaryTargetList'>
-						<X>1%</X>
-						<Y>33%</Y>
-						<Width>30%</Width>
-						<Height>3%</Height>
-						<Text>Gank Spoil Mode</Text>
-						<OnLoad>
-							if ${Script[Tehbot].VariableScope.TargetManager.Config.UseSecondaryTargetList}
-							{
-								This:SetChecked
-							}
-						</OnLoad>
-						<OnLeftClick>
-							Script[Tehbot].VariableScope..TargetManager.Config:SetUseSecondaryTargetList[${This.Checked}]
-						</OnLeftClick>
 					</Checkbox>
 				</Children>
 			</Frame>

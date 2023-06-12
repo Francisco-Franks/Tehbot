@@ -57,7 +57,7 @@
 						<Width>98%</Width>
 						<Height>18%</Height>
 						<Wrap />
-						<Text>DroneControl is a mini-mode that continously scans surrounding space for enemies and attacks them. This module has been greatly modified by Elusif so we can do abyssals.</Text>
+						<Text>Choose one of the below. If you choose both or neither it defaults to original behaviors.</Text>
 					</Text>
 					<Text name='ArmorDronesTitle'>
 						<X>5%</X>
