@@ -3502,7 +3502,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			}
 
 			variable int64 specifiedDroneVolume = ${Drones.Data.GetVolume[${Config.DroneType}]}
-			preferredDroneType:Set[${Drones.Data.SearchSimilarDroneFromRace[${Config.DroneType}, ${useDroneRace}]}]
+			preferredDroneType:Set[${Config.DroneType}]
 			if !${preferredDroneType.Equal[${Config.DroneType}]}
 			{
 				fallbackDroneType:Set[${Config.DroneType}]
