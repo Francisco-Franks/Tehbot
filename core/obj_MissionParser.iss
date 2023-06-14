@@ -16,7 +16,7 @@ objectdef obj_MissionParser inherits obj_Logger
     ;
 	; variable string MissionJournal
     ;
-    ; Must ensure that ${EVEWindow[ByCaption, Mission journal - ${AgentName}].HTML.Escape} already returns full length
+    ; Must ensure that ${EVEWindow[ByCaption, Agent Conversation - ${AgentName}].ObjectivesHTML.AsJSON} already returns full length
     ; journal BEFORE setting this name or calling any parse function.
     variable string AgentName
 	variable string MissionExpiresHex
@@ -34,7 +34,7 @@ objectdef obj_MissionParser inherits obj_Logger
 
     member:string EnemyFactionName()
 	{
-        variable string journalText = ${EVEWindow[ByCaption, Mission journal - ${AgentName}].HTML.Escape}
+        variable string journalText = ${EVEWindow[ByCaption, Agent Conversation - ${AgentName}].ObjectivesHTML.AsJSON}
         if !${journalText.Find["The following rewards will be yours if you complete this mission"]}
         {
             This:LogCritical["journal length not fully retrieved."]
@@ -66,7 +66,7 @@ objectdef obj_MissionParser inherits obj_Logger
 
     member:string EnemyDamageToDeal()
 	{
-        variable string journalText = ${EVEWindow[ByCaption, Mission journal - ${AgentName}].HTML.Escape}
+        variable string journalText = ${EVEWindow[ByCaption, Agent Conversation - ${AgentName}].ObjectivesHTML.AsJSON}
         if !${journalText.Find["The following rewards will be yours if you complete this mission"]}
         {
             This:LogCritical["journal length not fully retrieved."]
@@ -164,7 +164,7 @@ objectdef obj_MissionParser inherits obj_Logger
 
 	member:bool IsLowSec()
 	{
-		variable string journalText = ${EVEWindow[ByCaption, Mission journal - ${AgentName}].HTML.Escape}
+		variable string journalText = ${EVEWindow[ByCaption, Agent Conversation - ${AgentName}].ObjectivesHTML.AsJSON}
         if !${journalText.Find["The following rewards will be yours if you complete this mission"]}
         {
             This:LogCritical["journal length not fully retrieved."]
@@ -184,7 +184,7 @@ objectdef obj_MissionParser inherits obj_Logger
 
     member:bool IsComplete()
 	{
-		variable string journalText = ${EVEWindow[ByCaption, Mission journal - ${AgentName}].HTML.Escape}
+		variable string journalText = ${EVEWindow[ByCaption, Agent Conversation - ${AgentName}].ObjectivesHTML.AsJSON}
         if !${journalText.Find["The following rewards will be yours if you complete this mission"]}
         {
             This:LogCritical["journal length not fully retrieved."]
@@ -195,7 +195,7 @@ objectdef obj_MissionParser inherits obj_Logger
 
         variable int left
         variable int right
-        variable string mainHeaderPrefix = "mainheader>"
+        variable string mainHeaderPrefix = "subheader>"
         left:Set[${journalText.Find[${mainHeaderPrefix}]}]
         variable string missionName
 		if ${left} > 0
@@ -206,13 +206,13 @@ objectdef obj_MissionParser inherits obj_Logger
 			{
 				right:Dec[1]
 				missionName:Set[${journalText.Mid[${left}, ${right}]}]
-				This:LogDebug["Mission name: ${missionName}"]
+				;This:LogDebug["Mission name: ${missionName}"]
 			}
 		}
 
         if !${missionName.NotNULLOrEmpty}
 		{
-			This:LogCritical["Failed to parse mission name"]
+			;This:LogCritical["Failed to parse mission name"]
 		}
 
 		variable string checkMarkIcon = "icon:38_193"
@@ -232,7 +232,7 @@ objectdef obj_MissionParser inherits obj_Logger
 
     member:bool IsOngoing()
 	{
-		variable string journalText = ${EVEWindow[ByCaption, Mission journal - ${AgentName}].HTML.Escape}
+		variable string journalText = ${EVEWindow[ByCaption, Agent Conversation - ${AgentName}].ObjectivesHTML.AsJSON}
         if !${journalText.Find["The following rewards will be yours if you complete this mission"]}
         {
             This:LogCritical["journal length not fully retrieved."]
@@ -277,7 +277,7 @@ objectdef obj_MissionParser inherits obj_Logger
     member:string AquireItem()
 	{
         ; Find[] is not case sensitive so it may confuse quantity x with moon index X.
-		variable string journalText = ${EVEWindow[ByCaption, Mission journal - ${AgentName}].HTML.Escape.ReplaceSubstring[" X -", "MOON_10_ESCAPE-"]}
+		variable string journalText = ${EVEWindow[ByCaption, Agent Conversation - ${AgentName}].HTML.Escape.ReplaceSubstring[" X -", "MOON_10_ESCAPE-"]}
         if !${journalText.Find["The following rewards will be yours if you complete this mission"]}
         {
             This:LogCritical["journal length not fully retrieved."]
@@ -335,7 +335,7 @@ objectdef obj_MissionParser inherits obj_Logger
     ; BUGGY LAVISHSCRIPT STRING SUCH PAIN IN THE ASS
     member:string DeliverItem()
 	{
-		variable string journalText = ${EVEWindow[ByCaption, Mission journal - ${AgentName}].HTML.Escape}
+		variable string journalText = ${EVEWindow[ByCaption, Agent Conversation - ${AgentName}].ObjectivesHTML.AsJSON}
         if !${journalText.Find["The following rewards will be yours if you complete this mission"]}
         {
             This:LogCritical["journal length not fully retrieved."]
@@ -372,7 +372,7 @@ objectdef obj_MissionParser inherits obj_Logger
 
         ; Find[] function won't work correctly with those strings with spaces.
         ; Find[] is not case sensitive so it may confuse quantity x with moon index X.
-        journalText:Set[${EVEWindow[ByCaption, Mission journal - ${AgentName}].HTML.Escape.Replace[" ", "_"].ReplaceSubstring["_X_-", "MOON_10_ESCAPE-"]}]
+        journalText:Set[${EVEWindow[ByCaption, Agent Conversation - ${AgentName}].HTML.Escape.Replace[" ", "_"].ReplaceSubstring["_X_-", "MOON_10_ESCAPE-"]}]
         variable string quantityIcon = "_x_"
         left:Set[${journalText.Find[${quantityIcon}]}]
 

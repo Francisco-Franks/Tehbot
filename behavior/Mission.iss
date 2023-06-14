@@ -501,7 +501,14 @@ objectdef obj_Mission inherits obj_StateQueue
 				This:LogInfo["Found running combat mission."]
 				echo DEBUG - GOING TO MID RUN RECOVERY - NONCOMBAT
 				This:MidRunRecovery["Combat"]
-				This:QueueState["CombatMission", 3000]
+				if ${Client.InSpace}
+				{
+					This:QueueState["Go2Mission", 3000]				
+				}
+				else
+				{
+					This:QueueState["MissionPrep", 3000]	
+				}
 				GetMissionLogCombat:Finalize
 				return TRUE
 			}
@@ -1208,6 +1215,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					{
 						if ${bookmarkIterator.Value.LocationType.Equal[dungeon]}
 						{
+							Move:Undock
 							Move:AgentBookmark[${bookmarkIterator.Value.ID}]
 							TargetManager.ActiveNPCs.AutoLock:Set[FALSE]
 							TargetManager.NPCs.AutoLock:Set[FALSE]
@@ -1246,12 +1254,18 @@ objectdef obj_Mission inherits obj_StateQueue
 		; Alright, let us begin.
 		; Initial watchdog update for the Combat mode.
 		This:UpdateWatchDog
+		; Check to see if we've completed the mission, completely
 		if (${CurrentRunTechnicalComplete} && ${Config.BlitzMissions}) || ${CurrentRunTrueComplete}
 		{
 			This:LogInfo["Mission Completed - Transition to CombatMissionFinish"]
 			This:InsertState["CombatMissionFinish", 4000]
 			return TRUE				
 		}
+		; Need a check now to tell me if we are actually at the Mission Site. How will that work exactly?
+		; How will we know we are at the mission site? Well we can compare coordinates, I suppose. If we are within say,
+		; 1 million kilometers of the mission bookmark we are probably there...
+		; Actually, lets try what the original Missioneer does. Lets have mid run recovery dump us out earlier.
+		
 		if ${This.JerksPresent}
 		{
 			; Jerks Present means bad NPCs are around as determined by TargetManager.		
