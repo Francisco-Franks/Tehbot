@@ -353,7 +353,7 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetCourierShipType[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The TYPE of your larger Hauling ship. If you have a Mastodon named Spongebob you want to use for LARGER COURIER MISSIONS, you put Spongebob in this box. Deep Space Transports are good, please don't use an Orca."]
+							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["The TYPE of your larger Hauling ship. If you have a Mastodon named Spongebob you want to use for LARGER COURIER MISSIONS, you put Mastodon in this box. Deep Space Transports are good, please don't use an Orca."]
 						</OnMouseEnter>
 						<OnMouseExit>
 							UIElement[Information@InformationFrame@MainMissionTab@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
