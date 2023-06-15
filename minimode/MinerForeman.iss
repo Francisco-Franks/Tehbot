@@ -75,7 +75,12 @@ objectdef obj_MinerForeman inherits obj_StateQueue
 
 		This.LogLevelBar:Set[${Config.LogLevelBar}]
 		
-		
+		ActiveNPCs.NeedUpdate:Set[FALSE]
+		FleetPCs.NeedUpdate:Set[FALSE]
+		PCs.NeedUpdate:Set[FALSE]
+		Asteroids.NeedUpdate:Set[FALSE]
+		Ice.NeedUpdate:Set[FALSE]
+		Gas.NeedUpdate:Set[FALSE]
 	}
 
 	method Start()

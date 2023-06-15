@@ -50,6 +50,17 @@ objectdef obj_DroneControl inherits obj_StateQueue
 		PulseFrequency:Set[1000]
 		This.NonGameTiedPulse:Set[TRUE]
 		DynamicAddMiniMode("DroneControl", "DroneControl")
+		
+		 Marshal.NeedUpdate:Set[FALSE]
+		 RemoteRepJerkz.NeedUpdate:Set[FALSE]
+		 StarvingJerks.NeedUpdate:Set[FALSE]
+		 Leshaks.NeedUpdate:Set[FALSE]
+		 Kikimoras.NeedUpdate:Set[FALSE]
+		 Damaviks.NeedUpdate:Set[FALSE]
+		 Vedmaks.NeedUpdate:Set[FALSE]
+		 Drekavacs.NeedUpdate:Set[FALSE]
+		 Cynabals.NeedUpdate:Set[FALSE]
+		 Dramiels.NeedUpdate:Set[FALSE]
 	}
 	
 	member:bool JerkzPresent()

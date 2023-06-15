@@ -227,8 +227,15 @@ objectdef obj_MinerWorker inherits obj_StateQueue
 			timedcommand 30 "ui -unload \"${Script.CurrentDirectory}/minimode/MinerWorker.xml\""
 		}
 		This.LogLevelBar:Set[${Config.LogLevelBar}]
-		
-		
+		ActiveNPCs.NeedUpdate:Set[FALSE]
+		FleetPCs.NeedUpdate:Set[FALSE]
+		PCs.NeedUpdate:Set[FALSE]
+		Asteroids.NeedUpdate:Set[FALSE]
+		Ice.NeedUpdate:Set[FALSE]
+		Gas.NeedUpdate:Set[FALSE]
+		AsteroidsDistant.NeedUpdate:Set[FALSE]
+		IceDistant.NeedUpdate:Set[FALSE]
+		GasDistant.NeedUpdate:Set[FALSE]
 	}
 
 	method Start()

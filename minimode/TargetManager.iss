@@ -88,6 +88,19 @@ objectdef obj_TargetManager inherits obj_StateQueue
 
 		This.LogLevelBar:Set[${Config.LogLevelBar}]
 		
+		NPCs.NeedUpdate:Set[FALSE]
+		ActiveNPCs.NeedUpdate:Set[FALSE]
+		PCs.NeedUpdate:Set[FALSE]
+		Marshalz.NeedUpdate:Set[FALSE]
+		RemoteRepJerks.NeedUpdate:Set[FALSE]
+		StarvingJerks.NeedUpdate:Set[FALSE]
+		Leshaks.NeedUpdate:Set[FALSE]
+		Kikimoras.NeedUpdate:Set[FALSE]
+		Damaviks.NeedUpdate:Set[FALSE]
+		Vedmaks.NeedUpdate:Set[FALSE]
+		Drekavacs.NeedUpdate:Set[FALSE]
+		Cynabals.NeedUpdate:Set[FALSE]
+		Dramiels.NeedUpdate:Set[FALSE]
 		
 	}
 
@@ -122,32 +135,36 @@ objectdef obj_TargetManager inherits obj_StateQueue
 		variable string groups = ""
 		variable string seperator = ""
 
-
-		Dramiels:ClearQueryString
-		Cynabals:ClearQueryString
-		Drekavacs:ClearQueryString
-		Vedmaks:ClearQueryString
-		Damaviks:ClearQueryString
-		Kikimoras:ClearQueryString
-		Leshaks:ClearQueryString
-		StarvingJerks:ClearQueryString
-		RemoteRepJerks:ClearQueryString
-		Marshalz:ClearQueryString
+		if ${CommonConfig.Tehbot_Mode.Equal["Abyssal"]}
+		{
+			Dramiels:ClearQueryString
+			Cynabals:ClearQueryString
+			Drekavacs:ClearQueryString
+			Vedmaks:ClearQueryString
+			Damaviks:ClearQueryString
+			Kikimoras:ClearQueryString
+			Leshaks:ClearQueryString
+			StarvingJerks:ClearQueryString
+			RemoteRepJerks:ClearQueryString
+			Marshalz:ClearQueryString
+		}
 		ActiveNPCs:ClearQueryString
 		
 
 
-
-		Dramiels:AddQueryString["Name =- \"Dramiel\" && !IsMoribund"]
-		Cynabals:AddQueryString["Name =- \"Cynabal\" && !IsMoribund"]
-		Drekavacs:AddQueryString["Name =- \"Drekavac\" && !IsMoribund"]
-		Vedmaks:AddQueryString["Name =- \"Vedmak\" && !IsMoribund"]
-		Damaviks:AddQueryString["Name =- \"Damavik\" && !IsMoribund"]
-		Kikimoras:AddQueryString["Name =- \"Kikimora\" && !IsMoribund"]
-		Leshaks:AddQueryString["Name =- \"Leshak\" && !IsMoribund"]	
-		StarvingJerks:AddQueryString["Name =- \"Starving\" && !IsMoribund"]
-		Marshalz:AddQueryString["TypeID == 56177 || TypeID == 56176 || TypeID == 56178 && !IsMoribund"]
-		RemoteRepJerks:AddQueryString["Name =- \"Renewing\" || Name =- \"Fieldweaver\" || Name =- \"Plateforger\" || Name =- \"Burst\"|| Name =- \"Preserver\" && !IsMoribund"]
+		if ${CommonConfig.Tehbot_Mode.Equal["Abyssal"]}
+		{
+			Dramiels:AddQueryString["Name =- \"Dramiel\" && !IsMoribund"]
+			Cynabals:AddQueryString["Name =- \"Cynabal\" && !IsMoribund"]
+			Drekavacs:AddQueryString["Name =- \"Drekavac\" && !IsMoribund"]
+			Vedmaks:AddQueryString["Name =- \"Vedmak\" && !IsMoribund"]
+			Damaviks:AddQueryString["Name =- \"Damavik\" && !IsMoribund"]
+			Kikimoras:AddQueryString["Name =- \"Kikimora\" && !IsMoribund"]
+			Leshaks:AddQueryString["Name =- \"Leshak\" && !IsMoribund"]	
+			StarvingJerks:AddQueryString["Name =- \"Starving\" && !IsMoribund"]
+			Marshalz:AddQueryString["TypeID == 56177 || TypeID == 56176 || TypeID == 56178 && !IsMoribund"]
+			RemoteRepJerks:AddQueryString["Name =- \"Renewing\" || Name =- \"Fieldweaver\" || Name =- \"Plateforger\" || Name =- \"Burst\"|| Name =- \"Preserver\" && !IsMoribund"]
+		}
 
 		variable int range = ${Math.Calc[${MyShip.MaxTargetRange} * .95]}
 

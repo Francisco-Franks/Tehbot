@@ -116,6 +116,16 @@ objectdef obj_Abyssal inherits obj_StateQueue
 		AllowDronesOnNpcClass:Add["BattleCruiser"]
 		AllowDronesOnNpcClass:Add["Battleship"]
 		AllowDronesOnNpcClass:Add["Sentry"]
+		
+		ActiveNPCs:ClearQueryString
+		NPCs:ClearQueryString
+		Lootables:ClearQueryString
+		Marshals:ClearQueryString
+		
+		ActiveNPCs.NeedUpdate:Set[FALSE]
+		NPCs.NeedUpdate:Set[FALSE]
+		Lootables.NeedUpdate:Set[FALSE]
+		Marshals.NeedUpdate:Set[FALSE]
 	}
 
 	method ScheduleHalt()

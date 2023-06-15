@@ -150,6 +150,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	variable string LastLPReward
 	variable int64	LastPickupID
 	variable int64	LastDropoffID
+
 	
 	; Storage variables for our Current (selected) Agent / Mission
 	variable int64	CurrentAgentID
@@ -494,7 +495,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		; are currently working on. We would use the information recorded in that row to return to where we left off more or less.
 		if !${CheckedMissionLogs}
 		{
-			GetMissionLogCombat:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCombat WHERE Historical=FALSE;"]}]
+			GetMissionLogCombat:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCombat WHERE Historical=0;"]}]
 			echo DEBUG - First Query
 			if ${GetMissionLogCombat.NumRows} > 0
 			{
@@ -512,7 +513,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				GetMissionLogCombat:Finalize
 				return TRUE
 			}
-			GetMissionLogCourier:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCourier WHERE Historical=FALSE;"]}]
+			GetMissionLogCourier:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionLogCourier WHERE Historical=0;"]}]
 			echo DEBUG - Second Query
 			if ${GetMissionLogCourier.NumRows} > 0
 			{
@@ -601,7 +602,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					GetDBJournalInfo:NextRow
 					continue
 				}
-				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Storyline - Encounter"]} && !${Config.DoStorylineCombat}
+				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Storyline"]} && ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]} && !${Config.DoStorylineCombat}
 				{	
 					This:LogInfo["Adding to Decline List - Storyline Encounter"]
 					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
@@ -685,7 +686,14 @@ objectdef obj_Mission inherits obj_StateQueue
 	member:bool ChooseMission()
 	{	
 		; Storylines first.
-		GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE MissionType LIKE '%Storyline%';"]}]
+		if ${Config.DeclineLowSec}
+		{
+			GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE MissionType LIKE '%Storyline%' AND Lowsec=0;"]}]
+		}
+		else
+		{
+			GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE MissionType LIKE '%Storyline%';"]}]
+		}
 		echo DEBUG - FIFTH QUERY
 		if ${GetDBJournalInfo.NumRows} > 0
 		{
@@ -752,7 +760,14 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 		GetDBJournalInfo:Finalize
 		; Everything else.
-		GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal;"]}]
+		if ${Config.DeclineLowSec}
+		{
+			GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE Lowsec=0 AND MissionType NOT LIKE '%Storyline%';"]}]
+		}
+		else
+		{
+			GetDBJournalInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM MissionJournal WHERE MissionType NOT LIKE '%Storyline%';"]}]
+		}
 		echo DEBUG - SIXTH QUERY
 		if ${GetDBJournalInfo.NumRows} > 0
 		{
@@ -971,7 +986,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					items:GetIterator[itemIterator]
 					do
 					{
-						if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+						if ${itemIterator.Value.Name.Find[${CurrentAgentItem}]}
 						{
 							if ${itemIterator.Value.Quantity} >= ${TradeItemNeeded}
 							{
@@ -1000,7 +1015,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					items:GetIterator[itemIterator]
 					do
 					{
-						if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+						if ${itemIterator.Value.Name.Find[${CurrentAgentItem}]}
 						{
 							if ${itemIterator.Value.Quantity} >= ${TradeItemNeeded}
 							{
@@ -1649,6 +1664,22 @@ objectdef obj_Mission inherits obj_StateQueue
 	member:bool CheckForCompletion()
 	{
 		; What defines Technical Completion? We can use the Original Mission Parser to figure it out easily. I think I will do that.
+		if !${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
+		{
+			;missionIterator.Value:GetDetails
+			EVE.Agent[${currentAgentIndex}]:StartConversation
+			return FALSE
+		}
+		if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["Request Mission"](exists)}
+		{
+			EVEWindow[AgentConversation_${CurrentAgentID}].Button["Request Mission"]:Press
+			return FALSE
+		}
+		if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"](exists)}
+		{
+			EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"]:Press
+			return FALSE
+		}
 		if ${MissionParser.IsComplete}
 		{
 			CurrentRunTechnicalComplete:Set[TRUE]
@@ -1863,7 +1894,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				do
 				{
-					if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+					if ${itemIterator.Value.Name.Find[${CurrentAgentItem}]}
 					{
 						itemtotal:Inc[${itemIterator.Value.Quantity}]
 					}
@@ -1917,7 +1948,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				do
 				{
-					if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+					if ${itemIterator.Value.Name.Find[${CurrentAgentItem}]}
 					{
 						itemtotal:Inc[${itemIterator.Value.Quantity}]
 						echo DWHIAHM ${itemtotal}
@@ -1957,7 +1988,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				do
 				{
-					if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+					if ${itemIterator.Value.Name.Find[${CurrentAgentItem}]}
 					{
 						wholeUnits:Set[${Math.Calc[${HaulerLargestBayCapacity}/${itemIterator.Value.Volume}].Int}]
 						if ${itemIterator.Value.Quantity} > ${wholeUnits}
@@ -2009,7 +2040,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				do
 				{
-					if ${itemIterator.Value.Name.Equal[${CurrentAgentItem}]}
+					if ${itemIterator.Value.Name.Find[${CurrentAgentItem}]}
 					{
 						itemIterator.Value:MoveTo[MyStationHangar, Hangar]
 						CurrentRunItemUnitsMoved:Inc[${itemIterator.Value.Quantity}]
@@ -2203,7 +2234,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	; Addendum, the do-while loop is being really stupid so we are going to have to do stupid bullshit again.
 	; DesiredIterator will be the iterator we want to go to. We are assuming the iterator doesn't change order magically somehow.
 	; RefreshMissionsRequested will indicate we want to redo the GetAgentMissions and iteration of such.
-	member:bool Databasification(int DesiredIterator, bool RefreshMissionsRequested)
+	member:bool Databasification(int DesiredIterator, bool RefreshMissionsRequested, bool ParseCompleted)
 	{
 		; Oh god where do I even begin. Well let us look at that MissionJournal Table I made and how its rows are set up.
 		; (AgentID INTEGER PRIMARY KEY, MissionName TEXT, MissionType TEXT, MissionStatus INTEGER, AgentLocation TEXT, MissionLocation TEXT, DropoffLocation TEXT, PickupLocation TEXT, Lowsec BOOLEAN, JumpDistance INTEGER, 
@@ -2302,7 +2333,24 @@ objectdef obj_Mission inherits obj_StateQueue
 			}
 			GetDBJournalInfo:Finalize
 			; To hell with that Mission Parser, why use that when I can make my own thing that might work once in a while.
-			This:ParseMissionDetails[${missionIterator.Value.AgentID}, ${missionIterator.Value.Type}]
+			;This:ParseMissionDetails[${missionIterator.Value.AgentID}, ${missionIterator.Value.Type}]
+			if !${ParseCompleted}
+			{
+				; Clear last parse variables
+				LastAgentLocation:Set[""]
+				LastMissionLocation:Set[""]
+				LastExpectedItems:Set[""]
+				LastItemUnits:Set[0]
+				LastItemVolume:Set[0]
+				LastLowsec:Set[FALSE]
+				LastDropoff:Set[""]
+				LastPickup:Set[""]
+				LastLPReward:Set[0]
+				LastPickupID:Set[0]
+				LastDropoffID:Set[0]
+				This:InsertState["ParseMissionDetails",4000,"${missionIterator.Value.AgentID},${missionIterator.Value.Type},${DesiredIterator}"]
+				return TRUE
+			}
 			; Simple stuff
 			AgentID:Set[${missionIterator.Value.AgentID}]
 			MissionName:Set[${missionIterator.Value.Name}]
@@ -2353,7 +2401,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			if ${missionIterator.Key} < ${missions.Used}
 			{
 				This:LogInfo["Unprocessed Entries Remain - Looping"]
-				This:QueueState["Databasification", 2000, "${Math.Calc[${missionIterator.Key} + 1]}, FALSE"]
+				This:QueueState["Databasification", 2000, "${Math.Calc[${missionIterator.Key} + 1]}, FALSE, FALSE"]
 				return TRUE
 			}
 			else
@@ -2370,8 +2418,20 @@ objectdef obj_Mission inherits obj_StateQueue
 	}
 	; This method will be used to do our Agent Conversation HTML parsing. Because the existing stuff is just too damn easy.
 	; We will also be using Agent ID instead of Index, because I'm a rebel. This can't possibly come back to haunt me.
-	method ParseMissionDetails(string AgentID, string MissionType)
+	; Addendum, need to make this a state rather than method because, once again, it is moving too fast. Fuck.
+	member:bool ParseMissionDetails(string AgentID, string MissionType, int ReturnIterator)
 	{
+		; VERY FIRST THING. Let us make sure the stupid HTML is all loaded eh?
+		if !${EVEWindow[AgentConversation_${AgentID}].BriefingHTML.AsJSON.Find[</html>]}
+		{
+			; Briefing not loaded, looping
+			return FALSE
+		}
+		if !${EVEWindow[AgentConversation_${AgentID}].ObjectivesHTML.AsJSON.Find[</html>]}
+		{
+			; Objectives not loaded, looping
+			return FALSE
+		}
 		; Temp storage strings for jsonified HTML trash.
 		variable string JSONObjective
 		variable string JSONBriefing
@@ -2456,7 +2516,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		; Lets get the Objectives into its JSONified String
 		JSONBriefing:Set[${EVEWindow[AgentConversation_${AgentID}].BriefingHTML.AsJSON}]
 		; Lets get the easy one out of the way, is this declared lowsec.
-		if ${JSONObjective.AsJSON.Find["low security system"]}
+		if ${JSONBriefing.AsJSON.Find["Low Sec Warning"]}
 			LastLowsec:Set[TRUE]
 		else
 			LastLowsec:Set[FALSE]
@@ -2602,6 +2662,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 		else
 			LastLPReward:Set[0]
+		This:InsertState["Databasification", 2000, "${ReturnIterator}, FALSE, TRUE"]
+		return TRUE
 	}
 	; This method will be for clearing all Current Agent information when we are done.
 	method ClearCurrentAgentVariables()
@@ -3893,9 +3955,9 @@ objectdef obj_Mission inherits obj_StateQueue
 
 			}
 
-			if ${EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}](exists)}
+			if ${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
 			{
-				EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${currentAgentIndex}].Name}]:Close
+				EVEWindow[AgentConversation_${CurrentAgentID}]:Close
 				return FALSE
 			}
 			if ${EVEWindow[ByCaption, Mission journal](exists)}
