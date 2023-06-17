@@ -317,7 +317,7 @@ objectdef obj_TargetManager inherits obj_StateQueue
 
 		NPCs:ClearQueryString
 		NPCs:AddAllNPCs
-		NPCs:AddQueryString["GroupID = 4033"]
+		;NPCs:AddQueryString["GroupID = 4033"]
 
 		if ${Mission.Config.IgnoreNPCSentries}
 		{
@@ -337,11 +337,11 @@ objectdef obj_TargetManager inherits obj_StateQueue
 	
 	method PlagiarisedOffense()
 	{
-		variable bool allowSiegeModule
+		variable bool AllowSiegeModule
 		; Mission controls this itself.
-		if !${CommonConfig.Tehbot_Mode.Equal["Mission"]}
+		if !${CommonConfig.Tehbot_Mode.Find["Mission"]}
 		{
-			allowSiegeModule:Set[TRUE]
+			AllowSiegeModule:Set[TRUE]
 		}
 		
 		if !${Entity[${CurrentOffenseTarget}]} || ${Entity[${CurrentOffenseTarget}].IsMoribund} || !(${Entity[${CurrentOffenseTarget}].IsLockedTarget} || ${Entity[${CurrentOffenseTarget}].BeingTargeted})
@@ -740,7 +740,7 @@ objectdef obj_TargetManager inherits obj_StateQueue
 			}
 			This:LogInfo["Primary target: \ar${Entity[${CurrentOffenseTarget}].Name}, effciency ${Math.Calc[${Ship.ModuleList_Weapon.DamageEfficiency[${CurrentOffenseTarget}]} * 100].Deci}%."]
 		}
-		echo ${CurrentOffenseTarget} Current Offense Target
+		;echo ${CurrentOffenseTarget} Current Offense Target
 		; Nothing is locked.
 		if ${ActiveNPCs.TargetList.Used} && \
 			${CurrentOffenseTarget.Equal[0]} && \
@@ -775,19 +775,19 @@ objectdef obj_TargetManager inherits obj_StateQueue
 			{
 				Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget}]
 				Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]
-				if ${allowSiegeModule}
+				if ${AllowSiegeModule}
 				{
 					Ship.ModuleList_Siege:ActivateOne
 				}
 			}
-			elseif !${Ship.ModuleList_Weapon.IsUsingLongRangeAmmo} && ${Abyssal.Config.UseSecondaryAmmo}
+			elseif !${Ship.ModuleList_Weapon.IsUsingLongRangeAmmo} && ( ${Abyssal.Config.UseSecondaryAmmo} || ${Mission.Config.UseSecondaryAmmo})
 			{
 				This:LogDebug["Far switch ammo to long"]
 				; Activate weapon to switch ammo to long.
 				Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget}]
 				Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]
 			}
-			elseif ${allowSiegeModule} && \
+			elseif ${AllowSiegeModule} && \
 				${Ship.ModuleList_Siege.Allowed} && \
 				${Ship.ModuleList_Siege.Count} && \
 				!${Ship.RegisteredModule.Element[${Ship.ModuleList_Siege.ModuleID.Get[1]}].IsActive} && \
@@ -916,7 +916,7 @@ objectdef obj_TargetManager inherits obj_StateQueue
 		}
 		if ${CurrentOffenseTarget} < 1
 		{
-			allowSiegeModule:Set[FALSE]
+			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
 			Ship.ModuleList_CommandBurst:DeactivateAll
 		}
@@ -925,7 +925,13 @@ objectdef obj_TargetManager inherits obj_StateQueue
 			Ship.ModuleList_CommandBurst:ActivateAll
 			BurstTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 115000]}]
 		}
-
+		if ${AllowSiegeModule} && \
+		${Ship.ModuleList_Siege.Allowed} && \
+		${Ship.ModuleList_Siege.Count} && \
+		!${Ship.RegisteredModule.Element[${Ship.ModuleList_Siege.ModuleID.Get[1]}].IsActive}
+		{
+			Ship.ModuleList_Siege:ActivateOne
+		}
 		This:BuildNpcQueries
 		if ${CommonConfig.Tehbot_Mode.Equal["Abyssal"]}
 		{

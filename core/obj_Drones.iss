@@ -380,18 +380,18 @@ objectdef obj_Drones inherits obj_StateQueue
 
 	member:bool EngageActiveTarget(string TypeQuery, bool Force = FALSE, int Count = -1)
 	{
-		 echo engaging
+		 ;echo engaging
 		variable index:activedrone ActiveDrones
 		variable index:int64 DronesToEngage
 		variable iterator DroneIterator
 		variable int Selected = 0
 
 		Me:GetActiveDrones[ActiveDrones]
-		 echo ${ActiveDrones.Used} ${TypeQuery}
+		 ;echo ${ActiveDrones.Used} ${TypeQuery}
 		ActiveDrones:RemoveByQuery[${LavishScript.CreateQuery[${TypeQuery}]}, FALSE]
 		ActiveDrones:Collapse
 		ActiveDrones:GetIterator[DroneIterator]
-		 echo ${ActiveDrones.Used}
+		 ;echo ${ActiveDrones.Used}
 		if ${DroneIterator:First(exists)}
 		{
 			do

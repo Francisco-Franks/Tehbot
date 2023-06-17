@@ -259,6 +259,9 @@ objectdef obj_Mission inherits obj_StateQueue
 	; TargetList for DatabasifyNPCs method.
 	variable obj_TargetList DatabasifyNPC
 	variable obj_TargetList Lootables
+	
+	; Timer for last NPC databasification
+	variable int64 LastNPCDatabasification
 
 	; Need to set our Primary Agent's Index. Primary Agent is the first agent in your mission datafile.
 	variable int64 PrimaryAgentIndex
@@ -1269,6 +1272,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		; Alright, let us begin.
 		; Initial watchdog update for the Combat mode.
 		This:UpdateWatchDog
+		This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0]
 		; Check to see if we've completed the mission, completely
 		if (${CurrentRunTechnicalComplete} && ${Config.BlitzMissions}) || ${CurrentRunTrueComplete}
 		{
@@ -1305,7 +1309,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				if ${Entity[Name == "${CurrentAgentDestroy.Escape}"](exists)}
 				{
 					This:LogInfo["${CurrentAgentDestroy} detected. Destroy."]
-					This:InsertState["CombatMissionObjectives",5000,"Destroy","${Entity[Name == \"${CurrentAgentDestroy.Escape}\"].ID}"}]
+					This:InsertState["CombatMissionObjectives",5000,"Destroy","${Entity[Name == \"${CurrentAgentDestroy.Escape}\"]}"}]
 					return TRUE
 				}
 			}
@@ -1326,7 +1330,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					}
 					if !${CurrentAgentLoot.Find[Wreck]}
 					{
-						This:InsertState["CombatMissionObjectives",5000,"LootContainer","${Entity[Name == \"${CurrentAgentLoot.Escape}\"].ID}"}]
+						This:InsertState["CombatMissionObjectives",5000,"LootContainer","${Entity[Name == \"${CurrentAgentLoot.Escape}\"]}"}]
 					}
 					return TRUE
 				}				
@@ -1357,19 +1361,21 @@ objectdef obj_Mission inherits obj_StateQueue
 
 					if !${BookmarkIndex.Used}
 					{
-						Lootables.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Lootables.TargetList.Used} ${EVETime.Time.Left[5]}", "", "${Config.SalvageBMFolderName}", 1]			
-					}
-					EVE:GetBookmarks[BookmarkIndex2]
-					BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
-					BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[Distance < 200000]}, FALSE]
-					BookmarkIndex2:Collapse
-					BookmarkIndex2:GetIterator[BookmarkIterator2]
-					if ${BookmarkIterator2:First(exists)}
-					{
-						This:SalvageBMTableInsert[${BookmarkIterator2.Value.ID},${BookmarkIterator2.Value.Label.ReplaceSubstring[','']},${Lootables.TargetList.Used},${Universe[${Me.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator2.Value.Created.AsInt64} + 71000000000]},0,0,0}
+						Lootables.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Lootables.TargetList.Used} ${EVETime.Time.Left[5]}", "", "${Config.SalvageBMFolderName}", 1]		
+						This:InsertState["CombatMission", 5000,"3"]
+						return TRUE
 					}
 				}
 				
+				EVE:GetBookmarks[BookmarkIndex2]
+				BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
+				BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[Distance < 200000]}, FALSE]
+				BookmarkIndex2:Collapse
+				BookmarkIndex2:GetIterator[BookmarkIterator2]
+				if ${BookmarkIterator2:First(exists)}
+				{
+					This:SalvageBMTableInsert[${BookmarkIterator2.Value.ID},${BookmarkIterator2.Value.Label.ReplaceSubstring[','']},${Lootables.TargetList.Used},${Universe[${Me.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator2.Value.Created.AsInt64} + 71000000000]},0,0,0}
+				}				
 				; (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
 				; There is no gate here, let's check for both completion types (technical and true).
 				This:LogInfo["Checking for Completion"]
@@ -1423,32 +1429,37 @@ objectdef obj_Mission inherits obj_StateQueue
 		; I might also want to do something tricky with MJDs at some point.	
 		if ${This.JerksPresent}
 		{
-			
 			; Databasify NPCs on each loop. They will be added to the SQL DB so we can know things about the mission.
-			This:DatabasifyNPCs
-			This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0}]
+			;This:DatabasifyNPCs
+			if ${LavishScript.RunningTime} > ${LastDatabasification}
+			{
+				This:InsertState["CombatMissionFight",3000]
+				This:InsertState["DatabasifyNPCs",1500]
+				return TRUE
+			}
+			;This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0]
 			This:UpdateWatchDog
 			; Bad guys still here. Fighting loop.
-			if ${MyShip.ToEntity.Group.Find["Marauder"]}
+			if ${MyShip.ToEntity.Group.Find[Marauder]}
 			{
 				;;; This will be implemented in the future.
 				; Marauders play by much different rules. We don't move, we bastion and obliterate. Unless you are a Blaster Kronos.
 				;if ${CombatMissionMidrangeTargets.Used} > ${CombatMissionDistantTargets}
 				;{
 				;	; More enemies are in range than are not.
-				;	TargetManager.allowSiegeModule:Set[TRUE]
+				;	AllowSiegeModule:Set[TRUE]
 				;	
 				;}
 				;if (${CombatMissionMidrangeTargets.Used} < ${CombatMissionDistantTargets})
 				;{
 				;	; More enemies are out of range than in range.
-				;	TargetManager.allowSiegeModule:Set[FALSE]
+				;	AllowSiegeModule:Set[FALSE]
 				;	
 				;}	
 				;if ${CombatMissionCloseTargets.Used} > ${CombatMissionMidrangeTargets.Used}
 				;{
 				;	; MJD usage will go here. If too many enemies are close we will MJD away, again, only if we are a Turret based ship and if we have an MJD.
-				;	TargetManager.allowSiegeModule:Set[FALSE]
+				;	AllowSiegeModule:Set[FALSE]
 				;}
 				if ${Entity[${CurrentOffenseTarget}](exists)}
 				{
@@ -1456,12 +1467,14 @@ objectdef obj_Mission inherits obj_StateQueue
 					if ${Entity[${CurrentOffenseTarget}].Distance} < ${CurrentOffenseRange} 
 					{
 						; In range, Bastion.
-						TargetManager.allowSiegeModule:Set[TRUE]
+						echo DEBUG ALLOW SIEGE
+						AllowSiegeModule:Set[TRUE]
 					}
 					if (${Entity[${CurrentOffenseTarget}].Distance} > ${CurrentOffenseRange}) || (${Entity[${CurrentOffenseTarget}].Distance} > ${MyShip.MaxTargetRange})
 					{
 						; Out of target or offense range. Orbit Target
-						TargetManager.allowSiegeModule:Set[FALSE]
+						echo DEBUG DISALLOW SIEGE
+						AllowSiegeModule:Set[FALSE]
 						Move:Orbit[${CurrentOffenseTarget},5000]
 					}
 				}
@@ -1473,6 +1486,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				{
 					; Out of target or offense range. Orbit Target
 					Move:Orbit[${CurrentOffenseTarget},5000]
+					echo DEBUG NOT MARAUDER
 				}				
 			}
 		}
@@ -1517,17 +1531,19 @@ objectdef obj_Mission inherits obj_StateQueue
 			BookmarkIndex:Collapse
 			if !${BookmarkIndex.Used}
 			{
-				Lootables.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Lootables.TargetList.Used} ${EVETime.Time.Left[5]}", "", "${Config.SalvageBMFolderName}", 1]			
+				Lootables.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Lootables.TargetList.Used} ${EVETime.Time.Left[5]}", "", "${Config.SalvageBMFolderName}", 1]
+				This:InsertState["CombatMissionTransition",6000]
+				return TRUE
 			}
-			EVE:GetBookmarks[BookmarkIndex2]
-			BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
-			BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[Distance < 200000]}, FALSE]
-			BookmarkIndex2:Collapse
-			BookmarkIndex2:GetIterator[BookmarkIterator2]
-			if ${BookmarkIterator2:First(exists)}
-			{
-				This:SalvageBMTableInsert[${BookmarkIterator2.Value.ID},${BookmarkIterator2.Value.Label.ReplaceSubstring[','']},${Lootables.TargetList.Used},${Universe[${Me.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator2.Value.Created.AsInt64} + 71000000000]},0,0,0}
-			}
+		}
+		EVE:GetBookmarks[BookmarkIndex2]
+		BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
+		BookmarkIndex2:RemoveByQuery[${LavishScript.CreateQuery[Distance < 200000]}, FALSE]
+		BookmarkIndex2:Collapse
+		BookmarkIndex2:GetIterator[BookmarkIterator2]
+		if ${BookmarkIterator2:First(exists)}
+		{
+			This:SalvageBMTableInsert[${BookmarkIterator2.Value.ID},${BookmarkIterator2.Value.Label.ReplaceSubstring[','']},${Lootables.TargetList.Used},${Universe[${Me.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator2.Value.Created.AsInt64} + 71000000000]},0,0,0}
 		}
 		
 		; We're going to examine the available gates. If the gate hasn't been taken before in this run (excluding a disconnect/crash) we will use it IF THERE IS ANOTHER GATE TO USE.
@@ -1551,24 +1567,30 @@ objectdef obj_Mission inherits obj_StateQueue
 		CurrentRunGatesUsed:Set[${GateIterator.Value.Name},${GateIterator.Value.ID}]
 		; Theoretically if we are here we went through the gate to a new room. If this doesn't hold true then I will make a coordinate based detection method.
 		This:UpdateMissioneerStats["RoomComplete"]
-		CurrentRoomNumber:Inc[1]
+		CurrentRunRoomNumber:Inc[1]
 		; MissionLogCombatUpdate(int RunNumber, int RoomNumber, bool KilledTarget, bool Vanquisher, bool ContainerLooted, bool HaveItems, bool TechnicalCompletion, bool TrueCompletion, int64 FinalTimestamp, int Historical)
-		This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0}]
+		This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0]
 		This:UpdateWatchDog
 		This:InsertState["CombatMission", 4000]
 		return TRUE		
 	}
-	; This state will handle the mission Objectives. String will be what we should do, int64 will be the objective's entity ID.
-	member:bool CombatMissionObjectives(string ObjectiveAction, int64 ObjectiveTarget)
+	; This state will handle the mission Objectives. String will be what we should do.
+	member:bool CombatMissionObjectives(string ObjectiveAction)
 	{
 		if ${ObjectiveAction.Equal["Destroy"]}
 		{
-			if ${Entity[${ObjectiveTarget}].Distance} > ${CurrentOffenseRange}
+			if ${Entity[Name == "${CurrentAgentDestroy.Escape}"].Distance} > ${CurrentOffenseRange}
 			{
-				Move:Approach[${ObjectiveTarget},2500]
-				CurrentOffenseTarget:Set[${ObjectiveTarget}]
+				Move:Approach[${Entity[Name == "${CurrentAgentDestroy.Escape}"]},2500]
+				TargetManager.ActiveNPCs:AddQueryString[Name == "${CurrentAgentDestroy.Escape}"]
+				CurrentOffenseTarget:Set[${Entity[Name == "${CurrentAgentDestroy.Escape}"]}]
 			}
-			if !${Entity[${ObjectiveTarget}](exists)}
+			elseif ${Entity[Name == "${CurrentAgentDestroy.Escape}"].Distance} < ${CurrentOffenseRange}
+			{
+				TargetManager.ActiveNPCs:AddQueryString[Name == "${CurrentAgentDestroy.Escape}"]
+				CurrentOffenseTarget:Set[${Entity[Name == "${CurrentAgentDestroy.Escape}"]}]
+			}
+			if !${Entity[Name == "${CurrentAgentDestroy.Escape}"](exists)}
 			{
 				This:LogInfo["Destroyed Target - ${CurrentAgentDestroy}"]
 				CurrentRunKilledTarget:Set[TRUE]
@@ -1667,17 +1689,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		if !${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
 		{
 			;missionIterator.Value:GetDetails
-			EVE.Agent[${currentAgentIndex}]:StartConversation
-			return FALSE
-		}
-		if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["Request Mission"](exists)}
-		{
-			EVEWindow[AgentConversation_${CurrentAgentID}].Button["Request Mission"]:Press
-			return FALSE
-		}
-		if ${EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"](exists)}
-		{
-			EVEWindow[AgentConversation_${CurrentAgentID}].Button["View Mission"]:Press
+			EVE.Agent[${CurrentAgentIndex}]:StartConversation
 			return FALSE
 		}
 		if ${MissionParser.IsComplete}
@@ -1691,9 +1703,13 @@ objectdef obj_Mission inherits obj_StateQueue
 			if ${CurrentRunVanquisher}
 			{
 				CurrentRunTrueComplete:Set[TRUE]
-				This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0}]
+				This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0]
 				This:UpdateWatchDog
 			}
+		}
+		if ${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
+		{
+			EVEWindow[ByCaption, Agent Conversation - ${EVE.Agent[${CurrentAgentIndex}].Name}]:Close
 		}
 		return TRUE
 	}
@@ -2132,7 +2148,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	; and reset some variables, then go to FinishingAgentInteraction.
 	member:bool CourierMissionFinish()
 	{
-			This:MissionLogCourierUpdate[${CurrentRunNumber},${CurrentRunTripNumber},${CurrentRunItemUnitsMoved},${CurrentRunVolumeMoved},${Time.Timestamp},0}]
+			This:MissionLogCourierUpdate[${CurrentRunNumber},${CurrentRunTripNumber},${CurrentRunItemUnitsMoved},${CurrentRunVolumeMoved},${Time.Timestamp},0]
 			This:UpdateWatchDog
 			This:QueueState["FinishingAgentInteraction",5000]
 			return TRUE
@@ -2689,7 +2705,9 @@ objectdef obj_Mission inherits obj_StateQueue
 	}
 	; This method will be used to databasify NPCs in a mission room, or when new NPCs appear during a mission.
 	;	 RoomNPCInfoInsert(int64 EntityID, int RunNumber, int RoomNumber, string NPCName, string NPCGroup, int64 NPCBounty)
-	method DatabasifyNPCs()
+	; ADDENDUM, this has to be a state, this can take a very long time (in computer script time) so lets just stop those collisions ahead of time eh?
+	;method DatabasifyNPCs()
+	member:bool DatabasifyNPCs()
 	{
 		
 		variable iterator DBNPC
@@ -2701,21 +2719,35 @@ objectdef obj_Mission inherits obj_StateQueue
 			if ${DBNPC:First(exists)}
 			{
 				do
-				{
-					GetRoomNPCInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM RoomNPCInfo WHERE EntityID=${DBNPC.Value} AND RoomNumber=${CurrentRoomNumber} AND RunNumber=${CurrentRunNumber};"]}]
-					echo DEBUG ELEVENTH QUERY
-					if ${GetRoomNPCInfo.NumRows} > 0
+				{	
+					; Going to try breaking this up into chunks by only processing things we currently have locked?
+					if ${Entity[${DBNPC.Value}].IsLockedTarget}
 					{
-						GetRoomNPCInfo:Finalize
+						echo DEBUG - Unlocked Target, Skipping
 						continue
 					}
-					This:RoomNPCInfoInsert[${DBNPC.Value},${CurrentRunNumber},${CurrentRunRoomNumber},'${Entity[${DBNPC.Value}].Name.ReplaceSubstring[','']}','${Entity[${DBNPC.Value}].Group.ReplaceSubstring[','']}',${Entity[${DBNPC.Value}].Bounty}]
+					; We're assuming entity IDs never ever get recycled Storing this for later ---> AND RoomNumber=${CurrentRunRoomNumber} AND RunNumber=${CurrentRunNumber}
+					GetRoomNPCInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM RoomNPCInfo WHERE EntityID=${DBNPC.Value};"]}]
+					echo DEBUG ELEVENTH QUERY
+					if ${GetRoomNPCInfo.NumRows} == 0
+					{
+						This:RoomNPCInfoInsert[${DBNPC.Value},${CurrentRunNumber},${CurrentRunRoomNumber},${Entity[${DBNPC.Value}].Name.ReplaceSubstring[','']},${Entity[${DBNPC.Value}].Group.ReplaceSubstring[','']},${Entity[${DBNPC.Value}].Bounty}]
+						echo DATABASIFY NPCS ${DBNPC.Value},${CurrentRunNumber},${CurrentRunRoomNumber},${Entity[${DBNPC.Value}].Name.ReplaceSubstring[','']},${Entity[${DBNPC.Value}].Group.ReplaceSubstring[','']},${Entity[${DBNPC.Value}].Bounty}
+						GetRoomNPCInfo:Finalize
+					}
+					else
+						echo DEBUG - ALREADY IN DB
+						GetRoomNPCInfo:Finalize
 				}
 				while ${DBNPC:Next(exists)}
 			}
 			CharacterSQLDB:ExecDMLTransaction[NPCDBDML]
+			NPCDBML:Clear
 			echo DEBUG - DBNPC
 		}
+		; Only run this every 20 seconds.
+		LastDatabasification:Set[${Math.Calc[${LavishScript.RunningTime} + 20000]}]
+		return TRUE
 	}
 	; This method will be to help us generate appropriate Status Reports for WatchDogMonitoring
 	;	WatchDogMonitoringUpsert(int64 CharID, int RunNumber, string MissionName, string MissionType, int RoomNumber, int TripNumber, int64 TimeStamp, int64 CurrentTarget, string CurrentDestination, int UnitsMoved)	
@@ -2780,7 +2812,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		if ${Me.InStation}
 			return 0
 			
-		GetRoomNPCInfo:Set[${CharacterSQLDB.ExecQuery["SELECT Total(NPCBounty) FROM RoomNPCInfo WHERE RunNumber=${CurrentRunNumber} AND RoomNumber=${CurrentRoomNumber};"]}]
+		GetRoomNPCInfo:Set[${CharacterSQLDB.ExecQuery["SELECT Total(NPCBounty) FROM RoomNPCInfo WHERE RunNumber=${CurrentRunNumber} AND RoomNumber=${CurrentRunRoomNumber};"]}]
 		echo DEBUG TWELFTH QUERY
 		if ${GetRoomNPCInfo.NumRows} > 0
 		{
@@ -2794,7 +2826,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	; have things that are technically faction spawns but literally never have anything good, and those are generally frigates. This will return a bool.
 	member:bool RoomFactionSpawn()
 	{
-		GetRoomNPCInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM RoomNPCInfo WHERE (RunNumber=${CurrentRunNumber} AND RoomNumber=${CurrentRoomNumber}) AND (NPCGroup LIKE '%Commander Cruiser%' OR NPCGroup LIKE '%Commander Battlecruiser%' OR NPCGroup LIKE '%Commander Battleship%');"]}]
+		GetRoomNPCInfo:Set[${CharacterSQLDB.ExecQuery["SELECT * FROM RoomNPCInfo WHERE (RunNumber=${CurrentRunNumber} AND RoomNumber=${CurrentRunRoomNumber}) AND (NPCGroup LIKE '%Commander Cruiser%' OR NPCGroup LIKE '%Commander Battlecruiser%' OR NPCGroup LIKE '%Commander Battleship%');"]}]
 		echo DEBUG THIRTEENTH QUERY
 		if ${GetRoomNPCInfo.NumRows} > 0
 		{
@@ -2889,7 +2921,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					secondaryAmmo:Set[""]
 				break
 		}
-	Ship.ModuleList_Weapon:ConfigureAmmo[${ammo}, ${secondaryAmmo}]	
+		Ship.ModuleList_Weapon:ConfigureAmmo[${ammo}, ${secondaryAmmo}]	
 	}
 	; This method will be for a Mid-Run Information Recovery. Client crashed / you disconnected / etc. This will be called to set the CurrentRun and CurrentAgent variables from values stored in the DBs
 	method MidRunRecovery(string Case)
@@ -2965,13 +2997,16 @@ objectdef obj_Mission inherits obj_StateQueue
 		GetMissionLogCombined:Finalize	
 		GetDBJournalInfo:Finalize
 		echo DEBUG - DID WE COMPLETE THE MRR?
+		MissionParser.AgentName:Set[${EVE.Agent[${CurrentAgentIndex}].Name}]
+		This:ResolveDamageType[${CurrentAgentDamage.Lower}]
+		echo AMMO TYPES ${ammo} ${secondaryAmmo}
 		return TRUE
 	}
 	; This method will Set/Reset our Current Run information (the crap that goes into the mission log db entries). Initial entry basically.
 	method SetCurrentRunDetails(int64 OurCapacity, int64 TotalVolume)
 	{
 		CurrentRunNumber:Set[${Config.RunNumberInt}]
-		CurrentRunRoomNumber:Set[0]
+		CurrentRunRoomNumber:Set[1]
 		CurrentRunStartTimestamp:Set[${Time.Timestamp}]
 		CurrentRunKilledTarget:Set[FALSE]
 		CurrentRunVanquisher:Set[FALSE]
@@ -3131,7 +3166,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	{	
 		;variable index:string MJUDML
 		;MJUDML:Insert
-		CharacterSQLDB:ExecDML["insert into MissionJournal (AgentID,MissionName,MissionType,MissionStatus,AgentLocation,MissionLocation,DropoffLocation,DropoffLocationID,PickupLocation,PickupLocationID,Lowsec,JumpDistance,ExpectedItems,ItemUnits,ItemVolume,MissionLPReward,VolumePer,DestroyTarget,LootTarget,Damage2Deal) values (${AgentID}, '${MissionName}', '${MissionType}', ${MissionStatus}, '${AgentLocation}', '${MissionLocation}', '${DropoffLocation}', ${DropoffLocationID}, '${PickupLocation}', ${PickupLocationID}, ${Lowsec}, ${JumpDistance}, '${ExpectedItems}', ${ItemUnits}, ${ItemVolume}, ${MissionLPReward}, ${VolumePer}, '${LootTarget}', '${DestroyTarget}','${Damage2Deal}') ON CONFLICT (AgentID) DO UPDATE SET MissionName=excluded.MissionName, MissionType=excluded.MissionType, MissionStatus=excluded.MissionStatus, AgentLocation=excluded.AgentLocation, MissionLocation=excluded.MissionLocation, DropoffLocation=excluded.DropoffLocation, DropoffLocationID=excluded.DropoffLocationID, PickupLocation=excluded.PickupLocation, PickupLocationID=excluded.PickupLocationID, Lowsec=excluded.Lowsec, Jumpdistance=excluded.JumpDistance, ExpectedItems=excluded.ExpectedItems, ItemUnits=excluded.ItemUnits, ItemVolume=excluded.ItemVolume, MissionLPReward=excluded.MissionLPReward, VolumePer=excluded.VolumePer, DestroyTarget=excluded.DestroyTarget, LootTarget=excluded.LootTarget, Damage2Deal=excluded.Damage2Deal;"]
+		CharacterSQLDB:ExecDML["insert into MissionJournal (AgentID,MissionName,MissionType,MissionStatus,AgentLocation,MissionLocation,DropoffLocation,DropoffLocationID,PickupLocation,PickupLocationID,Lowsec,JumpDistance,ExpectedItems,ItemUnits,ItemVolume,MissionLPReward,VolumePer,DestroyTarget,LootTarget,Damage2Deal) values (${AgentID}, '${MissionName}', '${MissionType}', ${MissionStatus}, '${AgentLocation}', '${MissionLocation}', '${DropoffLocation}', ${DropoffLocationID}, '${PickupLocation}', ${PickupLocationID}, ${Lowsec}, ${JumpDistance}, '${ExpectedItems}', ${ItemUnits}, ${ItemVolume}, ${MissionLPReward}, ${VolumePer}, '${DestroyTarget}', '${LootTarget}','${Damage2Deal}') ON CONFLICT (AgentID) DO UPDATE SET MissionName=excluded.MissionName, MissionType=excluded.MissionType, MissionStatus=excluded.MissionStatus, AgentLocation=excluded.AgentLocation, MissionLocation=excluded.MissionLocation, DropoffLocation=excluded.DropoffLocation, DropoffLocationID=excluded.DropoffLocationID, PickupLocation=excluded.PickupLocation, PickupLocationID=excluded.PickupLocationID, Lowsec=excluded.Lowsec, Jumpdistance=excluded.JumpDistance, ExpectedItems=excluded.ExpectedItems, ItemUnits=excluded.ItemUnits, ItemVolume=excluded.ItemVolume, MissionLPReward=excluded.MissionLPReward, VolumePer=excluded.VolumePer, DestroyTarget=excluded.DestroyTarget, LootTarget=excluded.LootTarget, Damage2Deal=excluded.Damage2Deal;"]
 		;Transaction[MJUDML]
 		echo ${AgentID}, '${MissionName}', '${MissionType}', ${MissionStatus}, '${AgentLocation}', '${MissionLocation}', '${DropoffLocation}', ${DropoffLocationID}, '${PickupLocation}', ${PickupLocationID}, ${Lowsec}, ${JumpDistance}, '${ExpectedItems}', ${ItemUnits}, ${ItemVolume}, ${MissionLPReward}, ${VolumePer}, '${LootTarget}', '${DestroyTarget}','${Damage2Deal}
 	}
@@ -4234,8 +4269,9 @@ objectdef obj_Mission inherits obj_StateQueue
 	; This member will be used by Combat Missioneer to tell if there are bad guys around.
 	member:bool JerksPresent()
 	{
-		if ${TargetManager.ActiveNPCs.TargetList.Used} || ${TargetManager.NPCs.TargetList.Used}
+		if ${Script[Tehbot].VariableScope.TargetManager.ActiveNPCs.TargetList.Used} > 0
 		{
+			echo debug JERKS PRESET echo ${Script[Tehbot].VariableScope.TargetManager.ActiveNPCs.TargetList.Used}
 			return TRUE
 		}
 		else

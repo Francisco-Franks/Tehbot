@@ -627,7 +627,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 						Drones:Recall["ID = ${DroneIterator.Value.ID}", 1]
 					}
 					Drones.DroneHealth:Set[${DroneIterator.Value.ID}, ${CurrentDroneHealth.Int}]
-					echo drone refreshed cached health ${Drones.DroneHealth.Element[${DroneIterator.Value.ID}]}
+					;echo drone refreshed cached health ${Drones.DroneHealth.Element[${DroneIterator.Value.ID}]}
 				}
 				; We are using my new configs, this denotes we have drones that are primarily Armor HP heavy - We will mostly ignore shield damage because otherwise we will recall our drones nonstop.
 				if ${Config.ArmorDrones}
@@ -647,7 +647,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 						Drones:Recall["ID = ${DroneIterator.Value.ID}", 1]
 					}
 					Drones.DroneHealth:Set[${DroneIterator.Value.ID}, ${CurrentDroneHealth.Int}]
-					echo drone refreshed cached health ${Drones.DroneHealth.Element[${DroneIterator.Value.ID}]}
+					;echo drone refreshed cached health ${Drones.DroneHealth.Element[${DroneIterator.Value.ID}]}
 				}
 				; We are using my new configs, this denotes we have drones that are primarily Shield HP heavy - We will allow slightly more shield HP damage per loop, less recalling.
 				if ${Config.ShieldDrones}
@@ -667,7 +667,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 						Drones:Recall["ID = ${DroneIterator.Value.ID}", 1]
 					}
 					Drones.DroneHealth:Set[${DroneIterator.Value.ID}, ${CurrentDroneHealth.Int}]
-					echo drone refreshed cached health ${Drones.DroneHealth.Element[${DroneIterator.Value.ID}]}
+					;echo drone refreshed cached health ${Drones.DroneHealth.Element[${DroneIterator.Value.ID}]}
 				}	
 			}
 			while ${DroneIterator:Next(exists)}
@@ -1016,7 +1016,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			if ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0 && \
 			   ${Entity[${currentTarget}].Distance} < ${Me.DroneControlDistance}
 			{
-				echo ${MaxDroneCount} drones engaging
+				;echo ${MaxDroneCount} drones engaging
 				Drones:Engage["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE", ${currentTarget}]
 			}
 
