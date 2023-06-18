@@ -1608,7 +1608,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		; We're going to examine the available gates. If the gate hasn't been taken before in this run (excluding a disconnect/crash) we will use it IF THERE IS ANOTHER GATE TO USE.
 		; If there is only one gate then we will ignore that used gate list. This is going to be a shitload of work for the like, 1? 2? mission(s) with branches.
 		; There are next to no checks in this because we shouldn't be here unless Combat Missioneer has ordered a room transition.
-		if !${Move.Traveling} && !${HaveGated}
+		if !${HaveGated}
 		{
 			variable index:entity GateIndex
 			variable iterator GateIterator
