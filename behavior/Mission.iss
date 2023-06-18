@@ -2291,6 +2291,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	; We will set that row to Historical, update any final details that need to be updated, clean up any variables that need cleaning up.
 	member:bool FinishingAgentInteraction()
 	{
+		CurrentRunFinalTimestamp:Set[${Time.TimeStamp}]
 		; Storing our wallet just before we hit complete button.
 		ISKBeforeCompletion:Set[${Me.Wallet.Balance}]
 		; Open a conversation window, again.
@@ -2984,7 +2985,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		if ${CurrentRunStartTimestamp} == 0
 			return 0
 		else
-			return ${Math.Calc[${CurrentRunFinalTimestamp}-${CurrentRunStartTimestamp}]}		
+			return ${Math.Calc[${CurrentRunFinalTimestamp} - ${CurrentRunStartTimestamp}]}		
 	
 	}
 	; Sixth and actual final member in this area will be for the total bounties for the entire run.
