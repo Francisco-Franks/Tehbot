@@ -167,7 +167,7 @@ objectdef obj_Salvage inherits obj_StateQueue
 			lootYellow:Set[""]
 		}
 
-		WrecksNoLock:AddQueryString["Name =- \"Wreck" && !IsWreckEmpty && !IsMoribund && Distance < 2500"]
+		WrecksNoLock:AddQueryString["${group} ${canLoot} ${lootYellow} && !IsMoribund && Distance < 2500"]
 		WrecksNoLock.AutoLock:Set[FALSE]
 		WrecksNoLock:RequestUpdate
 	}

@@ -269,6 +269,9 @@ objectdef obj_Mission inherits obj_StateQueue
 	; Need to store this somewhere
 	variable int64 ObjectiveID
 	
+	; Annoying as hell, I hate gate moves
+	variable bool HaveGated
+	
 	method Initialize()
 	{
 		This[parent]:Initialize
@@ -1580,6 +1583,11 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			return FALSE
 		}
+		if ${This.JerksPresent}
+		{
+			This:InsertState["CombatMission",4000]
+			return TRUE
+		}
 		variable index:bookmark BookmarkIndex
 		variable index:bookmark BookmarkIndex2
 		variable iterator		BookmarkIterator2
@@ -1600,7 +1608,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		; We're going to examine the available gates. If the gate hasn't been taken before in this run (excluding a disconnect/crash) we will use it IF THERE IS ANOTHER GATE TO USE.
 		; If there is only one gate then we will ignore that used gate list. This is going to be a shitload of work for the like, 1? 2? mission(s) with branches.
 		; There are next to no checks in this because we shouldn't be here unless Combat Missioneer has ordered a room transition.
-		if !${Move.Traveling}
+		if !${Move.Traveling} && !${HaveGated}
 		{
 			variable index:entity GateIndex
 			variable iterator GateIterator
@@ -1617,7 +1625,11 @@ objectdef obj_Mission inherits obj_StateQueue
 				}
 			}
 			Move:Gate[${GateIterator.Value.ID}]
-			return FALSE
+			HaveGated:Set[TRUE]
+			This:InsertState["CombatMissionTransition",2000]
+			This:InsertState["Traveling",2000]
+			This:InsertState["Idle",3000]
+			return TRUE
 		}
 		CurrentRunGatesUsed:Set[${GateIterator.Value.Name},${GateIterator.Value.ID}]
 		; Theoretically if we are here we went through the gate to a new room. If this doesn't hold true then I will make a coordinate based detection method.
@@ -1626,6 +1638,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		; MissionLogCombatUpdate(int RunNumber, int RoomNumber, bool KilledTarget, bool Vanquisher, bool ContainerLooted, bool HaveItems, bool TechnicalCompletion, bool TrueCompletion, int64 FinalTimestamp, int Historical)
 		This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0]
 		This:UpdateWatchDog
+		HaveGated:Set[FALSE]
 		This:InsertState["CombatMission", 4000]
 		return TRUE		
 	}
