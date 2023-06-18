@@ -1576,6 +1576,10 @@ objectdef obj_Mission inherits obj_StateQueue
 	; This state will handle room transitions in a combat mission site.
 	member:bool CombatMissionTransition()
 	{
+		if ${Move.Traveling}
+		{
+			return FALSE
+		}
 		variable index:bookmark BookmarkIndex
 		variable index:bookmark BookmarkIndex2
 		variable iterator		BookmarkIterator2
@@ -1596,21 +1600,25 @@ objectdef obj_Mission inherits obj_StateQueue
 		; We're going to examine the available gates. If the gate hasn't been taken before in this run (excluding a disconnect/crash) we will use it IF THERE IS ANOTHER GATE TO USE.
 		; If there is only one gate then we will ignore that used gate list. This is going to be a shitload of work for the like, 1? 2? mission(s) with branches.
 		; There are next to no checks in this because we shouldn't be here unless Combat Missioneer has ordered a room transition.
-		variable index:entity GateIndex
-		variable iterator GateIterator
-		
-		EVE:QueryEntities[GateIndex, "TypeID = 17831"]
-		GateIndex:GetIterator[GateIterator]	
-		if ${GateIndex.Used} > 1
+		if !${Move.Traveling}
 		{
-			; This should mean that we have entered the gate into the collecition already, meaning we used it.
-			if ${CurrentRunGatesUsed.Key[${GateIterator.Value.Name}].Value} > 0
+			variable index:entity GateIndex
+			variable iterator GateIterator
+			
+			EVE:QueryEntities[GateIndex, "TypeID = 17831"]
+			GateIndex:GetIterator[GateIterator]	
+			if ${GateIndex.Used} > 1
 			{
-				This:LogInfo["We've used this gate before, trying the other one."]
-				GateIterator:Next
+				; This should mean that we have entered the gate into the collecition already, meaning we used it.
+				if ${CurrentRunGatesUsed.Key[${GateIterator.Value.Name}].Value} > 0
+				{
+					This:LogInfo["We've used this gate before, trying the other one."]
+					GateIterator:Next
+				}
 			}
+			Move:Gate[${GateIterator.Value.ID}]
+			return FALSE
 		}
-		Move:Gate[${GateIterator.Value.ID}]
 		CurrentRunGatesUsed:Set[${GateIterator.Value.Name},${GateIterator.Value.ID}]
 		; Theoretically if we are here we went through the gate to a new room. If this doesn't hold true then I will make a coordinate based detection method.
 		This:UpdateMissioneerStats["RoomComplete"]
@@ -1625,6 +1633,24 @@ objectdef obj_Mission inherits obj_StateQueue
 	member:bool CombatMissionObjectives(string ObjectiveAction)
 	{
 		echo ${ObjectiveID} OBJECTIVE ID
+		if ${CurrentAgentLoot.NotNULLOrEmpty}
+		{
+			; Check our cargo for the stupid item.
+			if ${MyShip.Cargo[${CurrentAgentItem}](exists)} && ${MyShip.Cargo[${CurrentAgentItem}].Quantity} >= ${CurrentAgentItemUnits}
+			{
+				CurrentRunContainerLooted:Set[TRUE]
+				CurrentRunHaveItems:Set[TRUE]
+				This:LogInfo["Acquired ${CurrentAgentItemUnits} of ${CurrentAgentItem}"]
+				This:InsertState["CombatMission", 4000]
+				return TRUE							
+			}
+			elseif ${MyShip.Cargo[${CurrentAgentItem}](exists)} && ${MyShip.Cargo[${CurrentAgentItem}].Quantity} < ${CurrentAgentItemUnits}
+			{
+				This:LogInfo["Acquired ${CurrentAgentItemUnits} of ${CurrentAgentItem}, More Remain"]
+				This:InsertState["CombatMission", 4000]
+				return TRUE						
+			}
+		}
 		if ${ObjectiveAction.Equal["Destroy"]}
 		{
 			if ${Entity[Name == "${CurrentAgentDestroy.Escape}"].Distance} > ${CurrentOffenseRange}
@@ -1748,21 +1774,6 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				; Dunno 
 			}		
-		}
-		; Check our cargo for the stupid item.
-		if ${MyShip.Cargo[${CurrentAgentItem}](exists)} && ${MyShip.Cargo[${CurrentAgentItem}].Quantity} >= ${CurrentAgentItemUnits}
-		{
-			CurrentRunContainerLooted:Set[TRUE]
-			CurrentRunHaveItems:Set[TRUE]
-			This:LogInfo["Acquired ${CurrentAgentItemUnits} of ${CurrentAgentItem}"]
-			This:InsertState["CombatMission", 4000]
-			return TRUE							
-		}
-		elseif ${MyShip.Cargo[${CurrentAgentItem}](exists)} && ${MyShip.Cargo[${CurrentAgentItem}].Quantity} < ${CurrentAgentItemUnits}
-		{
-			This:LogInfo["Acquired ${CurrentAgentItemUnits} of ${CurrentAgentItem}, More Remain"]
-			This:InsertState["CombatMission", 4000]
-			return TRUE						
 		}
 		return FALSE
 	}

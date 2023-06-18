@@ -296,7 +296,7 @@ objectdef obj_Move inherits obj_StateQueue
 
 	member:bool GateMove(int64 ID, bool CalledFromMove)
 	{
-		GateMoveModuleCounter:Inc[1]
+		;GateMoveModuleCounter:Inc[1]
 		; If the gate doesn't exist, or it is locked, bail out.
 		if !${Entity[${ID}](exists)} || ${EVEWindow[byName, modal].Text.Find[This gate is locked!]}
 		{
@@ -304,7 +304,7 @@ objectdef obj_Move inherits obj_StateQueue
 			{
 				This.Traveling:Set[FALSE]
 			}
-			GateMoveModuleCounter:Set[0]
+			;GateMoveModuleCounter:Set[0]
 			return TRUE
 		}
 		; Not sure why this is here, we shouldn't be able to end up here if we are already in warp.
@@ -321,13 +321,13 @@ objectdef obj_Move inherits obj_StateQueue
 			return FALSE
 		}
 		;	We seem to have been approaching for a long time, lets stop the ship and exit the approach.
-		if ${GateMoveModuleCounter} > 30
-		{
-			Logger:Log["Move", "Approaching for too long, abort]
-			EVE:Execute[CmdStopShip]
-			GateMoveModuleCounter:Set[0]
-			return TRUE
-		}
+		;if ${GateMoveModuleCounter} > 30
+		;{
+		;	Logger:Log["Move", "Approaching for too long, abort]
+		;	EVE:Execute[CmdStopShip]
+		;	GateMoveModuleCounter:Set[0]
+		;	return TRUE
+		;}
 		; If the gate is too far away, we approach.
 		if ${Entity[${ID}].Distance} >= 2500
 		{
