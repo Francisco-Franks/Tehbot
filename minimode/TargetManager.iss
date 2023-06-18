@@ -318,7 +318,15 @@ objectdef obj_TargetManager inherits obj_StateQueue
 		NPCs:ClearQueryString
 		NPCs:AddAllNPCs
 		;NPCs:AddQueryString["GroupID = 4033"]
-
+		if ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
+		{
+			; We really don't want to be shooting that control tower before we kill everything else in this mission tbh
+			if !${Mission.CurrentAgentMissionName.Find["Smash"]}
+				ActiveNPCs:AddQueryString["Name == \"${Mission.CurrentAgentDestroy}\""]
+			; If everything else is dead then go right ahead.
+			if ${Mission.CurrentAgentMissionName.Find["Smash"]} && ${ActiveNPCs.TargetList.Used} == 0
+				ActiveNPCs:AddQueryString["Name == \"${Mission.CurrentAgentDestroy}\""]
+		}
 		if ${Mission.Config.IgnoreNPCSentries}
 		{
 			ActiveNPCs:AddTargetExceptionByPartOfName["Battery"]
@@ -770,7 +778,7 @@ objectdef obj_TargetManager inherits obj_StateQueue
 			;	DroneControl:Recall
 			;}
 
-			echo ${Ship.ModuleList_Weapon.Range} weapon range
+			;echo ${Ship.ModuleList_Weapon.Range} weapon range
 			if (${Ship.ModuleList_Weapon.Range} > ${Entity[${CurrentOffenseTarget}].Distance}) 
 			{
 				Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget}]

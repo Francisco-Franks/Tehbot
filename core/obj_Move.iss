@@ -3,7 +3,7 @@ objectdef obj_Move inherits obj_StateQueue
 	variable obj_Approach ApproachModule
 
 	variable bool Traveling = FALSE
-
+	variable int GateMoveModuleCounter
 
 
 	method Initialize()
@@ -296,20 +296,23 @@ objectdef obj_Move inherits obj_StateQueue
 
 	member:bool GateMove(int64 ID, bool CalledFromMove)
 	{
+		GateMoveModuleCounter:Inc[1]
+		; If the gate doesn't exist, or it is locked, bail out.
 		if !${Entity[${ID}](exists)} || ${EVEWindow[byName, modal].Text.Find[This gate is locked!]}
 		{
 			if !${CalledFromMove}
 			{
 				This.Traveling:Set[FALSE]
 			}
+			GateMoveModuleCounter:Set[0]
 			return TRUE
 		}
-
+		; Not sure why this is here, we shouldn't be able to end up here if we are already in warp.
 		if ${Me.ToEntity.Mode} == MOVE_WARPING
 		{
 			return FALSE
 		}
-
+		; We are too close to the gate, orbit it so we don't get stuck on it. This might have worked in the past? You can't get a negative distance anymore.
 		if ${Entity[${ID}].Distance} < -8000
 		{
 			Logger:Log["Move", "Too close!  Orbiting ${Entity[${ID}].Name}", "g"]
@@ -317,11 +320,21 @@ objectdef obj_Move inherits obj_StateQueue
 			Client:Wait[10000]
 			return FALSE
 		}
+		;	We seem to have been approaching for a long time, lets stop the ship and exit the approach.
+		if ${GateMoveModuleCounter} > 30
+		{
+			Logger:Log["Move", "Approaching for too long, abort]
+			EVE:Execute[CmdStopShip]
+			GateMoveModuleCounter:Set[0]
+			return TRUE
+		}
+		; If the gate is too far away, we approach.
 		if ${Entity[${ID}].Distance} >= 2500
 		{
 			This:Approach[${ID}, 2500]
 			return FALSE
 		}
+		; We are in range, activate the gate.
 		Logger:Log["Move", "Activating ${Entity[${ID}].Name}", "g"]
 		Entity[${ID}]:Activate
 		Client:Wait[5000]

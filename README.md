@@ -117,3 +117,7 @@ Coming up in the future: Finishing the Missioneer 2.0 rewrite. Implementing bett
 a new and better watchdog to help you get unstuck, using those stats we are gathering.
 
 Sidenote: I have been pouring shitloads of time into this, but we can't stop now. Be patientish and it will pay off. Or maybe this will all be trash in the end idk.
+_______________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+June 18th, 5:10 AM. Combat Missions are now baseline operational. Salvager rewrite is next. Then I need to make... a UI element to display some of the statistics we are gathering.
+Ugh. I hate UI stuff.
