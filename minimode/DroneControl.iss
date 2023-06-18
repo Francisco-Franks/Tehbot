@@ -551,6 +551,10 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			RemoteRepJerkz:RequestUpdate
 			StarvingJerks:RequestUpdate
 		}
+		if ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
+		{
+			ActiveNPCs:RequestUpdate
+		}
 		if ${CommonConfig.Tehbot_Mode.Equal["Mining"]}
 		{
 			ActiveNPCs.MaxRange:Set[${droneEngageRange}]

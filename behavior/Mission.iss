@@ -1648,6 +1648,17 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 		if ${ObjectiveAction.Equal["LootWreck"]}
 		{
+			if ${Entity[${ObjectiveID}].IsLockedTarget} && !${Ship.ModuleList_TractorBeams.IsActiveOn[${ObjectiveID}]}
+			{
+				if ${Ship.ModuleList_TractorBeams.InactiveCount} > 0
+				{
+					Ship.ModuleList_TractorBeams:ActivateOne[${ObjectiveID}]
+				}
+				else
+				{
+					Ship.ModuleList_TractorBeams:ForceActivateOne[${ObjectiveID}]
+				}
+			}
 			if ${Entity[${ObjectiveID}].Distance} > 2500
 			{
 				Move:Approach[${Entity[${ObjectiveID}]},2000]
@@ -1696,10 +1707,21 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 		if ${ObjectiveAction.Equal["LootContainer"]}
 		{
+			if ${Entity[Name == "${CurrentAgentLoot}"].IsLockedTarget} && !${Ship.ModuleList_TractorBeams.IsActiveOn[${Entity[Name == "${CurrentAgentLoot}"]}]}
+			{
+				if ${Ship.ModuleList_TractorBeams.InactiveCount} > 0
+				{
+					Ship.ModuleList_TractorBeams:ActivateOne[${Entity[Name == "${CurrentAgentLoot}"]}]
+				}
+				else
+				{
+					Ship.ModuleList_TractorBeams:ForceActivateOne[${Entity[Name == "${CurrentAgentLoot}"]}]
+				}
+			}
 			; So uh, this can be awkward if the container is a Cargo Container. I think I will disable the Salvage Minimode's ability to Salvage things for the couple missions where this hapens.
 			if ${Entity[Name == "${CurrentAgentLoot}"].Distance} > 2500
 			{
-				Move:Approach[${ObjectiveTarget},2000]
+				Move:Approach[${Entity[Name == "${CurrentAgentLoot}"]},2000]
 			}
 			if ${Entity[Name == "${CurrentAgentLoot}"].Distance} < 2500
 			{
@@ -1726,6 +1748,21 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				; Dunno 
 			}		
+		}
+		; Check our cargo for the stupid item.
+		if ${MyShip.Cargo[${CurrentAgentItem}](exists)} && ${MyShip.Cargo[${CurrentAgentItem}].Quantity} >= ${CurrentAgentItemUnits}
+		{
+			CurrentRunContainerLooted:Set[TRUE]
+			CurrentRunHaveItems:Set[TRUE]
+			This:LogInfo["Acquired ${CurrentAgentItemUnits} of ${CurrentAgentItem}"]
+			This:InsertState["CombatMission", 4000]
+			return TRUE							
+		}
+		elseif ${MyShip.Cargo[${CurrentAgentItem}](exists)} && ${MyShip.Cargo[${CurrentAgentItem}].Quantity} < ${CurrentAgentItemUnits}
+		{
+			This:LogInfo["Acquired ${CurrentAgentItemUnits} of ${CurrentAgentItem}, More Remain"]
+			This:InsertState["CombatMission", 4000]
+			return TRUE						
 		}
 		return FALSE
 	}
@@ -2958,7 +2995,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				if ${BookmarkIterator.Value.Label.Find["${Config.SalvagePrefix}"]}
 				{
-					This:SalvageBMTableInsert[${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]},0,0,0}
+					This:SalvageBMTableInsert[${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]},0,0,0}]
 					echo ${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]}
 				}
 			}
@@ -3313,12 +3350,13 @@ objectdef obj_Mission inherits obj_StateQueue
 	; ADDENDUM - This will now be an upsert as we are going to just dump all our valid BMs at the end of the mission instead of on the fly.
 	method SalvageBMTableInsert(int64 BMID, string BMName, int WreckCount, string BMSystem, int64 ExpectedExpiration, int64 ClaimedByCharID, int64 SalvageTime, int Historical)
 	{
+		echo SALVAGEBMTABLE ${BMID},'${BMName}',${WreckCount},'${BMSystem}',${ExpectedExpiration},${ClaimedByCharID},${SalvageTime},${Historical}
 		SharedSQLDB:ExecDML["insert into SalvageBMTable (BMID,BMName,WreckCount,BMSystem,ExpectedExpiration,ClaimedByCharID,SalvageTime,Historical) values (${BMID},'${BMName}',${WreckCount},'${BMSystem}',${ExpectedExpiration},${ClaimedByCharID},${SalvageTime},${Historical}) ON CONFLICT (BMID) DO UPDATE SET BMName=excluded.BMName;"]
 	}
 	; This method is just so a salvager can claim a salvage BM. If you have more than one salvager it is kinda needed.
 	method SalvageBMTableClaim(int64 CharID, int64 BMID)
 	{
-		CharacterSQLDB:ExecDML["update SalvageBMTable SET ClaimedByCharID=${CharID} WHERE BMID=${BMID};"]
+		SharedSQLDB:ExecDML["update SalvageBMTable SET ClaimedByCharID=${CharID} WHERE BMID=${BMID};"]
 	}
 	
 	;;;;;;;;;;;;;;;;;;;;; Below this point is stuff I just grabbed from the original Missioneer ;;;;;;;;;;;;;;;;;
