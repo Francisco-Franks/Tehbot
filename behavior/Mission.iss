@@ -2650,10 +2650,11 @@ objectdef obj_Mission inherits obj_StateQueue
 		; Lets get the Objectives into its JSONified String
 		JSONBriefing:Set[${EVEWindow[AgentConversation_${AgentID}].BriefingHTML.AsJSON}]
 		; Lets get the easy one out of the way, is this declared lowsec.
-		if ${JSONBriefing.AsJSON.Find["Low Sec Warning"]}
+		if ${JSONBriefing.AsJSON.Find["Low Sec Warning"]} || ${JSONObjective.AsJSON.Find["Low Sec Warning"]} || ${JSONObjective.AsJSON.Find["contains low security"]}
 			LastLowsec:Set[TRUE]
 		else
 			LastLowsec:Set[FALSE]
+		
 		; Ok next, lets get the Location of the Agent, but from the HTML, instead of looking it up. Dunno why. Just go with it.
 		; First we get the location of the first <br><br>, take that location get a substring from it, take that substring and find the first //, this // comes before the station ID. Station ID number ends at a >. Find that >.
 		; We will now have a position where the number starts and where it ends.
