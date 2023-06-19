@@ -1401,7 +1401,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				; Need to do this somewhere. We are making a Salvage BM and also placing an entry in the SalvageBM DB.
 				Lootables:RequestUpdate
-				if (${Lootables.TargetList.Used} > 13 && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
+				if (${Lootables.TargetList.Used} > 7 && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
 				{
 					EVE:GetBookmarks[BookmarkIndex]
 					BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
@@ -1550,14 +1550,14 @@ objectdef obj_Mission inherits obj_StateQueue
 				This:LogInfo["Room is Gateless, We have Vanquished all Enemies."]
 				CurrentRunVanquisher:Set[TRUE]
 			}
-			if ${CurrentRunGatesUsed.Used} >= 5 && ${CurrentRunGatesUsed.Key["Gate To The Research Outpost"].Value} > 0
+			if ${CurrentRunGatesUsed.Used} >= 4 && ${CurrentRunGatesUsed.Element["Gate To The Research Outpost"].Value} > 0
 			{
 				This:LogInfo["Went through all gates in World's Collide, We have Vanquished all Enemies."]
 				CurrentRunVanquisher:Set[TRUE]			
 			}
 			; Really want the salvage BM to work properly...
 			Lootables:RequestUpdate
-			if (${Lootables.TargetList.Used} > 13 && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
+			if (${Lootables.TargetList.Used} > 7 && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
 			{
 				EVE:GetBookmarks[BookmarkIndex]
 				BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
@@ -1593,7 +1593,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		variable iterator		BookmarkIterator2
 		; The Salvage BM thing also has to go here. We either are changing rooms, or we are in a room with no gate so the one in the main CombatMission state will get it on exit.
 		Lootables:RequestUpdate
-		if (${Lootables.TargetList.Used} > 13 && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 5 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
+		if (${Lootables.TargetList.Used} > 7 && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
 		{
 			EVE:GetBookmarks[BookmarkIndex]
 			BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
@@ -1610,6 +1610,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		; There are next to no checks in this because we shouldn't be here unless Combat Missioneer has ordered a room transition.
 		if !${HaveGated}
 		{
+			echo ${CurrentRunGatesUsed.Used}
 			variable index:entity GateIndex
 			variable iterator GateIterator
 			
@@ -1624,6 +1625,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					GateIterator:Next
 				}
 			}
+			CurrentRunGatesUsed:Set[${GateIterator.Value.Name},${GateIterator.Value.ID}]
 			Move:Gate[${GateIterator.Value.ID}]
 			HaveGated:Set[TRUE]
 			This:InsertState["CombatMissionTransition",2000]
@@ -1631,7 +1633,6 @@ objectdef obj_Mission inherits obj_StateQueue
 			This:InsertState["Idle",3000]
 			return TRUE
 		}
-		CurrentRunGatesUsed:Set[${GateIterator.Value.Name},${GateIterator.Value.ID}]
 		; Theoretically if we are here we went through the gate to a new room. If this doesn't hold true then I will make a coordinate based detection method.
 		This:UpdateMissioneerStats["RoomComplete"]
 		CurrentRunRoomNumber:Inc[1]
@@ -1808,7 +1809,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		; What defines True Completion? We have seen every room, Killed every enemy, and accomplished Technical Completion.
 		if ${CurrentRunTechnicalComplete}
 		{
-			; Vanquisher will be set either A) when we are in the last room without a gate and everything is dead or B) Have a full list of traversed gates for World's Collide.
+			; Vanquisher will be set either A) when we are in the last room without a gate and everything is dead or B) Have a full list of traversed gates for Worlds Collide.
 			if ${CurrentRunVanquisher}
 			{
 				CurrentRunTrueComplete:Set[TRUE]
@@ -2291,7 +2292,6 @@ objectdef obj_Mission inherits obj_StateQueue
 	; We will set that row to Historical, update any final details that need to be updated, clean up any variables that need cleaning up.
 	member:bool FinishingAgentInteraction()
 	{
-		CurrentRunFinalTimestamp:Set[${Time.TimeStamp}]
 		; Storing our wallet just before we hit complete button.
 		ISKBeforeCompletion:Set[${Me.Wallet.Balance}]
 		; Open a conversation window, again.
@@ -2348,6 +2348,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		if ${CurrentAgentMissionType.Find["Encounter"]}
 		{
 			relay "all" -event Tehbot_SalvageBookmark ${Me.ID}
+			CurrentRunGatesUsed:Clear
 			This:InsertState["DropOffLoot", 10000]			
 			This:InsertState["Repair"]
 		}
@@ -2455,6 +2456,8 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				; If it already exists in the DB, in the same state, the same mission name, from the same agent, it is safe to say it is already there. Skip it.
 				This:LogInfo["Entry Already Exists - Skipping"]
+				EVEWindow[ByCaption, Agent Conversation]:Close
+				EVEWindow[ByCaption, Agent Conversation]:Close
 				This:QueueState["Databasification", 2000, "${Math.Calc[${missionIterator.Key} + 1]}, FALSE"]
 				return TRUE
 			}
@@ -2462,6 +2465,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				; If it is an expired mission, don't databasify it.
 				This:LogInfo["Expired Mission - Skipping"]
+				EVEWindow[AgentConversation_${AgentID}]:Close
 				This:QueueState["Databasification", 2000, "${Math.Calc[${missionIterator.Key} + 1]}, FALSE"]
 				return TRUE				
 			}
@@ -2901,7 +2905,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	;		 					int RunLP, int64 RunISK, int64 RunDuration, int64 RunTotalBounties, string ShipType)
 	method UpdateMissioneerStats(string EventType)
 	{
-		; ISK, LP, Total Duration
+		; ISK, LP, Total Duration, Total Bounties
 		variable int64 	CRISK = 0
 		variable int 	CRLP = 0
 		variable int64 	CRTD = 0
@@ -2914,6 +2918,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			ST:Set[${MyShip.ToItem.Type}]
 		
 		; So we don't record the mission ISK/LP reward over and over and over and over. We will record this only on mission completion I guess.
+		echo DEBUG - UPDATEMISSIONEER STATS ${CurrentAgentLPReward} ${This.RunDuration} ${This.TotalBounties}
 		if ${EventType.Equal[RunComplete]}
 		{
 			CRISK:Set[${This.RunISK}]
@@ -2921,6 +2926,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			CRTD:Set[${This.RunDuration}]
 			CRTB:Set[${This.TotalBounties}]
 		}
+		echo DEBUG - UPDATE MISSIONEER STATS ${Time.Timestamp},${Me.Name.ReplaceSubstring[','']},${Me.CharID},${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunTripNumber},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType.ReplaceSubstring[','']},${EventType},${This.RoomBounties},${This.RoomFactionSpawn},${This.RoomDuration},${CRISK},${CRLP},${CRTD},${CRTB},${ST.ReplaceSubstring[','']}
 		This:MissioneerStatsInsert[${Time.Timestamp},${Me.Name.ReplaceSubstring[','']},${Me.CharID},${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunTripNumber},${CurrentAgentMissionName.ReplaceSubstring[','']},${CurrentAgentMissionType.ReplaceSubstring[','']},${EventType},${This.RoomBounties},${This.RoomFactionSpawn},${This.RoomDuration},${CRISK},${CRLP},${CRTD},${CRTB},${ST.ReplaceSubstring[','']}]
 	}
 	; These members will be for the MissionerStatsInsert, just to make getting the information simpler.
@@ -2982,11 +2988,12 @@ objectdef obj_Mission inherits obj_StateQueue
 	; Fifth and final member in this area will be for returning how long the entire run has taken, beginning to end. Returns milliseconds as an int64.
 	member:int64 RunDuration()
 	{
+		echo DEBUG - RUN DURATION ${Time.Timestamp} - ${CurrentRunStartTimestamp}
 		; This shouldn't come up, because this variable IS restored from DB.
 		if ${CurrentRunStartTimestamp} == 0
 			return 0
 		else
-			return ${Math.Calc[${CurrentRunFinalTimestamp} - ${CurrentRunStartTimestamp}]}		
+			return ${Math.Calc[${Time.Timestamp} - ${CurrentRunStartTimestamp}]}		
 	
 	}
 	; Sixth and actual final member in this area will be for the total bounties for the entire run.
@@ -3367,9 +3374,9 @@ objectdef obj_Mission inherits obj_StateQueue
 	; This method will be for inserting information into the MissioneerStats table. This will be a normal insert, no upserts here.
 	; (Timestamp DATETIME, CharName TEXT, CharID INTEGER, RunNumber INTEGER, RoomNumber INTEGER, TripNumber INTEGER, MissionName TEXT, MissionType TEXT, EventType TEXT, RoomBounties INTEGER, RoomFactionSpawn BOOLEAN,
 	;   RoomDuration DATETIME, RunLP INTEGER, RunISK INTEGER, RunDuration DATETIME, RunTotalBounties INTEGER, ShipType TEXT);"]
-	method MissioneerStatsInsert(int64 Timestamp, string CharName, int64 CharID, int RunNumber, int RoomNumber, int TripNumber, string MissionName, string MissionType, string EventType, int64 RoomBounties, bool RoomFactionSpawn, int64 RoomDuration, int RunLP, int64 RunISK, int64 RunDuration, int64 RunTotalBounties, string ShipType)
+	method MissioneerStatsInsert(int64 Timestamp, string CharName, int64 CharID, int RunNumber, int RoomNumber, int TripNumber, string MissionName, string MissionType, string EventType, int64 RoomBounties, bool RoomFactionSpawn, int64 RoomDuration, int64 RunISK, int RunLP, int64 RunDuration, int64 RunTotalBounties, string ShipType)
 	{
-		SharedSQLDB:ExecDML["insert into MissioneerStats (Timestamp,CharName,CharID,RunNumber,RoomNumber,TripNumber,MissionName,MissionType,EventType,RoomBounties,RoomFactionSpawn,RoomDuration,RunLP,RunISK,RunDuration,RunTotalBounties,ShipType) values (${Timestamp},'${CharName}',${CharID},${RunNumber},${RoomNumber},${TripNumber},'${MissionName}','${MissionType}','${EventType}',${RoomBounties},${RoomFactionSpawn},${RoomDuration},${RunLP},${RunISK},${RunDuration},${RunTotalBounties},'${ShipType}');"]
+		SharedSQLDB:ExecDML["insert into MissioneerStats (Timestamp,CharName,CharID,RunNumber,RoomNumber,TripNumber,MissionName,MissionType,EventType,RoomBounties,RoomFactionSpawn,RoomDuration,RunISK,RunLP,RunDuration,RunTotalBounties,ShipType) values (${Timestamp},'${CharName}',${CharID},${RunNumber},${RoomNumber},${TripNumber},'${MissionName}','${MissionType}','${EventType}',${RoomBounties},${RoomFactionSpawn},${RoomDuration},${RunISK},${RunLP},${RunDuration},${RunTotalBounties},'${ShipType}');"]
 	}
 	; This method will be for inserting information into the SalvageBMTable table. I don't anticipate this ever needing to be an Upsert.
 	; (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
