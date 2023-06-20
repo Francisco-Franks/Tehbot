@@ -1604,7 +1604,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				This:LogInfo["Room is Gateless, We have Vanquished all Enemies."]
 				CurrentRunVanquisher:Set[TRUE]
 			}
-			if ${CurrentRunGatesUsed.Used} >= 4 && ${CurrentRunGatesUsed.Element["Gate To The Research Outpost"].Value} > 0
+			if ${CurrentRunGatesUsed.Used} >= 4 && ${CurrentRunGatesUsed.Element["Gate To The Research Outpost"](exists)} > 0
 			{
 				This:LogInfo["Went through all gates in World's Collide, We have Vanquished all Enemies."]
 				CurrentRunVanquisher:Set[TRUE]			
@@ -1673,7 +1673,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			if ${GateIndex.Used} > 1
 			{
 				; This should mean that we have entered the gate into the collecition already, meaning we used it.
-				if ${CurrentRunGatesUsed.Element[${GateIterator.Value.Name}].Value} > 0
+				if ${CurrentRunGatesUsed.Element[${GateIterator.Value.Name}](exists)} > 0
 				{
 					This:LogInfo["We've used this gate before, trying the other one."]
 					GateIterator:Next
@@ -2347,7 +2347,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	member:bool FinishingAgentInteraction()
 	{
 		; Storing our wallet just before we hit complete button.
-		ISKBeforeCompletion:Set[${Me.Wallet.Balance}]
+		ISKBeforeCompletion:Set[${Me.Wallet.Balance.Int}]
 		; Open a conversation window, again.
 		if !${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
 		{
@@ -2369,7 +2369,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			return FALSE
 		}
 		; Storing our wallet just after we hit the complete button.
-		ISKAfterCompletion:Set[${Me.Wallet.Balance}]
+		ISKAfterCompletion:Set[${Me.Wallet.Balance.Int}]
 		; Mission Completion MissioneerStats Update
 		This:UpdateMissioneerStats["RunComplete"]
 		This:BackupSalvageBMTableMethod
