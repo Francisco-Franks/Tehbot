@@ -254,6 +254,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	variable collection:string TargetToDestroy
 	variable collection:string ContainerToLoot
 	variable collection:int64 CapacityRequired
+	variable collection:string RequiredItems
 	
 	; Target list(s)
 	; TargetList for DatabasifyNPCs method.
@@ -1240,11 +1241,64 @@ objectdef obj_Mission inherits obj_StateQueue
 	; Courier missions will do their own loading, trade missions have already done their loading. 
 	member:bool MissionPrep()
 	{
+		; Need to do this so we can move the stuff correctly. A combat mission ship should have a cargo bay, probably.
+		HaulerLargestBayLocationFlag:Set[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].LocationFlag}]
 		; First up, we need to establish exactly what damage type, and hence ammo and drones, we need.
 		This:ResolveDamageType[${CurrentAgentDamage.Lower}]
 		; Queue up the state that handles station inventory management for this scenario.
 		This:QueueState["Go2Mission",4000]
 		This:InsertState["ReloadAmmoAndDrones", 4000]
+		if ${RequiredItems.Element[${CurrentAgentMissionName}](exists)}
+		{
+			This:InsertState["CombatMissionLoadShip",3000,"${RequiredItems.Element[${CurrentAgentMissionName}]}"]
+		}
+		return TRUE
+	}
+	; This state will be for loading a specific required item as seen in some mission chains. If we need to load an item we will end up here. 
+	member:bool CombatMissionLoadShip(string RequiredItem)
+	{
+		variable index:item itemIndex
+		variable iterator	itemIterator
+		variable int		wholeUnits
+		echo HAULER LARGEST ${HaulerLargestBayType} ${HaulerLargestBayCapacity}
+		if !${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:MakeActive
+			This:InsertState["CombatMissionLoadShip",${Math.Calc[(3000) * ${Config.InventoryPulseRateModifier}].Int}]
+			return TRUE
+		}
+		if ${EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems](exists)}
+		{
+			EVEWindow[Inventory].ChildWindow[${Me.Station.ID}, StationItems]:GetItems[itemIndex]
+			if ${itemIndex.Used} < 1
+			{
+				; Theoretically, for Load and Unload, we wouldn't have gotten here if there wasn't something to move.
+				This:LogInfo["Returned Empty Index - Cycling"]
+				return FALSE
+			}
+			itemIndex:GetIterator[itemIterator]
+			if ${itemIterator:First(exists)}
+			{
+				do
+				{
+					if ${itemIterator.Value.Name.Find[${RequiredItem}]}
+					{
+						wholeUnits:Set[${Math.Calc[${HaulerLargestBayCapacity}/${itemIterator.Value.Volume}].Int}]
+						if ${itemIterator.Value.Quantity} > ${wholeUnits}
+						{
+							itemIterator.Value:MoveTo[${Me.ShipID}, ${HaulerLargestBayLocationFlag}, ${wholeUnits}]
+							This:LogInfo["${wholeUnits} x ${RequiredItem} @ ${Math.Calc[${wholeUnits}*${itemIterator.Value.Volume}]}m3 moved FROM Station TO ${HaulerLargestBayType}"]
+						}
+						else
+						{
+							itemIterator.Value:MoveTo[${Me.ShipID}, ${HaulerLargestBayLocationFlag}, ${itemIterator.Value.Quantity}]
+							This:LogInfo["${itemIterator.Value.Quantity} x ${RequiredItem} @ ${Math.Calc[${itemIterator.Value.Quantity}*${itemIterator.Value.Volume}]}m3 moved FROM Station TO ${HaulerLargestBayType}"]						
+						}
+					}
+				}
+				while ${itemIterator:Next(exists)}
+			}
+		}
 		return TRUE
 	}
 	; This state will take us to our Mission Bookmark
@@ -3690,9 +3744,11 @@ objectdef obj_Mission inherits obj_StateQueue
 				   ; Anomaly gate key
 				   !${itemIterator.Value.Name.Equal["Oura Madusaari"]} && \
 				   !${itemIterator.Value.Group.Equal["Acceleration Gate Keys"]} && \
-				   !${itemIterator.Value.Name.Find["Script"]} 
+				   !${itemIterator.Value.Name.Find["Script"]} && \
 				   ; Insignias for Extravaganza missions
-				   ;!${itemIterator.Value.Name.Find["Diamond"]}
+				   !${itemIterator.Value.Name.Find["Diamond"]} && \
+				   ; Gimmick trash for idiot hell fuckers, why do missions need bespoke garbage items?
+				   !${itemIterator.Value.Name.Find["Imperial Navy Gate Permit"]}
 				{
 					if ${Config.DropOffToContainer} && ${Config.DropOffContainerName.NotNULLOrEmpty} && ${dropOffContainerID} > 0
 					{
