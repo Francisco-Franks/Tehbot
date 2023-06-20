@@ -1619,7 +1619,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			if ${GateIndex.Used} > 1
 			{
 				; This should mean that we have entered the gate into the collecition already, meaning we used it.
-				if ${CurrentRunGatesUsed.Key[${GateIterator.Value.Name}].Value} > 0
+				if ${CurrentRunGatesUsed.Element[${GateIterator.Value.Name}].Value} > 0
 				{
 					This:LogInfo["We've used this gate before, trying the other one."]
 					GateIterator:Next
