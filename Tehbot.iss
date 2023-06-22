@@ -71,6 +71,7 @@
 #include minimode/ChatRelay.iss
 #include minimode/ISXSQLiteTest.iss
 #include minimode/PilotInfoHelper.iss
+#include minimode/WatchDog.iss
 
 function atexit()
 {
@@ -127,6 +128,7 @@ function main(string Character="")
 	declarevariable LavishNavTest obj_LavishNavTest script
 	declarevariable ChatRelay obj_ChatRelay script
 	declarevariable PilotInfoHelper obj_PilotInfoHelper script
+	declarevariable WatchDog obj_WatchDog script
 	if ${ISXSQLite.IsReady}
 	{
 		declarevariable ISXSQLiteTest obj_ISXSQLiteTest script

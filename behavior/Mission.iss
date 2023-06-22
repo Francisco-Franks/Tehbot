@@ -29,6 +29,7 @@ objectdef obj_Configuration_Mission inherits obj_Configuration_Base
 		ConfigManager.ConfigRoot:AddSet[${This.SetName}]
 		This.ConfigRef:AddSetting[RunNumberInt, 1]
 		This.ConfigRef:AddSetting[InventoryPulseRateModifier, 1.0]
+		This.ConfigRef:AddSetting[WreckBMThreshold, 7]
 	}
 	Setting(bool, Halt, SetHalt)
 	; This bool indicates we want to repeatedly Decline missions despite the standings damage
@@ -100,6 +101,9 @@ objectdef obj_Configuration_Mission inherits obj_Configuration_Base
 	; Since inventory is so wildly fucking variable per client, I will need to create a way to modify the pulse on inventory actions.
 	; This will be multiplier with the pulse for inventory actions. Higher number means slower actions.
 	Setting(float, InventoryPulseRateModifier, SetInventoryPulseRateModifier)
+	
+	; Threshold for Salvage BM Creation. Its an int. If this many wrecks or more exist, a salvage BM will be created. If there are any navy wrecks around we will ignore this and BM regardless.
+	Setting(int, WreckBMThreshold, SetWreckBMThreshold)
 
 	; This won't go in the UI anywhere, just need a persistent storage for our Run Number because I'm lazy.
 	; To be honest, mostly just need this to initialize the number the first time around. This will be incremented after each mission completion.
@@ -1455,7 +1459,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				; Need to do this somewhere. We are making a Salvage BM and also placing an entry in the SalvageBM DB.
 				Lootables:RequestUpdate
-				if (${Lootables.TargetList.Used} > 7 && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
+				if (${Lootables.TargetList.Used} >= ${Config.WreckBMThreshold} && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
 				{
 					EVE:GetBookmarks[BookmarkIndex]
 					BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
@@ -1611,7 +1615,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			}
 			; Really want the salvage BM to work properly...
 			Lootables:RequestUpdate
-			if (${Lootables.TargetList.Used} > 7 && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
+			if (${Lootables.TargetList.Used} >= ${Config.WreckBMThreshold} && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
 			{
 				EVE:GetBookmarks[BookmarkIndex]
 				BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
@@ -1647,7 +1651,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		variable iterator		BookmarkIterator2
 		; The Salvage BM thing also has to go here. We either are changing rooms, or we are in a room with no gate so the one in the main CombatMission state will get it on exit.
 		Lootables:RequestUpdate
-		if (${Lootables.TargetList.Used} > 7 && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
+		if (${Lootables.TargetList.Used} >= ${Config.WreckBMThreshold} && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
 		{
 			EVE:GetBookmarks[BookmarkIndex]
 			BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]

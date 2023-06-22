@@ -1512,6 +1512,37 @@
 							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>	
+
+					<Text name='WreckBMThresholdTitle'>
+						<X>1%</X>
+						<Y>45%</Y>
+						<Width>30%</Width>
+						<Height>5%</Height>
+						<Alignment>Center</Alignment>
+						<Text>Salvage BM Wreck Threshold</Text>
+					</Text>
+					<Textentry Name="WreckBMThreshold">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>41%</X>
+						<Y>45%</Y>
+						<Width>5%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.WreckBMThreshold}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetWreckBMThreshold[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This will be the Salvage BM Threshold. If this many wrecks exist a BM will be placed. This setting will be ignored if there are any Imperial Navy or Caldari State wrecks present (those are money)."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>
 					
 					<Text name='InformationFrameTitle'>
 						<X>1%</X>
