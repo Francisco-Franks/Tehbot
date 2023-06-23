@@ -1842,9 +1842,11 @@ objectdef obj_Mission inherits obj_StateQueue
 				This:InsertState["CombatMission", 4000]
 				return TRUE						
 			}
-			else
+			elseif !${Entity[Name == "Cargo Container"](exists)}
 			{
-				; Dunno 
+				This:LogInfo["Something went wrong, looping back to CombatMission loop"]
+				This:InsertState["CombatMission", 4000]
+				return TRUE		
 			}		
 		}
 		return FALSE
