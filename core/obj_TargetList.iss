@@ -270,6 +270,11 @@ objectdef obj_TargetList inherits obj_StateQueue
 		ExcludeTargetID:Clear
 		ExcludeTargetNameIncludeString:Clear
 	}
+	
+	method ClearExcludeTargetID()
+	{
+		ExcludeTargetID:Clear
+	}
 
 	member:bool UpdateList()
 	{

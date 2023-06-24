@@ -122,6 +122,7 @@ objectdef obj_TargetManager inherits obj_StateQueue
 	
 	;Welp, time to just reuse a bunch of existing stuff I barely understand.
 	;Update - 5 months later, I now understand all of this quite well.
+	; Update - 3 months later again, that previous line was a lie but NOW I understand all of this near perfectly.
 	member:bool UpdateNPCs()
 	{
 		NPCs:RequestUpdate
@@ -327,7 +328,7 @@ objectdef obj_TargetManager inherits obj_StateQueue
 			if ${Mission.CurrentAgentMissionName.Find["Smash"]} && ${ActiveNPCs.TargetList.Used} == 0
 				ActiveNPCs:AddQueryString["Name == \"${Mission.CurrentAgentDestroy}\""]
 		}
-		if ${Mission.Config.IgnoreNPCSentries}
+		if ${Mission.Config.IgnoreNPCSentries} || ${Mission.CurrentAgentLoot.Equal["Cargo Container"]}
 		{
 			ActiveNPCs:AddTargetExceptionByPartOfName["Battery"]
 			ActiveNPCs:AddTargetExceptionByPartOfName["Batteries"]
@@ -825,7 +826,10 @@ objectdef obj_TargetManager inherits obj_StateQueue
 				{
 					This:LogInfo["Approaching out of range target: \ar${Entity[${CurrentOffenseTarget}].Name}"]
 					This:ManageThrusterOverload[${Entity[${CurrentOffenseTarget}].ID}]
-					;Entity[${CurrentOffenseTarget}]:Approach
+					if ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
+					{
+						Entity[${CurrentOffenseTarget}]:Approach
+					}
 				}
 			}
 

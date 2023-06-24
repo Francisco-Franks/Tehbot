@@ -57,7 +57,7 @@
 						<Width>98%</Width>
 						<Height>18%</Height>
 						<Wrap />
-						<Text>This mode exists solely to populate a table in an SQL DB. No UI elements needed</Text>
+						<Text>This mode exists to provide stats and utility to Missioneer.</Text>
 					</Text>
 				</Children>
 			</Frame>
