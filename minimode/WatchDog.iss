@@ -332,16 +332,20 @@ objectdef obj_WatchDog inherits obj_StateQueue
 		; If it doesn't exist, that is progress.
 		if !${Entity[${CurrentOffenseTarget}](exists)}
 		{
-			return TRUE
+			echo DEBUG - WATCHDOG - AWMPTM1
 			TargetManagerNoProgressTimestamp:Set[0]
+			return TRUE
 		}
 		elseif !${TargetManagerTargetHealthCache.Element[${CurrentOffenseTarget}](exists)}
 		{
 			TargetManagerTargetHealthCache:Set[${CurrentOffenseTarget},${Math.Calc[${Entity[${CurrentOffenseTarget}].ShieldPct.Int} + ${Entity[${CurrentOffenseTarget}].ArmorPct.Int} + ${Entity[${CurrentOffenseTarget}].StructurePct.Int}]}]
+			echo DEBUG - WATCHDOG - TM CACHE ${Math.Calc[${Entity[${CurrentOffenseTarget}].ShieldPct.Int} + ${Entity[${CurrentOffenseTarget}].ArmorPct.Int} + ${Entity[${CurrentOffenseTarget}].StructurePct.Int}]}
 		}
 		elseif ${Math.Calc[${Entity[${CurrentOffenseTarget}].ShieldPct.Int} + ${Entity[${CurrentOffenseTarget}].ArmorPct.Int} + ${Entity[${CurrentOffenseTarget}].StructurePct.Int}]} >= ${TargetManagerTargetHealthCache.Element[${CurrentOffenseTarget}]} && ${TargetManagerNoProgressTimestamp} == 0
 		{
 			echo DEBUG - WATCHDOG - PROGRESS NOT BEING MADE ON TARGETMANAGER TARGET
+			TargetManagerTargetHealthCache:Set[${CurrentOffenseTarget},${Math.Calc[${Entity[${CurrentOffenseTarget}].ShieldPct.Int} + ${Entity[${CurrentOffenseTarget}].ArmorPct.Int} + ${Entity[${CurrentOffenseTarget}].StructurePct.Int}]}]
+			echo DEBUG - WATCHDOG - TM CACHE2 ${Math.Calc[${Entity[${CurrentOffenseTarget}].ShieldPct.Int} + ${Entity[${CurrentOffenseTarget}].ArmorPct.Int} + ${Entity[${CurrentOffenseTarget}].StructurePct.Int}]}			
 			TargetManagerNoProgressTimestamp:Set[${Time.Timestamp}]
 			return FALSE
 		}
@@ -359,16 +363,20 @@ objectdef obj_WatchDog inherits obj_StateQueue
 		; If it doesn't exist, that is progress.
 		if !${Entity[${DroneControl.CurrentTarget}](exists)}
 		{
-			return TRUE
 			DroneControlNoProgressTimestamp:Set[0]
+			echo DEBUG - WATCHDOG - AWMPDC1
+			return TRUE
 		}
 		elseif !${DroneControlTargetHealthCache.Element[${DroneControl.CurrentTarget}](exists)}
 		{
 			DroneControlTargetHealthCache:Set[${DroneControl.CurrentTarget},${Math.Calc[${Entity[${DroneControl.CurrentTarget}].ShieldPct.Int} + ${Entity[${DroneControl.CurrentTarget}].ArmorPct.Int} + ${Entity[${DroneControl.CurrentTarget}].StructurePct.Int}]}]
+			echo DEBUG - WATCHDOG - DC CACHE1 ${Math.Calc[${Entity[${DroneControl.CurrentTarget}].ShieldPct.Int} + ${Entity[${DroneControl.CurrentTarget}].ArmorPct.Int} + ${Entity[${DroneControl.CurrentTarget}].StructurePct.Int}]}	
 		}
 		elseif ${Math.Calc[${Entity[${DroneControl.CurrentTarget}].ShieldPct.Int} + ${Entity[${DroneControl.CurrentTarget}].ArmorPct.Int} + ${Entity[${DroneControl.CurrentTarget}].StructurePct.Int}]} >= ${DroneControlTargetHealthCache.Element[${DroneControl.CurrentTarget}]} && ${DroneControlNoProgressTimestamp} == 0
 		{
 			echo DEBUG - WATCHDOG - PROGRESS NOT BEING MADE ON DRONECONTROL TARGET
+			DroneControlTargetHealthCache:Set[${DroneControl.CurrentTarget},${Math.Calc[${Entity[${DroneControl.CurrentTarget}].ShieldPct.Int} + ${Entity[${DroneControl.CurrentTarget}].ArmorPct.Int} + ${Entity[${DroneControl.CurrentTarget}].StructurePct.Int}]}]
+			echo DEBUG - WATCHDOG - DC CACHE2 ${Math.Calc[${Entity[${DroneControl.CurrentTarget}].ShieldPct.Int} + ${Entity[${DroneControl.CurrentTarget}].ArmorPct.Int} + ${Entity[${DroneControl.CurrentTarget}].StructurePct.Int}]}				
 			DroneControlNoProgressTimestamp:Set[${Time.Timestamp}]
 			return FALSE
 		}
@@ -377,6 +385,7 @@ objectdef obj_WatchDog inherits obj_StateQueue
 			DroneControlNoProgressTimestamp:Set[0]
 			return TRUE
 		}
+		echo DEBUG - WATCHDOG - AWMPDC2
 		return TRUE
 	}
 
@@ -387,12 +396,14 @@ objectdef obj_WatchDog inherits obj_StateQueue
 	{
 		DroneControl.ActiveNPCs:AddTargetExceptionByID["${DroneControl.CurrentTarget}"]
 		LastTargetException:Set[${Time.Timestamp}]
+		echo DEBUG - WATCHDOG - RESETDRONECONTROL
 	}
 	; This method will be similar but for TargetManager's targets.
 	method ResetTargetManager()
 	{
 		TargetManager.ActiveNPCs:AddTargetExceptionByID["${CurrentOffenseTarget}"]
 		LastTargetException:Set[${Time.Timestamp}]	
+		echo DEBUG - WATCHDOG - RESETTARGETMANAGER
 	}
 
 }

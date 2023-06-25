@@ -762,11 +762,13 @@ objectdef obj_TargetManager inherits obj_StateQueue
 				; This:LogInfo["Deactivate siege module due to no locked target"]
 				Ship.ModuleList_Siege:DeactivateAll
 			}
-			;This:LogInfo["Approaching distanced target: \ar${ActiveNPCs.TargetList.Get[1].Name}"]
-			;This:ManageThrusterOverload[${ActiveNPCs.TargetList.Get[1].ID}]
-			;ActiveNPCs.TargetList.Get[1]:Approach
-			;This:InsertState["PerformMission"]
-			;return TRUE
+			if ${CommonConfig.Tehbot_Mode.Find["Mission"]}
+			{
+				This:LogInfo["Approaching distanced target: \ar${ActiveNPCs.TargetList.Get[1].Name}"]
+				This:ManageThrusterOverload[${ActiveNPCs.TargetList.Get[1].ID}]
+				ActiveNPCs.TargetList.Get[1]:Approach
+				return FALSE
+			}
 		}
 
 		if ${CurrentOffenseTarget} != 0 && ${Entity[${CurrentOffenseTarget}]} && !${Entity[${CurrentOffenseTarget}].IsMoribund}

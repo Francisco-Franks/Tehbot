@@ -39,7 +39,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 	variable obj_TargetList Cynabals
 	variable obj_TargetList Dramiels
 	
-	variable int64 currentTarget = 0
+	variable int64 CurrentTarget = 0
 	variable bool IsBusy
 	variable int droneEngageRange = 60000
 	variable bool RecallActive=FALSE
@@ -678,17 +678,17 @@ objectdef obj_DroneControl inherits obj_StateQueue
 		}
 
 
-		if !${Entity[${currentTarget}](exists)} || ${Entity[${currentTarget}].IsMoribund} || (!${Entity[${currentTarget}].IsLockedTarget} && !${Entity[${currentTarget}].BeingTargeted}) || ${Entity[${currentTarget}].Distance} > ${droneEngageRange}
+		if !${Entity[${CurrentTarget}](exists)} || ${Entity[${CurrentTarget}].IsMoribund} || (!${Entity[${CurrentTarget}].IsLockedTarget} && !${Entity[${CurrentTarget}].BeingTargeted}) || ${Entity[${CurrentTarget}].Distance} > ${droneEngageRange}
 		{
 			finalizedDC:Set[FALSE]
-			currentTarget:Set[0]
+			CurrentTarget:Set[0]
 		}
 
 		variable iterator lockedTargetIterator
 		variable iterator activeJammerIterator
 		Ship:BuildActiveJammerList
 
-		if ${currentTarget} != 0
+		if ${CurrentTarget} != 0
 		{
 			
 
@@ -697,7 +697,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				This:LogInfo["Debug - Marshal - DC"]
 				if ${Marshal.LockedTargetList.Used}
 				{
-					currentTarget:Set[${Marshal.LockedTargetList.Get[1]}]
+					CurrentTarget:Set[${Marshal.LockedTargetList.Get[1]}]
 					This:LogInfo["Kill The Damn Marshals"]
 					finalizedDC:Set[TRUE]
 				}
@@ -708,7 +708,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				This:LogInfo["Debug - RRJerks - DC"]
 				if ${RemoteRepJerkz.LockedTargetList.Used}
 				{
-					currentTarget:Set[${RemoteRepJerkz.LockedTargetList.Get[1]}]
+					CurrentTarget:Set[${RemoteRepJerkz.LockedTargetList.Get[1]}]
 					This:LogInfo["Kill RemoteReppers"]
 					finalizedDC:Set[TRUE]
 				}
@@ -719,7 +719,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				This:LogInfo["Debug - Neuting Jerks - DC"]
 				if ${StarvingJerks.LockedTargetList.Used}
 				{
-					currentTarget:Set[${StarvingJerks.LockedTargetList.Get[1]}]
+					CurrentTarget:Set[${StarvingJerks.LockedTargetList.Get[1]}]
 					This:LogInfo["Kill Neuts"]
 					finalizedDC:Set[TRUE]
 				}
@@ -730,7 +730,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				This:LogInfo["Debug - Leshaks - DC"]
 				if ${Leshaks.LockedTargetList.Used}
 				{
-					currentTarget:Set[${Leshaks.LockedTargetList.Get[1]}]
+					CurrentTarget:Set[${Leshaks.LockedTargetList.Get[1]}]
 					This:LogInfo["Kill The Leshaks"]
 					finalizedDC:Set[TRUE]
 				}
@@ -741,7 +741,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				This:LogInfo["Debug - Kikimoras - DC"]
 				if ${Kikimoras.LockedTargetList.Used}
 				{
-					currentTarget:Set[${Kikimoras.LockedTargetList.Get[1]}]
+					CurrentTarget:Set[${Kikimoras.LockedTargetList.Get[1]}]
 					This:LogInfo["Kill The Kikimoras"]
 					finalizedDC:Set[TRUE]
 				}
@@ -753,7 +753,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				This:LogInfo["Debug - Damaviks - DC"]
 				if ${Damaviks.LockedTargetList.Used}
 				{
-					currentTarget:Set[${Damaviks.LockedTargetList.Get[1]}]
+					CurrentTarget:Set[${Damaviks.LockedTargetList.Get[1]}]
 					This:LogInfo["Kill The Damaviks"]
 					finalizedDC:Set[TRUE]
 				}
@@ -765,7 +765,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				This:LogInfo["Debug - Vedmaks - DC"]
 				if ${Vedmaks.LockedTargetList.Used}
 				{
-					currentTarget:Set[${Vedmaks.LockedTargetList.Get[1]}]
+					CurrentTarget:Set[${Vedmaks.LockedTargetList.Get[1]}]
 					This:LogInfo["Kill The Vedmaks"]
 					finalizedDC:Set[TRUE]
 				}
@@ -777,7 +777,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				This:LogInfo["Debug - Drekavacs - DC"]
 				if ${Drekavacs.LockedTargetList.Used}
 				{
-					currentTarget:Set[${Drekavacs.LockedTargetList.Get[1]}]
+					CurrentTarget:Set[${Drekavacs.LockedTargetList.Get[1]}]
 					This:LogInfo["Kill The Drekavacs"]
 					finalizedDC:Set[TRUE]
 				}
@@ -789,7 +789,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				This:LogInfo["Debug - Cynabals - DC"]
 				if ${Cynabals.LockedTargetList.Used}
 				{
-					currentTarget:Set[${Cynabals.LockedTargetList.Get[1]}]
+					CurrentTarget:Set[${Cynabals.LockedTargetList.Get[1]}]
 					This:LogInfo["Kill The Cynabals"]
 					finalizedDC:Set[TRUE]
 				}
@@ -801,21 +801,21 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				This:LogInfo["Debug - Dramiels - DC"]
 				if ${Dramiels.LockedTargetList.Used}
 				{
-					currentTarget:Set[${Dramiels.LockedTargetList.Get[1]}]
+					CurrentTarget:Set[${Dramiels.LockedTargetList.Get[1]}]
 					This:LogInfo["Kill The Dramiels"]
 					finalizedDC:Set[TRUE]
 				}
 			}			
-			if ${FightOrFlight.IsEngagingGankers} && !${FightOrFlight.currentTarget.Equal[0]} && !${FightOrFlight.currentTarget.Equal[${currentTarget}]}
+			if ${FightOrFlight.IsEngagingGankers} && !${FightOrFlight.CurrentTarget.Equal[0]} && !${FightOrFlight.CurrentTarget.Equal[${CurrentTarget}]}
 			{
-				currentTarget:Set[${FightOrFlight.currentTarget}]
-				This:LogInfo["Switching target to ganker \ar${Entity[${currentTarget}].Name}"]
+				CurrentTarget:Set[${FightOrFlight.CurrentTarget}]
+				This:LogInfo["Switching target to ganker \ar${Entity[${CurrentTarget}].Name}"]
 				finalizedDC:Set[TRUE]
 			}
 
 			if !${finalizedDC} && ${Ship.ActiveJammerList.Used}
 			{
-				if !${Ship.ActiveJammerSet.Contains[${currentTarget}]}
+				if !${Ship.ActiveJammerSet.Contains[${CurrentTarget}]}
 				{
 					; Being jammed but the jammer is not the current target
 					Ship.ActiveJammerList:GetIterator[activeJammerIterator]
@@ -823,8 +823,8 @@ objectdef obj_DroneControl inherits obj_StateQueue
 					{
 						if ${Entity[${activeJammerIterator.Value}].IsLockedTarget} && ${Entity[${activeJammerIterator.Value}].Distance} < ${droneEngageRange}
 						{
-							currentTarget:Set[${activeJammerIterator.Value}]
-							This:LogInfo["Switching target to activate jammer \ar${Entity[${currentTarget}].Name}"]
+							CurrentTarget:Set[${activeJammerIterator.Value}]
+							This:LogInfo["Switching target to activate jammer \ar${Entity[${CurrentTarget}].Name}"]
 							finalizedDC:Set[TRUE]
 							break
 						}
@@ -838,7 +838,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			}
 			; May switch target more than once so use this flag to avoid log spamming.
 			variable bool switched
-			if !${finalizedDC} && !${Ship.IsHardToDealWithTarget[${currentTarget}]} && ${ActiveNPCs.LockedTargetList.Used}
+			if !${finalizedDC} && !${Ship.IsHardToDealWithTarget[${CurrentTarget}]} && ${ActiveNPCs.LockedTargetList.Used}
 			{
 				; Switch to difficult target for the ship
 				switched:Set[FALSE]
@@ -846,30 +846,30 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				do
 				{
 					if ${Entity[${lockedTargetIterator.Value}].Distance} < ${droneEngageRange} && ${Ship.IsHardToDealWithTarget[${lockedTargetIterator.Value}]} && \
-					(!${Ship.IsHardToDealWithTarget[${currentTarget}]} || ${Entity[${currentTarget}].Distance} > ${Entity[${lockedTargetIterator.Value}].Distance})
+					(!${Ship.IsHardToDealWithTarget[${CurrentTarget}]} || ${Entity[${CurrentTarget}].Distance} > ${Entity[${lockedTargetIterator.Value}].Distance})
 					{
-						currentTarget:Set[${lockedTargetIterator.Value}]
+						CurrentTarget:Set[${lockedTargetIterator.Value}]
 						switched:Set[TRUE]
 					}
 				}
 				while ${lockedTargetIterator:Next(exists)}
 				if ${switched}
 				{
-					This:LogInfo["Switching to target skipped by ship: \ar${Entity[${currentTarget}].Name}"]
+					This:LogInfo["Switching to target skipped by ship: \ar${Entity[${CurrentTarget}].Name}"]
 				}
 			}
 		}
-		elseif ${FightOrFlight.IsEngagingGankers} && !${FightOrFlight.currentTarget.Equal[0]} && ${Entity[${FightOrFlight.currentTarget}](exists)}
+		elseif ${FightOrFlight.IsEngagingGankers} && !${FightOrFlight.CurrentTarget.Equal[0]} && ${Entity[${FightOrFlight.CurrentTarget}](exists)}
 		{
-			currentTarget:Set[${FightOrFlight.currentTarget}]
-			This:LogInfo["Engaging ganker \ar${Entity[${currentTarget}].Name}"]
+			CurrentTarget:Set[${FightOrFlight.CurrentTarget}]
+			This:LogInfo["Engaging ganker \ar${Entity[${CurrentTarget}].Name}"]
 		}
 		elseif ${Marshal.TargetList.Used}
 		{
 			This:LogInfo["Debug - Marshal - DC"]
 			if ${Marshal.LockedTargetList.Used}
 			{
-				currentTarget:Set[${Marshal.LockedTargetList.Get[1]}]
+				CurrentTarget:Set[${Marshal.LockedTargetList.Get[1]}]
 				This:LogInfo["Kill The Damn Marshals"]
 				finalizedDC:Set[TRUE]
 			}
@@ -879,7 +879,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			This:LogInfo["Debug - RRJerks - DC"]
 			if ${RemoteRepJerkz.LockedTargetList.Used}
 			{
-				currentTarget:Set[${RemoteRepJerkz.LockedTargetList.Get[1]}]
+				CurrentTarget:Set[${RemoteRepJerkz.LockedTargetList.Get[1]}]
 				This:LogInfo["Kill The Damn Remote Reps"]
 				finalizedDC:Set[TRUE]
 			}
@@ -889,7 +889,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			This:LogInfo["Debug - Neuting Jerks - DC"]
 			if ${StarvingJerks.LockedTargetList.Used}
 			{
-				currentTarget:Set[${StarvingJerks.LockedTargetList.Get[1]}]
+				CurrentTarget:Set[${StarvingJerks.LockedTargetList.Get[1]}]
 				This:LogInfo["Kill Neuts"]
 				finalizedDC:Set[TRUE]
 			}
@@ -899,7 +899,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			This:LogInfo["Debug - Leshaks - DC"]
 			if ${Leshaks.LockedTargetList.Used}
 			{
-				currentTarget:Set[${Leshaks.LockedTargetList.Get[1]}]
+				CurrentTarget:Set[${Leshaks.LockedTargetList.Get[1]}]
 				This:LogInfo["Kill The Leshaks"]
 				finalizedDC:Set[TRUE]
 			}
@@ -910,7 +910,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			This:LogInfo["Debug - Kikimoras - DC"]
 			if ${Kikimoras.LockedTargetList.Used}
 			{
-				currentTarget:Set[${Kikimoras.LockedTargetList.Get[1]}]
+				CurrentTarget:Set[${Kikimoras.LockedTargetList.Get[1]}]
 				This:LogInfo["Kill The Kikimoras"]
 				finalizedDC:Set[TRUE]
 			}
@@ -921,7 +921,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			This:LogInfo["Debug - Damaviks - DC"]
 			if ${Damaviks.LockedTargetList.Used}
 			{
-				currentTarget:Set[${Damaviks.LockedTargetList.Get[1]}]
+				CurrentTarget:Set[${Damaviks.LockedTargetList.Get[1]}]
 				This:LogInfo["Kill The Damaviks"]
 				finalizedDC:Set[TRUE]
 			}
@@ -933,7 +933,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			This:LogInfo["Debug - Vedmaks - DC"]
 			if ${Vedmaks.LockedTargetList.Used}
 			{
-				currentTarget:Set[${Vedmaks.LockedTargetList.Get[1]}]
+				CurrentTarget:Set[${Vedmaks.LockedTargetList.Get[1]}]
 				This:LogInfo["Kill The Vedmaks"]
 				finalizedDC:Set[TRUE]
 			}
@@ -945,7 +945,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			This:LogInfo["Debug - Drekavacs - DC"]
 			if ${Drekavacs.LockedTargetList.Used}
 			{
-				currentTarget:Set[${Drekavacs.LockedTargetList.Get[1]}]
+				CurrentTarget:Set[${Drekavacs.LockedTargetList.Get[1]}]
 				This:LogInfo["Kill The Drekavacs"]
 				finalizedDC:Set[TRUE]
 			}
@@ -957,7 +957,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			This:LogInfo["Debug - Cynabals - DC"]
 			if ${Cynabals.LockedTargetList.Used}
 			{
-				currentTarget:Set[${Cynabals.LockedTargetList.Get[1]}]
+				CurrentTarget:Set[${Cynabals.LockedTargetList.Get[1]}]
 				This:LogInfo["Kill The Cynabals"]
 				finalizedDC:Set[TRUE]
 			}
@@ -969,7 +969,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			This:LogInfo["Debug - Dramiels - DC"]
 			if ${Dramiels.LockedTargetList.Used}
 			{
-				currentTarget:Set[${Dramiels.LockedTargetList.Get[1]}]
+				CurrentTarget:Set[${Dramiels.LockedTargetList.Get[1]}]
 				This:LogInfo["Kill The Dramiels"]
 				finalizedDC:Set[TRUE]
 			}
@@ -986,42 +986,42 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				{
 					if ${Entity[${activeJammerIterator.Value}].IsLockedTarget} && ${Entity[${activeJammerIterator.Value}].Distance} < ${droneEngageRange}
 					{
-						currentTarget:Set[${activeJammerIterator.Value}]
-						This:LogInfo["Targeting activate jammer \ar${Entity[${currentTarget}].Name}"]
+						CurrentTarget:Set[${activeJammerIterator.Value}]
+						This:LogInfo["Targeting activate jammer \ar${Entity[${CurrentTarget}].Name}"]
 						break
 					}
 				}
 				while ${activeJammerIterator:Next(exists)}
 			}
 
-			if ${currentTarget} == 0
+			if ${CurrentTarget} == 0
 			{
 				ActiveNPCs.LockedTargetList:GetIterator[lockedTargetIterator]
 				do
 				{
 					if ${Entity[${lockedTargetIterator.Value}].Distance} < ${droneEngageRange} && \
-					(!${Entity[${currentTarget}](exists)} || \
-					(!${Ship.IsHardToDealWithTarget[${currentTarget}]} && (${Ship.IsHardToDealWithTarget[${lockedTargetIterator.Value}]} || ${Entity[${currentTarget}].Distance} > ${Entity[${lockedTargetIterator.Value}].Distance})))
+					(!${Entity[${CurrentTarget}](exists)} || \
+					(!${Ship.IsHardToDealWithTarget[${CurrentTarget}]} && (${Ship.IsHardToDealWithTarget[${lockedTargetIterator.Value}]} || ${Entity[${CurrentTarget}].Distance} > ${Entity[${lockedTargetIterator.Value}].Distance})))
 					{
-						currentTarget:Set[${lockedTargetIterator.Value}]
+						CurrentTarget:Set[${lockedTargetIterator.Value}]
 					}
 				}
 				while ${lockedTargetIterator:Next(exists)}
 			}
 
-			if ${currentTarget} != 0
+			if ${CurrentTarget} != 0
 			{
-				This:LogInfo["Primary target: \ar${Entity[${currentTarget}].Name}"]
+				This:LogInfo["Primary target: \ar${Entity[${CurrentTarget}].Name}"]
 			}
 		}
 
-		if ${currentTarget} != 0
+		if ${CurrentTarget} != 0
 		{
 			if ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0 && \
-			   ${Entity[${currentTarget}].Distance} < ${Me.DroneControlDistance}
+			   ${Entity[${CurrentTarget}].Distance} < ${Me.DroneControlDistance}
 			{
 				;echo ${MaxDroneCount} drones engaging
-				Drones:Engage["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE", ${currentTarget}]
+				Drones:Engage["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE", ${CurrentTarget}]
 			}
 
 			if ${MaxDroneCount} > ${Drones.ActiveDroneCount}
@@ -1030,17 +1030,17 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				{
 					Drones:Deploy["TypeID = ${Drones.Data.FindType[Heavy Attack Drones]}", ${Math.Calc[${MaxDroneCount} - ${Drones.ActiveDroneCount}]}]
 				}
-				if ${Entity[${currentTarget}].Distance} > ${Me.DroneControlDistance}
+				if ${Entity[${CurrentTarget}].Distance} > ${Me.DroneControlDistance}
 				{
 					Drones:Deploy["TypeID = ${Drones.Data.FindType[Fighters]}", ${Math.Calc[${MaxDroneCount} - ${Drones.ActiveDroneCount}]}]
 				}
-				elseif ${Entity[${currentTarget}].Distance} > (${Config.SentryRange} * 1000) && ${Config.Sentries}
+				elseif ${Entity[${CurrentTarget}].Distance} > (${Config.SentryRange} * 1000) && ${Config.Sentries}
 				{
 					Drones:Deploy["TypeID = ${Drones.Data.FindType[Sentry Drones]}", ${Math.Calc[${MaxDroneCount} - ${Drones.ActiveDroneCount}]}]
 				}
 				else
 				{
-					Drones:Deploy["TypeID = ${This.FindBestType[${Entity[${currentTarget}].GroupID}]}", ${Math.Calc[${MaxDroneCount} - ${Drones.ActiveDroneCount}]}]
+					Drones:Deploy["TypeID = ${This.FindBestType[${Entity[${CurrentTarget}].GroupID}]}", ${Math.Calc[${MaxDroneCount} - ${Drones.ActiveDroneCount}]}]
 				}
 				IsBusy:Set[TRUE]
 				Busy:SetBusy["DroneControl"]
@@ -1051,7 +1051,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 
 		if ${CommonConfig.Tehbot_Mode.Equal["Abyssal"]}
 		{
-			if (${currentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0) && !${This.JerkzPresent}
+			if (${CurrentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0) && !${This.JerkzPresent}
 			{
 				Drones:Recall["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]
 				This:QueueState["Idle", 5000]
@@ -1061,7 +1061,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 		}
 		else
 		{
-			if (${currentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0)
+			if (${CurrentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0)
 			{
 				Drones:Recall["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]
 				This:QueueState["Idle", 5000]
