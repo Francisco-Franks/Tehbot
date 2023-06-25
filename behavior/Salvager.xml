@@ -365,7 +365,7 @@
 									Script[Tehbot].VariableScope.Salvager.Config:SetExtremelySharedDBPath[${This.Text}]
 								</OnChange>
 								<OnMouseEnter>
-									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText["This will be the Network Path to where your Networked DB will live. \\\\NetworkShare\\FolderName\\ is how it should look."]
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText["This will be the Network Path to where your Networked DB will live. //NetworkShareName/Folder/ is how it should look."]
 								</OnMouseEnter>
 								<OnMouseExit>
 									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText[""]

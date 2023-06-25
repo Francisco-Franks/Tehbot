@@ -89,18 +89,21 @@ objectdef obj_Salvager inherits obj_StateQueue
 	; This will be our central loop, where we jump off to other states.
 	member:bool SalvagerHub()
 	{
-		if !${SharedSQLDB.ID(exists)} || ( !${ExtremelySharedSQLDB.ID(exists)} && ( ${ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
+		if !${SharedSQLDB.ID(exists)} || ( !${ExtremelySharedSQLDB.ID(exists)} && ( ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
 		{
 			SharedSQLDB:Set[${SQLite.OpenDB["MissionSharedDB","MissionSharedDB.sqlite3"]}]
-			if ${ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty}
+			if ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty}
 			{
-				ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${ExtremelySharedDBPrefix}SharedDB","${ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
+				;ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","\\\\${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
+				;echo DEBUG - SALVAGER - "${Config.ExtremelySharedDBPrefix}SharedDB","\\\\${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"
+				ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
+				echo "${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"
 			}
 		}
 		if !${MySalvageBMs.ID(exists)}
 		{
 			; This DB will reside in memory. It is temporary.
-			MySalvageBMs:Set[${SQLite.OpenDB["MySalvageDB",":Memory:"]}]
+			MySalvageBMs:Set[${SQLite.OpenDB["MySalvageDB",":memory:"]}]
 		}
 		if !${MySalvageBMs.TableExists["TempBMTable"]}
 		{
@@ -122,7 +125,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 		}
 		; We are not full, check for valid bookmarks in the DB. We don't want to hit this too terribly often. I will never be convinced that reads are non-blocking no matter what.
 		; If we find BMs we will not return to this state directly.
-		if ${Me.InStation} && ${LastBMCheck} > ${LavishScript.RunningTime}
+		if ${Me.InStation} && ${LastBMCheck} < ${LavishScript.RunningTime}
 		{
 			This:InsertState["SalvagerCheckBookmarks",1000]
 			return TRUE
