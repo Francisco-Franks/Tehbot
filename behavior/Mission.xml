@@ -1482,6 +1482,68 @@
 						</OnMouseExit>
 					</listbox>
 					
+					<Text name='ExtremelySharedDBPathTitle'>
+						<X>1%</X>
+						<Y>30%</Y>
+						<Width>30%</Width>
+						<Height>5%</Height>
+						<Alignment>Center</Alignment>
+						<Text>Network DB File Path</Text>
+					</Text>
+					<Textentry Name="ExtremelySharedDBPath">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>40%</X>
+						<Y>30%</Y>
+						<Width>30%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtremelySharedDBPath}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetExtremelySharedDBPath[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This will be the Network Path to where your Networked DB will live. \\\\NetworkShare\\FolderName\\ is how it should look."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>
+
+					<Text name='ExtremelySharedDBPrefixTitle'>
+						<X>1%</X>
+						<Y>35%</Y>
+						<Width>30%</Width>
+						<Height>5%</Height>
+						<Alignment>Center</Alignment>
+						<Text>Network DB Prefix</Text>
+					</Text>
+					<Textentry Name="ExtremelySharedDBPrefix">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>40%</X>
+						<Y>35%</Y>
+						<Width>30%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtremelySharedDBPrefix}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetExtremelySharedDBPrefix[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This will be the prefix to the name of your Networked DB File."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>
+					
 					<Text name='InventoryPulseRateModifierTitle'>
 						<X>1%</X>
 						<Y>40%</Y>

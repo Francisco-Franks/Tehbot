@@ -2,24 +2,24 @@
 <ISUI>
 	<template name='Information.Font'>
 		<Name>Segoe</Name>
-		<Size>24</Size>
+		<Size>16</Size>
 		<Color>FFFFFFFF</Color>
 	</template>
 	<template name='Text.Font'>
 		<Name>Verdana</Name>
-		<Size>24</Size>
+		<Size>16</Size>
 		<Color>FFFFFFFF</Color>
 		<Bold />
 	</template>
 	<template name='Checkbox.Font'>
 		<Name>Verdana</Name>
-		<Size>24</Size>
+		<Size>16</Size>
 		<Color>FFFFFFFF</Color>
 		<Bold />
 	</template>
 	<template name='Button.Font'>
 		<Name>Verdana</Name>
-		<Size>24</Size>
+		<Size>16</Size>
 		<Color>FF000000</Color>
 		<Bold />
 	</template>
@@ -30,8 +30,8 @@
 		<Border>0</Border>
 		<X>200</X>
 		<Y>300</Y>
-		<Width>1600</Width>
-		<Height>1200</Height>
+		<Width>1200</Width>
+		<Height>700</Height>
 		<TitleBar>
 			<Width>100%</Width>
 			<Height>40</Height>
@@ -57,14 +57,6 @@
 						{
 							Script[Tehbot].VariableScope.UI:Update["obj_Salvage", "Unable to verify Dropoff bookmark", "r"]
 						}
-						if ${Script[Tehbot].VariableScope.Salvager.Config.BeltPatrolEnabled}
-						{
-							if !${EVE.Bookmark[${Script[Tehbot].VariableScope.Salvager.Config.BeltPatrol}](exists)}
-							{
-								Script[Tehbot].VariableScope.UI:Update["obj_Salvage", "Unable to verify Belt Patrol bookmark", "r"]
-							}
-						}
-
 						Script[Tehbot].VariableScope.Salvager.LocalUI:Stop
 						ui -unload "&filepath;/Salvager"
 					</OnLeftClick>
@@ -325,7 +317,91 @@
 									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText[""]
 								</OnMouseExit>
 							</listbox>
+							
+							<Checkbox name='NetworkedSalvager'>
+								<X>10%</X>
+								<Y>40%</Y>
+								<Width>30%</Width>
+								<Height>10%</Height>
+								<Text>Network Salvager Mode</Text>
+								<OnLoad>
+									if ${Script[Tehbot].VariableScope.Salvager.Config.NetworkedSalvager}
+									{
+										This:SetChecked
+									}
+								</OnLoad>
+								<OnLeftClick>
+									Script[Tehbot].VariableScope.Salvager.Config:SetNetworkedSalvager[${This.Checked}]
+								</OnLeftClick>
+								<OnMouseEnter>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText["This means you are salvaging for clients NOT ON THE SAME MACHINE AS THE SALVAGER. Do not attempt unless you are willing to put in the work. Leave unchecked for normal salvaging."]
+								</OnMouseEnter>
+								<OnMouseExit>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText[""]
+								</OnMouseExit>
+							</Checkbox>			
+							
+							<Text name='ExtremelySharedDBPathTitle'>
+								<X>1%</X>
+								<Y>50%</Y>
+								<Width>30%</Width>
+								<Height>10%</Height>
+								<Alignment>Center</Alignment>
+								<Text>Network DB File Path</Text>
+							</Text>
+							<Textentry Name="ExtremelySharedDBPath">
+								<Font template='Information.Font' />
+								<BackgroundColor>FF000000</BackgroundColor>
+								<Border>1</Border>
+								<BorderColor>FFFFFFFF</BorderColor>
+								<X>25%</X>
+								<Y>50%</Y>
+								<Width>30%</Width>
+								<Height>10%</Height>
+								<OnLoad>
+									This:SetText[${Script[Tehbot].VariableScope.Salvager.Config.ExtremelySharedDBPath}]
+								</OnLoad>
+								<OnChange>
+									Script[Tehbot].VariableScope.Salvager.Config:SetExtremelySharedDBPath[${This.Text}]
+								</OnChange>
+								<OnMouseEnter>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText["This will be the Network Path to where your Networked DB will live. \\\\NetworkShare\\FolderName\\ is how it should look."]
+								</OnMouseEnter>
+								<OnMouseExit>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText[""]
+								</OnMouseExit>
+							</Textentry>
 
+							<Text name='ExtremelySharedDBPrefixTitle'>
+								<X>1%</X>
+								<Y>60%</Y>
+								<Width>30%</Width>
+								<Height>10%</Height>
+								<Alignment>Center</Alignment>
+								<Text>Network DB Prefix</Text>
+							</Text>
+							<Textentry Name="ExtremelySharedDBPrefix">
+								<Font template='Information.Font' />
+								<BackgroundColor>FF000000</BackgroundColor>
+								<Border>1</Border>
+								<BorderColor>FFFFFFFF</BorderColor>
+								<X>25%</X>
+								<Y>60%</Y>
+								<Width>30%</Width>
+								<Height>10%</Height>
+								<OnLoad>
+									This:SetText[${Script[Tehbot].VariableScope.Salvager.Config.ExtremelySharedDBPrefix}]
+								</OnLoad>
+								<OnChange>
+									Script[Tehbot].VariableScope.Salvager.Config:SetExtremelySharedDBPrefix[${This.Text}]
+								</OnChange>
+								<OnMouseEnter>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText["This will be the prefix to the name of your Networked DB File."]
+								</OnMouseEnter>
+								<OnMouseExit>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText[""]
+								</OnMouseExit>
+							</Textentry>
 						</Children>
 					</Frame>
 

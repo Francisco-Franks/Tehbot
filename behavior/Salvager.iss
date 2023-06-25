@@ -28,43 +28,55 @@ objectdef obj_Configuration_Salvager inherits obj_Configuration_Base
 	Setting(string, Dropoff, SetDropoff)
 	Setting(string, MunitionStorage, SetMunitionStorage)
 	Setting(string, MunitionStorageFolder, SetMunitionStorageFolder)
+	
+	; This will be the network path for the Extremely Shared DB. I will use this for my off-machine salvagers to work. Most people will never ever use this.
+	Setting(string, ExtremelySharedDBPath, SetExtremelySharedDBPath)
+	; This will be a prefix slapped onto the DB filename in the above path.
+	Setting(string, ExtremelySharedDBPrefix, SetExtremelySharedDBPrefix)	
+	
+	; This will indicate that this salvager is going to be salvaging for a non-local Missioneer. That is to say, it will be on another computer entirely.
+	Setting(bool, NetworkedSalvager, SetNetworkedSalvager)
+	
 }
 
 objectdef obj_Salvager inherits obj_StateQueue
 {
 	variable obj_Configuration_Salvager Config
 	variable obj_SalvageUI LocalUI
+	
+	; This DB will be Extremely Shared, that is to say it will be a network location.
+	variable sqlitedb ExtremelySharedSQLDB
+	; This DB will be Shared by all clients on this machine.
+	variable sqlitedb SharedSQLDB
+	; This DB will reside in memory and be used to do some optimization
+	variable sqlitedb MySalvageBMs
+	; These will be the variables for our queries
+	variable sqlitequery GetSalvageBM
 
-	variable bool ForceBookmarkCycle=FALSE
-	variable index:int64 HoldOffPlayer
-	variable index:int HoldOffTimer
-	variable float NonDedicatedFullPercent = 0.95
-	variable bool NonDedicatedNPCRun = FALSE
-	variable bool Salvaging = FALSE
-	variable queue:entity BeltPatrol
-	variable set UsedBookmarks
-
-	variable collection:int64 ReservedBookmarks
-
-	variable obj_TargetList NPCs
-
+	
+	; Borrowing from Missioneer, this will be your cargo bay in this instance. I am too lazy to find replace it.
+	variable bool LargestBayRefreshed
+	
+	; Runningtime holder so we can know when we last checked our BMs and not spam the shit out of it.
+	variable int64 LastBMCheck
+	
+	; Queue where we will hold the Labels of the BMs we are going to claim.
+	variable queue:string SalvageBMPrepQueue
+	; Queue where we will hold the Labels of the BMs we are going to salvage at.
+	variable queue:string SalvageBMQueue
+	
 	method Initialize()
 	{
 		This[parent]:Initialize
-		LavishScript:RegisterEvent[Tehbot_SalvageBookmark]
-		Event[Tehbot_SalvageBookmark]:AttachAtom[This:SalvageBookmarkEvent]
-		LavishScript:RegisterEvent[Tehbot_ReserveBookmark]
-		Event[Tehbot_ReserveBookmark]:AttachAtom[This:ReserveBookmarkEvent]
-		NPCs:AddAllNPCs
 		DynamicAddBehavior("Salvager", "Dedicated Salvager")
 	}
 
 	method Start()
 	{
-		Logger:Log["obj_Salvage", "Starting", "g"]
+		This:LogInfo["obj_Salvage", "Starting", "g"]
 		if ${This.IsIdle}
 		{
-			This:QueueState["CheckCargoHold", 500]
+			This:QueueState["SalvagerHub", 500]
 		}
 	}
 
@@ -72,352 +84,166 @@ objectdef obj_Salvager inherits obj_StateQueue
 	{
 		This:DeactivateStateQueueDisplay
 		This:Clear
-		noop This.DropCloak[FALSE]
 	}
 
-	method ReserveBookmarkEvent(string params)
+	; This will be our central loop, where we jump off to other states.
+	member:bool SalvagerHub()
 	{
-		ReservedBookmarks:Set[${params.Token[1,","]}, ${params.Token[2,","]}]
-	}
-
-	method SalvageBookmarkEvent(int64 ID)
-	{
-		EVE:RefreshBookmarks
-		TimedCommand 50 Script[Tehbot].VariableScope.Salvager:AddBookmarksFromPilot[${ID}]
-	}
-
-	method AddBookmarksFromPilot(int64 ID)
-	{
-		variable index:bookmark Bookmarks
-		variable iterator b
-
-		EVE:GetBookmarks[Bookmarks]
-		Bookmarks:GetIterator[b]
-		if ${b:First(exists)}
-			do
-			{
-				if ${b.Value.Label.Find[${Config.Prefix}]} && ${b.Value.CreatorID} == ${ID}
-				{
-					Config.SafeBookmarksRef:AddSetting[${b.Value.ID},${b.Value.Created.AsInt64}]
-				}
-			}
-			while ${b:Next(exists)}
-		ConfigManager:Save
-	}
-
-
-	member:bool CheckBookmarks()
-	{
-		variable index:bookmark Bookmarks
-		variable iterator BookmarkIterator
-		variable string Target
-		variable int64 TargetID
-		variable int64 BookmarkTime=0
-		variable bool BookmarkFound
-		variable int64 BookmarkCreator
-		variable iterator HoldOffIterator
-		variable index:int RemoveHoldOff
-		variable int RemoveDecAmount=0
-		variable bool InHoldOff
-		BookmarkFound:Set[FALSE]
-
-		EVE:GetBookmarks[Bookmarks]
-		Bookmarks:GetIterator[BookmarkIterator]
-
-		HoldOffTimer:GetIterator[HoldOffIterator]
-		if ${HoldOffIterator:First(exists)}
-		do
+		if !${SharedSQLDB.ID(exists)} || ( !${ExtremelySharedSQLDB.ID(exists)} && ( ${ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
 		{
-			if ${LavishScript.RunningTime} >= ${HoldOffIterator.Value}
+			SharedSQLDB:Set[${SQLite.OpenDB["MissionSharedDB","MissionSharedDB.sqlite3"]}]
+			if ${ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty}
 			{
-				RemoveHoldOff:Insert[${HoldOffIterator.Key}]
+				ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${ExtremelySharedDBPrefix}SharedDB","${ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
 			}
 		}
-		while ${HoldOffIterator:Next(exists)}
-
-		RemoveHoldOff:GetIterator[HoldOffIterator]
-		if ${HoldOffIterator:First(exists)}
-		do
+		if !${MySalvageBMs.ID(exists)}
 		{
-			HoldOffPlayer:Remove[${Math.Calc[${HoldOffIterator.Value}-${RemoveDecAmount}]}]
-			HoldOffTimer:Remove[${Math.Calc[${HoldOffIterator.Value}-${RemoveDecAmount}]}]
-			RemoveDecAmount:Inc
+			; This DB will reside in memory. It is temporary.
+			MySalvageBMs:Set[${SQLite.OpenDB["MySalvageDB",":Memory:"]}]
 		}
-		while ${HoldOffIterator:Next(exists)}
-
-		HoldOffPlayer:GetIterator[HoldOffIterator]
-
-		variable bool br=false
-		variable iterator reservedbookmark
-
-		if ${BookmarkIterator:First(exists)}
-		do
+		if !${MySalvageBMs.TableExists["TempBMTable"]}
 		{
-			br:Set[FALSE]
-			ReservedBookmarks:GetIterator[reservedbookmark]
-			if ${reservedbookmark:First(exists)}
-				do
-				{
-					if ${reservedbookmark.Value} == ${BookmarkIterator.Value.ID}
-						br:Set[TRUE]
-				}
-				while ${reservedbookmark:Next(exists)}
-			if ${br}
-				continue
-			if ${BookmarkIterator.Value.Label.Find[${Config.Prefix}]} && ${BookmarkIterator.Value.JumpsTo} <= 0 && ${Config.SafeBookmarksRef.FindSetting[${BookmarkIterator.Value.ID}]}
-			{
-				InHoldOff:Set[FALSE]
-				if ${HoldOffIterator:First(exists)}
-				do
-				{
-					if ${HoldOffIterator.Value.Equal[${BookmarkIterator.Value.CreatorID}]}
-					{
-						InHoldOff:Set[TRUE]
-					}
-				}
-				while ${HoldOffIterator:Next(exists)}
-				if !${InHoldOff}
-				{
-					if ${BookmarkIterator.Value.Created.AsInt64} + 72000000000 < ${EVETime.AsInt64} && !${UsedBookmarks.Contains[${BookmarkIterator.Value.ID}]}
-					{
-						Logger:Log["Salvager", "Removing expired bookmark - ${BookmarkIterator.Value.Label}", "o", TRUE]
-						BookmarkIterator.Value:Remove
-						UsedBookmarks:Add[${BookmarkIterator.Value.ID}]
-						This:InsertState["CheckBookmarks"]
-						This:InsertState["Idle", 5000]
-						return FALSE
-					}
-					if (${BookmarkIterator.Value.Created.AsInt64} < ${BookmarkTime} || ${BookmarkTime} == 0) && !${UsedBookmarks.Contains[${BookmarkIterator.Value.ID}]}
-					{
-						Target:Set[${BookmarkIterator.Value.Label}]
-						TargetID:Set[${BookmarkIterator.Value.ID}]
-						BookmarkTime:Set[${BookmarkIterator.Value.Created.AsInt64}]
-						BookmarkCreator:Set[${BookmarkIterator.Value.CreatorID}]
-						BookmarkFound:Set[TRUE]
-					}
-				}
-			}
+			echo DEBUG - Creating Temp Salvage BM Table
+			MySalvageBMs:ExecDML["create table TempBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, BMSystem TEXT, BMJumpsTo INTEGER, ExpectedExpiration DATETIME);"]
 		}
-		while ${BookmarkIterator:Next(exists)}
-
-		if ${BookmarkIterator:First(exists)} && !${BookmarkFound}
-		do
+		; Is it time to halt? Or are we close to downtime? Only goes off when we are in a station.
+		if ${Me.InStation} && (${Config.Halt} || ${halt} || ${Utility.DowntimeClose})
 		{
-			br:Set[FALSE]
-			ReservedBookmarks:GetIterator[reservedbookmark]
-			if ${reservedbookmark:First(exists)}
-				do
-				{
-					if ${reservedbookmark.Value} == ${BookmarkIterator.Value.ID}
-						br:Set[TRUE]
-				}
-				while ${reservedbookmark:Next(exists)}
-			if ${br}
-				continue
-			if ${BookmarkIterator.Value.Label.Find[${Config.Prefix}]} && ${Config.SafeBookmarksRef.FindSetting[${BookmarkIterator.Value.ID}]}
-			{
-				InHoldOff:Set[FALSE]
-				if ${HoldOffIterator:First(exists)}
-				do
-				{
-					if ${HoldOffIterator.Value.Equal[${BookmarkIterator.Value.CreatorID}]}
-					{
-						InHoldOff:Set[TRUE]
-					}
-				}
-				while ${HoldOffIterator:Next(exists)}
-				if !${InHoldOff}
-				{
-					if ${BookmarkIterator.Value.Created.AsInt64} + 72000000000 < ${EVETime.AsInt64} && !${UsedBookmarks.Contains[${BookmarkIterator.Value.ID}]}
-					{
-						Logger:Log["Salvager", "Removing expired bookmark - ${BookmarkIterator.Value.Label}", "o", TRUE]
-						BookmarkIterator.Value:Remove
-						UsedBookmarks:Add[${BookmarkIterator.Value.ID}]
-						This:InsertState["CheckBookmarks"]
-						This:InsertState["Idle", 5000]
-						return TRUE
-					}
-					if (${BookmarkIterator.Value.Created.AsInt64} < ${BookmarkTime} || ${BookmarkTime} == 0) && !${UsedBookmarks.Contains[${BookmarkIterator.Value.ID}]}
-					{
-						Target:Set[${BookmarkIterator.Value.Label}]
-						TargetID:Set[${BookmarkIterator.Value.ID}]
-						BookmarkTime:Set[${BookmarkIterator.Value.Created.AsInt64}]
-						BookmarkCreator:Set[${BookmarkIterator.Value.CreatorID}]
-						BookmarkFound:Set[TRUE]
-					}
-				}
-			}
-		}
-		while ${BookmarkIterator:Next(exists)}
-
-		if ${BookmarkFound}
-		{
-			relay "all other" -event Tehbot_ReserveBookmark ${Me.ID},${TargetID}
-			Logger:Log["obj_Salvage", "Setting course for ${Target}", "g"]
-			Move:Bookmark[${Target}, TRUE]
-			This:QueueState["Traveling"]
-			This:QueueState["Log", 1000, "Salvaging at ${Target}"]
-			This:QueueState["InitialUpdate", 100]
-			This:QueueState["Updated", 100]
-			This:QueueState["DropCloak", 50, TRUE]
-			This:QueueState["SalvageWrecks", 500, "${BookmarkCreator}"]
-			This:QueueState["DropCloak", 50, FALSE]
-			This:QueueState["ClearAlreadySalvaged", 100]
-			This:QueueState["DeleteBookmark", 1000, "${BookmarkCreator}"]
-			This:QueueState["RefreshBookmarks", 3000]
-			This:QueueState["GateCheck", 1000, "${BookmarkCreator}"]
+			This:QueueState["HaltBot"]
 			return TRUE
 		}
-
-		Logger:Log["obj_Salvage", "No salvage bookmark found - returning to station", "g"]
-		This:QueueState["Offload"]
-		This:QueueState["Traveling"]
-		This:QueueState["Log", 10, "Idling for 30 seconds"]
-		This:QueueState["Idle", 30000]
-		This:QueueState["CheckCargoHold", 500]
+		; Are we full or have an invalid ship cargo (we're on the wrong inventory window).
+		if ${Me.InStation} && ( ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].UsedCapacity} < 0 || ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].UsedCapacity} > 1 )
+		{
+			This:InsertState["CheckCargoHold",3000]
+			This:InsertState["RefreshCargoBayState",3000]
+			return TRUE
+		}
+		; We are not full, check for valid bookmarks in the DB. We don't want to hit this too terribly often. I will never be convinced that reads are non-blocking no matter what.
+		; If we find BMs we will not return to this state directly.
+		if ${Me.InStation} && ${LastBMCheck} > ${LavishScript.RunningTime}
+		{
+			This:InsertState["SalvagerCheckBookmarks",1000]
+			return TRUE
+		}
+		; We did not find BMs, let us idle for a little while
+		This:InsertState["SalvagerHub",5000]
+		This:InsertState["Idle",10000]
 		return TRUE
 	}
-
-	method ReportOldestBookmark()
+	
+	; Here is where we will check either our Local SharedDB or our Network SharedDB.
+	member:bool SalvagerCheckBookmarks()
 	{
-		variable index:bookmark Bookmarks
-		variable iterator BookmarkIterator
-		variable iterator reservedbookmark
-		variable bool br
-		variable int64 BookmarkTime=0
-		variable int totalBookmarks=0
-		variable string BookmarkLabel
-		EVE:GetBookmarks[Bookmarks]
-		Bookmarks:GetIterator[BookmarkIterator]
-		if ${BookmarkIterator:First(exists)}
+		if ${ExtremelySharedSQLDB.ID(exists)}
+		{
+			GetSalvageBM:Set[${SharedSQLDB.ExecQuery["SELECT * FROM SalvageBMTable WHERE Historical=0 AND BMName LIKE '%${Config.Prefix}%' AND (CharID=0 OR CharID=${Me.CharID});"]}]
+		}
+		else
+		{
+			GetSalvageBM:Set[${ExtremelySharedSQLDB.ExecQuery["SELECT * FROM SalvageBMTable WHERE Historical=0 AND BMName LIKE '%${Config.Prefix}%' AND (CharID=0 OR CharID=${Me.CharID});"]}]
+		}
+		if ${GetSalvageBM.NumRows} > 0
+		{
+			This:LogInfo["${GetSalvageBM.NumRows} BMs Found"]
 			do
 			{
-				br:Set[FALSE]
-				ReservedBookmarks:GetIterator[reservedbookmark]
-				if ${reservedbookmark:First(exists)}
-					do
-					{
-						if ${reservedbookmark.Value} == ${BookmarkIterator.Value.ID}
-							br:Set[TRUE]
-					}
-					while ${reservedbookmark:Next(exists)}
-				if ${br}
-					continue
-				if ${BookmarkIterator.Value.Label.Find[${Config.Prefix}]} && ${Config.SafeBookmarksRef.FindSetting[${BookmarkIterator.Value.ID}]}
-				{
-					InHoldOff:Set[FALSE]
-					if ${HoldOffIterator:First(exists)}
-					do
-					{
-						if ${HoldOffIterator.Value.Equal[${BookmarkIterator.Value.CreatorID}]}
-						{
-							InHoldOff:Set[TRUE]
-						}
-					}
-					while ${HoldOffIterator:Next(exists)}
-					if !${InHoldOff}
-					{
-						if !${UsedBookmarks.Contains[${BookmarkIterator.Value.ID}]}
-							totalBookmarks:Inc
-						if (${BookmarkIterator.Value.Created.AsInt64} < ${BookmarkTime} || ${BookmarkTime} == 0) && !${UsedBookmarks.Contains[${BookmarkIterator.Value.ID}]}
-						{
-							BookmarkTime:Set[${BookmarkIterator.Value.Created.AsInt64}]
-							BookmarkLabel:Set[${BookmarkIterator.Value.Label}]
-						}
-					}
-				}
+				;TempBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, BMSystem TEXT, BMJumpsTo INTEGER, ExpectedExpiration DATETIME)
+				SharedSQLDB:ExecDML["insert into TempBMTable (BMID,BMName,BMSystem,BMJumpsTo,ExpectedExpiration) values (${GetSalvageBM.GetFieldValue["BMID",int64]},'${GetSalvageBM.GetFieldValue["BMName",string].ReplaceSubstring[','']}','${GetSalvageBM.GetFieldValue["BMSystem",string].ReplaceSubstring[','']}',${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}].JumpsTo},${GetSalvageBM.GetFieldValue["ExpectedExpiration",int64]}) ON CONFLICT (BMID) DO UPDATE SET BMName=excluded.BMName;"]
+				GetSalvageBM:NextRow
 			}
-			while ${BookmarkIterator:Next(exists)}
-
-		if ${BookmarkTime} > 0
+			while !${GetSalvageBM.LastRow}
+			GetSalvageBM:Finalize
+		}
+		else
 		{
-			variable int expire
-			expire:Set[${Math.Calc[(${BookmarkTime} + 72000000000 - ${EVETime.AsInt64}) / 600000000].Int}]
-			Logger:Log["Salvager", "Total Valid Salvage Bookmarks: \ar${totalBookmarks}", "o"]
-			Logger:Log["Salvager", "Oldest Salvage bookmark expires in \ar${expire} \aominutes", "o"]
-			Logger:Log["Salvager", " Named: \ar${BookmarkLabel}", "o"]
-
+			This:LogInfo["No BMs Found, Idling 60 seconds"]
+			LastBMCheck:Set[${Math.Calc[${LavishScript.RunningTime} + 60000]}]
+			This:InsertState["SalvagerHub",5000]
+			return TRUE
+		}
+		; Basically we have taken our table and filtered it then moved the values to a new temp table that resides in memory. We will now sort by how many jumps, what system, and how old. 
+		GetSalvageBM:Set[${MySalvageBMs.ExecQuery["SELECT * FROM TempBMTable WHERE Historical=0 AND ORDER BY JumpsTo ASC, BMSystem ASC, ExpectedExpiration ASC;"]}]
+		if ${GetSalvageBM.NumRows} > 0
+		{
+			This:LogInfo["${GetSalvageBM.NumRows} BMs Found"]
+			do
+			{
+				SalvageBMPrepQueue:Queue[${GetSalvageBM.GetFieldValue["BMName",string]}]
+				GetSalvageBM:NextRow
+			}
+			while !${GetSalvageBM.LastRow} && ${SalvageBMPrepQueue.Used} < 5
+			GetSalvageBM:Finalize
+		}
+		if ${SalvageBMPrepQueue.Used} > 0
+		{
+			do
+			{
+				This:ClaimedByCharID[${Me.CharID},${EVE.Bookmark[${SalvageBMPrepQueue.Peek}].ID}]
+				This:LogInfo["Claiming ${SalvageBMPrepQueue.Peek}"]
+				SalvageBMQueue:Queue[${SalvageBMPrepQueue.Peek}]
+				SalvageBMPrepQueue:Dequeue
+			}
+			while ${SalvageBMPrepQueue.Used} > 0
+		}
+		else
+		{
+			DEBUG - SALVAGER - SOMETHING WENT INSANELY WRONG HERE
+			This:Stop
+			return TRUE
+		}
+		This:InsertState["SalvagerMoveToBM",5000]
+		This:InsertState["Idle",5000]
+		return TRUE
+	}
+	; This is where we will travel to our BM
+	member:bool SalvagerMoveToBM()
+	{
+		if !${Client.InSpace}
+		{
+			This:LogInfo["We need to be undocked for this part"]
+			Move:Undock
+		}
+		if ${SalvageBMQueue.Peek}
+		{
+			Move:Bookmark[${SalvageBMQueue.Peek},TRUE]
+			This:InsertState["SalvagerOnSiteNavigation",5000]			
+			This:InsertState["Traveling",5000]		
+			return TRUE
+		}
+		else
+		{
+			This:LogInfo["All dressed up with nowhere to go"]
+			This:InsertState["SalvagerHub", 2500]
+			This:InsertState["SalvagerNavigateToStation",3000]
+			return TRUE
 		}
 	}
-
-	member:bool Traveling()
+	
+	; This is where we will do our On Site Navigation
+	member:bool SalvagerOnSiteNavigation()
 	{
-		if ${Cargo.Processing} || ${Move.Traveling} || ${Me.ToEntity.Mode} == MOVE_WARPING
-		{
+		if ${Move.Traveling}
 			return FALSE
-		}
-		return TRUE
-	}
-
-	member:bool Log(string text)
-	{
-		Logger:Log["obj_Salvage", "${text}", "g"]
-		return TRUE
-	}
-
-
-	member:bool DoneSalvaging()
-	{
-		Salvaging:Set[FALSE]
-	}
-
-	member:bool InitialUpdate()
-	{
-		NPCs:RequestUpdate
-		return TRUE
-	}
-
-	member:bool Updated()
-	{
-		return ${NPCs.Updated}
-	}
-
-	member:bool DropCloak(bool arg)
-	{
-		AutoModule.DropCloak:Set[${arg}]
-		return TRUE
-	}
-
-	member:bool SalvageWrecks(int64 BookmarkCreator)
-	{
-		variable float FullHold = 0.95
-		variable bool NPCRun = TRUE
-
-		NPCs:RequestUpdate
-
-		if ${NPCs.TargetList.Used} && ${NPCRun}
-		{
-			Logger:Log["obj_Salvage", "Pocket has NPCs - Jumping Clear", "g"]
-
-			HoldOffPlayer:Insert[${BookmarkCreator}]
-			HoldOffTimer:Insert[${Math.Calc[${LavishScript.RunningTime} + 600000]}]
-			This:Clear
-			This:QueueState["JumpToCelestial"]
-			This:QueueState["Traveling"]
-			This:QueueState["RefreshBookmarks", 3000]
-			This:QueueState["CheckBookmarks", 3000]
-
-			return TRUE
-		}
-
 		if !${Client.Inventory}
-		{
 			return FALSE
-		}
-
-		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].UsedCapacity} / ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].Capacity} > ${FullHold}
+			
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].UsedCapacity} / ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].Capacity} > 0.925
 		{
-			Logger:Log["Salvage", "Unload trip required", "g"]
-			This:Clear
-			This:QueueState["Offload"]
-			This:QueueState["Traveling"]
-			This:QueueState["RefreshBookmarks", 3000]
-			This:QueueState["CheckBookmarks", 3000]
+			This:LogInfo["Salvage", "Unload trip required", "g"]
+			This:InsertState["SalvagerMoveToBM",3000]
+			This:InsertState["Offload",5000]
+			This:InsertState["SalvagerNavigateToStation",3000]
 			return TRUE
 		}
-
+		
 		if ${Salvage.WrecksToLock.TargetList.Used} == 0
 		{
+			This:LogInfo["Area cleared. Marking BM as Historical and Dequeuing"]
+			This:MarkBMAsHistorical[${EVE.Bookmark[${SalvageBMQueue.Peek}].ID}]
+			SalvageBMQueue:Dequeue
+			This:InsertState["SalvagerMoveToBM",5000]
 			return TRUE
 		}
 		else
@@ -429,7 +255,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 			}
 
 			variable iterator TargetIterator
-			Salvage.Wrecks.TargetList:GetIterator[TargetIterator]
+			Salvage.WrecksToLock.TargetList:GetIterator[TargetIterator]
 			if ${TargetIterator:First(exists)}
 			{
 				do
@@ -453,39 +279,49 @@ objectdef obj_Salvager inherits obj_StateQueue
 		}
 		return FALSE
 	}
-
-	member:bool ClearAlreadySalvaged()
+	
+	; This is where we will navigate back to our Home Structure
+	member:bool SalvagerNavigateToStation()
 	{
-		AlreadySalvaged:Clear
-		return TRUE
-	}
-
-	member:bool GateCheck(int64 BookmarkCreator)
-	{
-		variable index:bookmark Bookmarks
-		variable iterator BookmarkIterator
-		variable bool UseJumpGate=FALSE
-		if ${Entity["GroupID = GROUP_WARPGATE"](exists)}
+		if ${Config.Dropoff.NotNULLOrEmpty}
 		{
-			HoldOffPlayer:Insert[${BookmarkCreator}]
-			HoldOffTimer:Insert[${Math.Calc[${LavishScript.RunningTime} + 600000]}]
-			This:Clear
-			This:QueueState["RefreshBookmarks", 3000]
-			This:QueueState["CheckBookmarks", 3000]
+			Move:Bookmark[${Config.Dropoff}]
+			This:InsertState["Traveling",5000]
 			return TRUE
 		}
-		This:QueueState["CheckCargoHold", 500]
-		return TRUE
+		else
+		{
+			This:LogInfo["No Home Structure BM, thats bad. Stopping."]
+			This:Stop
+			return TRUE
+		}
 	}
-
-	member:bool JumpToCelestial()
+	
+	
+	member:bool RefreshCargoBayState()
 	{
-		Logger:Log["Salvager", "Warping to ${Entity[GroupID = GROUP_SUN].Name}", "g"]
-		Move:Warp[${Entity["GroupID = GROUP_SUN"].ID}]
+		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"](exists)} && !${LargestBayRefreshed}
+		{
+			EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"]:MakeActive			
+			LargestBayRefreshed:Set[TRUE]
+			This:InsertState["RefreshCargoBayState",${Math.Calc[(3000) * ${Config.InventoryPulseRateModifier}].Int}]
+			return TRUE
+		}
+		LargestBayRefreshed:Set[FALSE]
+		This:LogInfo["ShipCargo Refreshed"]
+		return TRUE
+	}
+	
+	member:bool Traveling()
+	{
+		if ${Cargo.Processing} || ${Move.Traveling} || ${Me.ToEntity.Mode} == MOVE_WARPING
+		{
+			return FALSE
+		}
 		return TRUE
 	}
 
-	member:bool DeleteBookmark(int64 BookmarkCreator, int Removed=-1)
+	member:bool DeleteBookmark( int Removed=-1)
 	{
 		echo deletebookmark
 		variable index:bookmark Bookmarks
@@ -495,7 +331,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 		if ${BookmarkIterator:First(exists)}
 		do
 		{
-			if ${BookmarkIterator.Value.Label.Find[${Config.Prefix}]} && ${BookmarkIterator.Value.CreatorID.Equal[${BookmarkCreator}]}
+			if ${BookmarkIterator.Value.Label.Find[${Config.Prefix}]}
 			{
 				if ${BookmarkIterator.Value.JumpsTo} == 0
 				{
@@ -503,15 +339,13 @@ objectdef obj_Salvager inherits obj_StateQueue
 					{
 						if ${Removed} != ${BookmarkIterator.Value.ID}
 						{
-							Logger:Log["obj_Salvage", "Finished Salvaging ${BookmarkIterator.Value.Label} - Deleting", "g"]
-							This:InsertState["DeleteBookmark", 1000, "${BookmarkCreator},${BookmarkIterator.Value.ID}"]
-							Config.SafeBookmarksRef.FindSetting[${BookmarkIterator.Value.ID}]:Remove
+							This:LogInfo["obj_Salvage", "Finished Salvaging ${BookmarkIterator.Value.Label} - Deleting", "g"]
+							This:InsertState["DeleteBookmark", 1000, "${BookmarkIterator.Value.ID}"]
 							BookmarkIterator.Value:Remove
 							return TRUE
 						}
 						else
 						{
-
 							UsedBookmarks:Add[${BookmarkIterator.Value.ID}]
 							return TRUE
 						}
@@ -531,16 +365,15 @@ objectdef obj_Salvager inherits obj_StateQueue
 		}
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].UsedCapacity} / ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].Capacity} > 0.75
 		{
-			Logger:Log["obj_Salvage", "Unload trip required", "g"]
+			This:LogInfo["obj_Salvage", "Unload trip required", "g"]
 			This:QueueState["Offload"]
 			This:QueueState["Traveling"]
 		}
 		else
 		{
-			Logger:Log["obj_Salvage", "Unload trip not required", "g"]
+			This:LogInfo["obj_Salvage", "Unload trip not required", "g"]
 		}
-		This:QueueState["RefreshBookmarks", 3000]
-		This:QueueState["CheckBookmarks", 3000]
+		This:QueueState["SalvagerHub", 3000]
 		return TRUE
 	}
 
@@ -548,7 +381,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 	{
 		if !${refreshdone}
 		{
-			Logger:Log["obj_Salvage", "Refreshing bookmarks", "g"]
+			This:LogInfo["obj_Salvage", "Refreshing bookmarks", "g"]
 			EVE:RefreshBookmarks
 			This:InsertState["RefreshBookmarks", 2000, "TRUE"]
 			return TRUE
@@ -571,6 +404,24 @@ objectdef obj_Salvager inherits obj_StateQueue
 		}
 		return TRUE
 	}
+	
+	; This method is just so a salvager can claim a salvage BM. If you have more than one salvager it is kinda needed.
+	method SalvageBMTableClaim(int64 CharID, int64 BMID)
+	{
+		if ${ExtremelySharedSQLDB.ID(exists)}
+			ExtremelySharedSQLDB:ExecDML["update SalvageBMTable SET ClaimedByCharID=${CharID} WHERE BMID=${BMID};"]
+		else
+			SharedSQLDB:ExecDML["update SalvageBMTable SET ClaimedByCharID=${CharID} WHERE BMID=${BMID};"]
+	}
+	
+	
+	method MarkBMAsHistorical(int64 BMID)
+	{
+		if ${ExtremelySharedSQLDB.ID(exists)}
+			ExtremelySharedSQLDB:ExecDML["update SalvageBMTable SET Historical=1 WHERE BMID=${BMID};"]
+		else
+			SharedSQLDB:ExecDML["update SalvageBMTable SET Historical=1 WHERE BMID=${BMID};"]
+	}	
 
 }
 

@@ -67,6 +67,7 @@ objectdef obj_Configuration_Mission inherits obj_Configuration_Base
 	Setting(string, MissionFile, SetMissionFile)	
 	; This bool indicates we want to stay out of Lowsec
 	Setting(bool, DeclineLowSec, SetDeclineLowSec)
+	
 
 	
 	
@@ -97,6 +98,10 @@ objectdef obj_Configuration_Mission inherits obj_Configuration_Base
 	Setting(bool, SidekickMode, SetSidekickMode)
 	; Literal character name of whoever you are helping as a sidekick.
 	Setting(string, PrimaryName, SetPrimaryName)
+	; This will be the network path for the Extremely Shared DB. I will use this for my off-machine salvagers to work. Most people will never ever use this.
+	Setting(string, ExtremelySharedDBPath, SetExtremelySharedDBPath)
+	; This will be a prefix slapped onto the DB filename in the above path.
+	Setting(string, ExtremelySharedDBPrefix, SetExtremelySharedDBPrefix)
 	
 	; Since inventory is so wildly fucking variable per client, I will need to create a way to modify the pulse on inventory actions.
 	; This will be multiplier with the pulse for inventory actions. Higher number means slower actions.
@@ -117,6 +122,8 @@ objectdef obj_Mission inherits obj_StateQueue
 	variable sqlitedb CharacterSQLDB
 	; This DB will be Shared by all clients on this machine.
 	variable sqlitedb SharedSQLDB
+	; This DB will be Extremely Shared, that is to say it will be a network location.
+	variable sqlitedb ExtremelySharedSQLDB
 	; Bool so we don't spam WAL all day
 	variable bool WalAssurance = FALSE	
 	
@@ -374,17 +381,21 @@ objectdef obj_Mission inherits obj_StateQueue
 			PrimaryAgentIndex:Set[${EVE.Agent[${AgentList.Get[1]}].Index}]
 		}		
 		; SQL DB related stuff.
-		if !${CharacterSQLDB.ID(exists)} || !${SharedSQLDB.ID(exists)}
+		if !${CharacterSQLDB.ID(exists)} || !${SharedSQLDB.ID(exists)} || ( !${ExtremelySharedSQLDB.ID(exists)} && ( ${ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
 		{
 			; Setting our character specific and shared DBs.
 			CharacterSQLDB:Set[${SQLite.OpenDB["${Me.Name}DB","${Me.Name}DB.sqlite3"]}]
 			SharedSQLDB:Set[${SQLite.OpenDB["MissionSharedDB","MissionSharedDB.sqlite3"]}]
+			if ${ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty}
+            {
+                ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${ExtremelySharedDBPrefix}SharedDB","${ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
+            }
 			if !${WalAssurance}
 			{
 				This:EnsureWAL
 			}
 		}
-		if ${CharacterSQLDB.ID(exists)} && ${SharedSQLDB.ID(exists)}
+		if ${CharacterSQLDB.ID(exists)} && ${SharedSQLDB.ID(exists)} && ( ${ExtremelySharedSQLDB.ID(exists)} || ( !${ExtremelySharedDBPath.NotNULLOrEmpty} && !${ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
 		{
 			; Let us initialize our tables if they don't already exist.
 			; Hopefully, I can remember all the brilliant ideas I had yesterday.
@@ -490,6 +501,13 @@ objectdef obj_Mission inherits obj_StateQueue
 				SharedSQLDB:ExecDML["create table SalvageBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
 			}
 			; Well, that was time consuming and exhausting.
+			; But wait, there's more, mostly for me the author though. I have off-machine salvagers operating and I would like them to be able to utilize this wonderful
+			; technology so we need a NETWORK SHARED SQLDB. It will contain one table that looks identical to the one above.
+			if !${ExtremelySharedSQLDB.TableExists["SalvageBMTable"]} && (${ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty})
+			{
+				echo DEBUG - Creating Extremely Shared Salvage Bookmark Table
+				ExtremelySharedSQLDB:ExecDML["create table SalvageBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
+			}			
 		}
 		else
 		{
@@ -3089,6 +3107,10 @@ objectdef obj_Mission inherits obj_StateQueue
 				if ${BookmarkIterator.Value.Label.Find["${Config.SalvagePrefix}"]}
 				{
 					This:SalvageBMTableInsert[${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]},0,0,0}]
+					if ${ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty}
+					{
+						This:NetworkSalvageBMTableInsert[${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]},0,0,0}]
+					}
 					echo ${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]}
 				}
 			}
@@ -3423,7 +3445,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	method RoomNPCInfoInsert(int64 EntityID, int RunNumber, int RoomNumber, string NPCName, string NPCGroup, int64 NPCBounty)
 	{
 		CharacterSQLDB:ExecDML["insert into RoomNPCInfo (EntityID,RunNumber,RoomNumber,NPCName,NPCGroup,NPCBounty) values (${EntityID},${RunNumber},${RoomNumber},'${NPCName}','${NPCGroup}',${NPCBounty}) ON CONFLICT (EntityID) DO UPDATE SET RunNumber=excluded.RunNumber, RoomNumber=excluded.RoomNumber;"]
-		NPCDBDML:Insert
+		;NPCDBDML:Insert
 	}
 	; This method will be for inserting information into the WatchDogMonitoring table. This will also be an upsert.
 	; (CharID INTEGER PRIMARY KEY, RunNumber INTEGER, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, TripNumber INTEGER, TimeStamp DATETIME, CurrentTarget INTEGER, CurrentDestination TEXT, UnitsMoved INTEGER);"]
@@ -3446,12 +3468,22 @@ objectdef obj_Mission inherits obj_StateQueue
 		echo SALVAGEBMTABLE ${BMID},'${BMName}',${WreckCount},'${BMSystem}',${ExpectedExpiration},${ClaimedByCharID},${SalvageTime},${Historical}
 		SharedSQLDB:ExecDML["insert into SalvageBMTable (BMID,BMName,WreckCount,BMSystem,ExpectedExpiration,ClaimedByCharID,SalvageTime,Historical) values (${BMID},'${BMName}',${WreckCount},'${BMSystem}',${ExpectedExpiration},${ClaimedByCharID},${SalvageTime},${Historical}) ON CONFLICT (BMID) DO UPDATE SET BMName=excluded.BMName;"]
 	}
+	; The same but for our networkly located DB
+	method NetworkSalvageBMTableInsert(int64 BMID, string BMName, int WreckCount, string BMSystem, int64 ExpectedExpiration, int64 ClaimedByCharID, int64 SalvageTime, int Historical)
+	{
+		echo NETWORKSALVAGEBMTABLE ${BMID},'${BMName}',${WreckCount},'${BMSystem}',${ExpectedExpiration},${ClaimedByCharID},${SalvageTime},${Historical}
+		ExtremelySharedSQLDB:ExecDML["insert into SalvageBMTable (BMID,BMName,WreckCount,BMSystem,ExpectedExpiration,ClaimedByCharID,SalvageTime,Historical) values (${BMID},'${BMName}',${WreckCount},'${BMSystem}',${ExpectedExpiration},${ClaimedByCharID},${SalvageTime},${Historical}) ON CONFLICT (BMID) DO UPDATE SET BMName=excluded.BMName;"]
+	}
 	; This method is just so a salvager can claim a salvage BM. If you have more than one salvager it is kinda needed.
 	method SalvageBMTableClaim(int64 CharID, int64 BMID)
 	{
 		SharedSQLDB:ExecDML["update SalvageBMTable SET ClaimedByCharID=${CharID} WHERE BMID=${BMID};"]
 	}
-	
+	; The same, but for the network located DB.
+	method NetworkSalvageBMTableClaim(int64 CharID, int64 BMID)
+	{
+		ExtremelySharedSQLDB:ExecDML["update SalvageBMTable SET ClaimedByCharID=${CharID} WHERE BMID=${BMID};"]
+	}	
 	;;;;;;;;;;;;;;;;;;;;; Below this point is stuff I just grabbed from the original Missioneer ;;;;;;;;;;;;;;;;;
 	
 	; I've always wondered why this is even here.
@@ -4315,6 +4347,10 @@ objectdef obj_Mission inherits obj_StateQueue
 		; This will be used to Set WAL. WAL is persistent but I don't know how to read our current journal state sooo.
 		CharacterSQLDB:ExecDML["PRAGMA journal_mode=WAL;"]
 		SharedSQLDB:ExecDML["PRAGMA journal_mode=WAL;"]
+		if ${ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty}
+        {
+            ExtremelySharedSQLDB:ExecDML["PRAGMA journal_mode=WAL;"]
+        }
 		WalAssurance:Set[TRUE]
 	}
 	; Stealing this function from evebot and making it into a method instead.
