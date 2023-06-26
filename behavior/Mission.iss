@@ -382,21 +382,21 @@ objectdef obj_Mission inherits obj_StateQueue
 			PrimaryAgentIndex:Set[${EVE.Agent[${AgentList.Get[1]}].Index}]
 		}		
 		; SQL DB related stuff.
-		if !${CharacterSQLDB.ID(exists)} || !${SharedSQLDB.ID(exists)} || ( !${ExtremelySharedSQLDB.ID(exists)} && ( ${ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
+		if !${CharacterSQLDB.ID(exists)} || !${SharedSQLDB.ID(exists)} || ( !${ExtremelySharedSQLDB.ID(exists)} && ( ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
 		{
 			; Setting our character specific and shared DBs.
 			CharacterSQLDB:Set[${SQLite.OpenDB["${Me.Name}DB","${Me.Name}DB.sqlite3"]}]
 			SharedSQLDB:Set[${SQLite.OpenDB["MissionSharedDB","MissionSharedDB.sqlite3"]}]
-			if ${ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty}
+			if ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty}
             {
-                ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${ExtremelySharedDBPrefix}SharedDB","${ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
+                ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
             }
 			if !${WalAssurance}
 			{
 				This:EnsureWAL
 			}
 		}
-		if ${CharacterSQLDB.ID(exists)} && ${SharedSQLDB.ID(exists)} && ( ${ExtremelySharedSQLDB.ID(exists)} || ( !${ExtremelySharedDBPath.NotNULLOrEmpty} && !${ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
+		if ${CharacterSQLDB.ID(exists)} && ${SharedSQLDB.ID(exists)} && ( ${ExtremelySharedSQLDB.ID(exists)} || ( !${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && !${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
 		{
 			; Let us initialize our tables if they don't already exist.
 			; Hopefully, I can remember all the brilliant ideas I had yesterday.
@@ -504,7 +504,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			; Well, that was time consuming and exhausting.
 			; But wait, there's more, mostly for me the author though. I have off-machine salvagers operating and I would like them to be able to utilize this wonderful
 			; technology so we need a NETWORK SHARED SQLDB. It will contain one table that looks identical to the one above.
-			if !${ExtremelySharedSQLDB.TableExists["SalvageBMTable"]} && (${ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty})
+			if !${ExtremelySharedSQLDB.TableExists["SalvageBMTable"]} && (${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty})
 			{
 				echo DEBUG - Creating Extremely Shared Salvage Bookmark Table
 				ExtremelySharedSQLDB:ExecDML["create table SalvageBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
@@ -4348,7 +4348,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		; This will be used to Set WAL. WAL is persistent but I don't know how to read our current journal state sooo.
 		CharacterSQLDB:ExecDML["PRAGMA journal_mode=WAL;"]
 		SharedSQLDB:ExecDML["PRAGMA journal_mode=WAL;"]
-		if ${ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty}
+		if ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty}
         {
             ExtremelySharedSQLDB:ExecDML["PRAGMA journal_mode=WAL;"]
         }
