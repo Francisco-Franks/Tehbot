@@ -347,6 +347,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		UIElement[Run@TitleBar@Tehbot]:SetText[Run]
 		CharacterSQLDB:Close
 		SharedSQLDB:Close
+		ExtremelySharedSQLDB:Close
 		
 	}
 
