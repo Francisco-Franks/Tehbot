@@ -73,9 +73,9 @@ objectdef obj_Salvager inherits obj_StateQueue
 	variable queue:string SalvageBMDeletionQueue
 	
 	; Variables related to our network folder DAT import scheme.
-	variable file OffsiteDBTransferFile
-	variable index:string OffsiteDBTransferIndex
-	variable string OffsideDBTransferString
+	variable file 			OffsiteDBTransferFile
+	variable index:string 	OffsiteDBTransferIndex
+	variable string 		OffsiteDBTransferString
 	
 	method Initialize()
 	{
@@ -180,7 +180,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 			This:InsertState["SalvagerCheckBookmarks",1000]
 			if ${Config.NetworkedSalvager}
 			{
-				This:InsertState["SalvagerScrapeNetworkDAT",1000]
+				This:SalvagerScrapeNetworkDAT
 			}
 			return TRUE
 		}
@@ -350,7 +350,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 		{
 			if ${Config.NetworkedSalvager}
 			{
-				This:InsertState["SalvagerScrapeNetworkDAT",1000]
+				This:SalvagerScrapeNetworkDAT
 			}
 			Move:Bookmark[${SalvageBMQueue.Peek},TRUE]
 		}
@@ -441,10 +441,15 @@ objectdef obj_Salvager inherits obj_StateQueue
 	}
 	
 	; This is where we will do that DAT file scrape crap that is replacing Networked SQL DB things that don't work.
-	member:bool SalvagerScrapeNetworkDAT()
+	method SalvagerScrapeNetworkDAT()
 	{
+		variable int ConcatLoop
+		variable int LoopsNeeded
+		
 		OffsiteDBTransferString:Set[""]
 		OffsiteDBTransferFile:Open
+		OffsiteDBTransferFile:Seek[0]
+		echo DEBUG OFFSITE DB TRANSFER FILE SIZE ${OffsiteDBTransferFile.Size}
 		if ${OffsiteDBTransferFile.Size} < 1
 		{
 			This:LogInfo["DAT is empty, returning."]
@@ -452,18 +457,24 @@ objectdef obj_Salvager inherits obj_StateQueue
 		}
 		else
 		{
+			LoopsNeeded:Set[${Math.Calc[${OffsiteDBTransferFile.Size} / 1024].Ceil}]
+			This:LogInfo["DAT contains information, scraping."]
 			do
 			{
-				OffsiteDBTransferString:Concat[${OffsiteDBTransferFile.Read}]
+				OffsiteDBTransferString:Concat["${OffsiteDBTransferFile.Read}"]
+				ConcatLoop:Inc[1]
 			}
-			while !${OffsiteDBTransferFile.EOF}
+			while ${ConcatLoop} <= ${LoopsNeeded}
 		}
+		echo DEBUG ${OffsiteDBTransferString.AsJSON}
 		OffsiteDBTransferFile:Seek[0]
 		OffsiteDBTransferFile:Truncate
 		OffsiteDBTransferFile:Flush
 		OffsiteDBTransferFile:Close
 		if ${OffsiteDBTransferString.NotNULLOrEmpty}
 			OffsiteDBTransferIndex:Insert["${OffsiteDBTransferString}"]
+		This:OffsiteSalvageBMTableInsert
+		return TRUE
 	}
 	; Need to insert our scraped stuff. Maybe this will work easily.
 	method OffsiteSalvageBMTableInsert()
