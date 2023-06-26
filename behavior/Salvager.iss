@@ -367,6 +367,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 			This:MarkBMAsHistorical[${EVE.Bookmark[${SalvageBMQueue.Peek}].ID}]
 			SalvageBMQueue:Dequeue
 			This:InsertState["SalvagerMoveToBM",5000]
+			This:InsertState["DeleteBookmark"]
 			return TRUE
 		}
 		else
