@@ -72,6 +72,11 @@ objectdef obj_Salvager inherits obj_StateQueue
 	; Queue where we will hold the Labels of BMs we are going to delete as part of cleanup.
 	variable queue:string SalvageBMDeletionQueue
 	
+	; Variables related to our network folder DAT import scheme.
+	variable file OffsiteDBTransferFile
+	variable index:string OffsiteDBTransferIndex
+	variable string OffsideDBTransferString
+	
 	method Initialize()
 	{
 		This[parent]:Initialize
@@ -115,9 +120,9 @@ objectdef obj_Salvager inherits obj_StateQueue
 		{
 			;ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","\\\\${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
 			;echo DEBUG - SALVAGER - "${Config.ExtremelySharedDBPrefix}SharedDB","\\\\${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"
-			ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
+			ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","{Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
 			echo "${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"
-		}		
+		}
 		if !${MySalvageBMs.ID(exists)}
 		{
 			; This DB will reside in memory. It is temporary.
@@ -129,6 +134,12 @@ objectdef obj_Salvager inherits obj_StateQueue
 			echo DEBUG - Creating Temp Salvage BM Table
 			MySalvageBMs:ExecDML["create table TempBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, BMSystem TEXT, BMJumpsTo INTEGER, ExpectedExpiration INTEGER);"]
 			;MySalvageBMs:ExecDML["PRAGMA journal_mode=WAL;"]
+		}
+		; The networked DB turned out to be a disaster so we are going to have our missioneers write strings to 
+		; a dat file, which we will import every 30-60 seconds by some means I haven't decided on yet.
+		if !${OffsiteDBTransferFile.Path.NotNULLOrEmpty}
+		{
+			OffsiteDBTransferFile:SetFilename["${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB.dat"]
 		}
 		; We started in space, return to station and restart this state.
 		if ${Client.InSpace}
@@ -416,7 +427,38 @@ objectdef obj_Salvager inherits obj_StateQueue
 		}
 	}
 	
-	
+	; This is where we will do that DAT file scrape crap that is replacing Networked SQL DB things that don't work.
+	member:bool SalvagerScrapeNetworkDAT()
+	{
+		OffsiteDBTransferString:Set[""]
+		OffsiteDBTransferFile:Open
+		if ${OffsiteDBTransferFile.Size} < 1
+		{
+			This:LogInfo["DAT is empty, returning."]
+			return TRUE
+		}
+		else
+		{
+			do
+			{
+				OffsiteDBTransferString:Concat[${OffsiteDBTransferFile.Read}]
+			}
+			while !${OffsiteDBTransferFile.EOF}
+		}
+		OffsiteDBTransferFile:Seek[0]
+		OffsiteDBTransferFile:Truncate
+		OffsiteDBTransferFile:Flush
+		OffsiteDBTransferFile:Close
+		if ${OffsiteDBTransferString.NotNULLOrEmpty}
+			OffsiteDBTransferIndex:Insert["${OffsiteDBTransferString}"]
+	}
+	; Need to insert our scraped stuff. Maybe this will work easily.
+	method OffsiteSalvageBMTableInsert()
+	{
+		echo ${OffsiteDBTransferIndex.Expand.AsJSON}
+		ExtremelySharedSQLDB:ExecDMLTransaction[${OffsiteDBTransferIndex}]
+		OffsiteDBTransferIndex:Clear
+	}
 	member:bool RefreshCargoBayState()
 	{
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"](exists)} && !${LargestBayRefreshed}
