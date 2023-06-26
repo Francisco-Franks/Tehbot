@@ -287,8 +287,8 @@ objectdef obj_Salvager inherits obj_StateQueue
 				GetSalvageBM2:NextRow
 			}
 			while !${GetSalvageBM2.LastRow} && ${SalvageBMPrepQueue.Used} < 5
+			MySalvageBMs:ExecDML["DELETE FROM TempBMTable;"]
 			GetSalvageBM2:Finalize
-		
 			if ${SalvageBMPrepQueue.Used} > 0
 			{
 				do
