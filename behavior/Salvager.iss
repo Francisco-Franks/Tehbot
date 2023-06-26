@@ -52,6 +52,9 @@ objectdef obj_Salvager inherits obj_StateQueue
 	variable sqlitedb MySalvageBMs
 	; These will be the variables for our queries
 	variable sqlitequery GetSalvageBM
+	variable sqlitequery GetSalvageBM2
+	
+	variable index:string TempDBInsert
 
 	
 	; Borrowing from Missioneer, this will be your cargo bay in this instance. I am too lazy to find replace it.
@@ -67,7 +70,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 	; Queue where we will hold the IDs of BMs we are going to mark as historical as part of cleanup.
 	variable queue:int64 SalvageBMCleanupQueue
 	; Queue where we will hold the Labels of BMs we are going to delete as part of cleanup.
-	variable queue:int64 SalvageBMDeletionQueue
+	variable queue:string SalvageBMDeletionQueue
 	
 	method Initialize()
 	{
@@ -88,32 +91,51 @@ objectdef obj_Salvager inherits obj_StateQueue
 	{
 		This:DeactivateStateQueueDisplay
 		This:Clear
+		SharedSQLDB:Close
 		ExtremelySharedSQLDB:Close
+		MySalvageBMs:Close
+	}
+	
+	method Shutdown()
+	{
+		SharedSQLDB:Close
+		ExtremelySharedSQLDB:Close
+		MySalvageBMs:Close
 	}
 
 	; This will be our central loop, where we jump off to other states.
 	member:bool SalvagerHub()
 	{
-		if !${SharedSQLDB.ID(exists)} || ( !${ExtremelySharedSQLDB.ID(exists)} && ( ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
+		if !${SharedSQLDB.ID(exists)}
 		{
 			SharedSQLDB:Set[${SQLite.OpenDB["MissionSharedDB","MissionSharedDB.sqlite3"]}]
-			if ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty}
-			{
-				;ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","\\\\${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
-				;echo DEBUG - SALVAGER - "${Config.ExtremelySharedDBPrefix}SharedDB","\\\\${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"
-				ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
-				echo "${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"
-			}
+
 		}
+		if (${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty}) && !${ExtremelySharedSQLDB.ID(exists)}
+		{
+			;ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","\\\\${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
+			;echo DEBUG - SALVAGER - "${Config.ExtremelySharedDBPrefix}SharedDB","\\\\${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"
+			ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
+			echo "${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"
+		}		
 		if !${MySalvageBMs.ID(exists)}
 		{
 			; This DB will reside in memory. It is temporary.
-			MySalvageBMs:Set[${SQLite.OpenDB["MySalvageDB",":memory:"]}]
+			MySalvageBMs:Set[${SQLite.OpenDB["MySalvageBMs",":memory:"]}]
+			;MySalvageBMs:Set[${SQLite.OpenDB["MySalvageBMs","MySalvageBMs.sqlite3"]}]
 		}
 		if !${MySalvageBMs.TableExists["TempBMTable"]}
 		{
 			echo DEBUG - Creating Temp Salvage BM Table
-			MySalvageBMs:ExecDML["create table TempBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, BMSystem TEXT, BMJumpsTo INTEGER, ExpectedExpiration DATETIME);"]
+			MySalvageBMs:ExecDML["create table TempBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, BMSystem TEXT, BMJumpsTo INTEGER, ExpectedExpiration INTEGER);"]
+			;MySalvageBMs:ExecDML["PRAGMA journal_mode=WAL;"]
+		}
+		; We started in space, return to station and restart this state.
+		if ${Client.InSpace}
+		{
+			This:InsertState["SalvagerHub", 2500]
+			This:InsertState["SalvagerNavigateToStation",3000]
+			return TRUE		
 		}
 		; Is it time to halt? Or are we close to downtime? Only goes off when we are in a station.
 		if ${Me.InStation} && (${Config.Halt} || ${halt} || ${Utility.DowntimeClose})
@@ -122,11 +144,18 @@ objectdef obj_Salvager inherits obj_StateQueue
 			return TRUE
 		}
 		; Are we full or have an invalid ship cargo (we're on the wrong inventory window).
-		if ${Me.InStation} && ( ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].UsedCapacity} < 0 || ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].UsedCapacity} > 1 )
+		if ${Me.InStation} && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].UsedCapacity} < 0
 		{
 			This:InsertState["CheckCargoHold",3000]
 			This:InsertState["RefreshCargoBayState",3000]
 			return TRUE
+		}
+		if ${Me.InStation} && ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].UsedCapacity} > 1 
+		{
+			This:InsertState["SalvagerHub",3000]
+			This:InsertState["Traveling",5000]
+			This:InsertState["Offload",3000]
+			return TRUE		
 		}
 		; We are not full, check for valid bookmarks in the DB. We don't want to hit this too terribly often. I will never be convinced that reads are non-blocking no matter what.
 		; If we find BMs we will not return to this state directly.
@@ -145,7 +174,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 	member:bool SalvagerCheckBookmarks()
 	{
 		; Need to do some BM cleanup.
-		if ${ExtremelySharedSQLDB.ID(exists)}
+		if !${ExtremelySharedSQLDB.ID(exists)}
 		{
 			GetSalvageBM:Set[${SharedSQLDB.ExecQuery["SELECT * FROM SalvageBMTable WHERE Historical=0 AND BMName LIKE '%${Config.Prefix}%';"]}]
 		}
@@ -158,6 +187,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 			This:LogInfo["${GetSalvageBM.NumRows} BMs Found, Cleaning up Old BMs."]
 			do
 			{
+				echo (${GetSalvageBM.GetFieldValue["ExpectedExpiration",int64]} < ${EVETime.AsInt64}) && ${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}](exists)}
 				if (${GetSalvageBM.GetFieldValue["ExpectedExpiration",int64]} < ${EVETime.AsInt64}) && ${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}](exists)}
 				{
 					; DB entries that are expired but also have a corresponding BM
@@ -179,23 +209,39 @@ objectdef obj_Salvager inherits obj_StateQueue
 			do
 			{
 				if ${EVE.Bookmark[${SalvageBMDeletionQueue.Peek}](exists)}
-				EVE.Bookmark[${SalvageBMDeletionQueue.Peek}]:Remove
-				This:LogInfo["Deleting BM ${SalvageBMDeletionQueue.Peek}"]
+				{
+					EVE.Bookmark[${SalvageBMDeletionQueue.Peek}]:Remove
+					This:LogInfo["Deleting BM ${SalvageBMDeletionQueue.Peek}"]
+					SalvageBMDeletionQueue:Dequeue
+				}
 				if !${EVE.Bookmark[${SalvageBMDeletionQueue.Peek}](exists)}
 				{
 					SalvageBMDeletionQueue:Dequeue
 				}
 			}
-			while ${SalvageBMDeletionQueue.Used} > 0
+			while ${SalvageBMDeletionQueue.Size} > 0
+			return FALSE
+		}
+		; Oh right we can process them in bulk, I should pay more attention.
+		if ${SalvageBMCleanupQueue.Used} > 0
+		{
+			This:LogInfo["Marking old DB entries as Historical."]
+			if ${ExtremelySharedSQLDB.ID(exists)}
+				ExtremelySharedSQLDB:ExecDML["update SalvageBMTable SET Historical=1 WHERE ExpectedExpiration<${EVETime.AsInt64};"]
+			else
+				SharedSQLDB:ExecDML["update SalvageBMTable SET Historical=1 WHERE ExpectedExpiration<${EVETime.AsInt64};"]
+			SalvageBMCleanupQueue:Clear
+			return FALSE
 		}
 		; On to actually getting our BMs for real use.
-		if ${ExtremelySharedSQLDB.ID(exists)}
+		echo DEBUG - SALVAGER - CHECKPOINT 1
+		if !${ExtremelySharedSQLDB.ID(exists)}
 		{
-			GetSalvageBM:Set[${SharedSQLDB.ExecQuery["SELECT * FROM SalvageBMTable WHERE Historical=0 AND BMName LIKE '%${Config.Prefix}%' AND (CharID=0 OR CharID=${Me.CharID}) AND ExpectedExpiration<${EVETime.AsInt64};"]}]
+			GetSalvageBM:Set[${SharedSQLDB.ExecQuery["SELECT * FROM SalvageBMTable WHERE Historical=0 AND BMName LIKE '%${Config.Prefix}%' AND (ClaimedByCharID=0 OR ClaimedByCharID=${Me.CharID});"]}]
 		}
 		else
 		{
-			GetSalvageBM:Set[${ExtremelySharedSQLDB.ExecQuery["SELECT * FROM SalvageBMTable WHERE Historical=0 AND BMName LIKE '%${Config.Prefix}%' AND (CharID=0 OR CharID=${Me.CharID}) AND ExpectedExpiration<${EVETime.AsInt64};"]}]
+			GetSalvageBM:Set[${ExtremelySharedSQLDB.ExecQuery["SELECT * FROM SalvageBMTable WHERE Historical=0 AND BMName LIKE '%${Config.Prefix}%' AND (ClaimedByCharID=0 OR ClaimedByCharID=${Me.CharID});"]}]
 		}
 		if ${GetSalvageBM.NumRows} > 0
 		{
@@ -206,12 +252,17 @@ objectdef obj_Salvager inherits obj_StateQueue
 				if ${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}](exists)}
 				{
 					;TempBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, BMSystem TEXT, BMJumpsTo INTEGER, ExpectedExpiration DATETIME)
-					SharedSQLDB:ExecDML["insert into TempBMTable (BMID,BMName,BMSystem,BMJumpsTo,ExpectedExpiration) values (${GetSalvageBM.GetFieldValue["BMID",int64]},'${GetSalvageBM.GetFieldValue["BMName",string].ReplaceSubstring[','']}','${GetSalvageBM.GetFieldValue["BMSystem",string].ReplaceSubstring[','']}',${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}].JumpsTo},${GetSalvageBM.GetFieldValue["ExpectedExpiration",int64]}) ON CONFLICT (BMID) DO UPDATE SET BMName=excluded.BMName;"]
+					echo (${GetSalvageBM.GetFieldValue["BMID",int64]},'${GetSalvageBM.GetFieldValue["BMName",string]}','${GetSalvageBM.GetFieldValue["BMSystem",string]}',${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}].JumpsTo},${GetSalvageBM.GetFieldValue["ExpectedExpiration",int64]})
+					TempDBInsert:Insert["insert into TempBMTable (BMID,BMName,BMSystem,BMJumpsTo,ExpectedExpiration) values (${GetSalvageBM.GetFieldValue["BMID",int64]},'${GetSalvageBM.GetFieldValue["BMName",string].ReplaceSubstring[','']}','${GetSalvageBM.GetFieldValue["BMSystem",string].ReplaceSubstring[','']}',${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}].JumpsTo},${GetSalvageBM.GetFieldValue["ExpectedExpiration",int64]}) ON CONFLICT (BMID) DO UPDATE SET BMName=excluded.BMName;"]
 				}
 				GetSalvageBM:NextRow
 			}
 			while !${GetSalvageBM.LastRow}
 			GetSalvageBM:Finalize
+			MySalvageBMs:ExecDMLTransaction[TempDBInsert]
+			TempDBInsert:Clear
+			This:InsertState["SalvagerPostFilterBM",5000]
+			return TRUE
 		}
 		else
 		{
@@ -220,40 +271,52 @@ objectdef obj_Salvager inherits obj_StateQueue
 			This:InsertState["SalvagerHub",5000]
 			return TRUE
 		}
-		; Basically we have taken our table and filtered it then moved the values to a new temp table that resides in memory. We will now sort by how many jumps, what system, and how old. 
-		GetSalvageBM:Set[${MySalvageBMs.ExecQuery["SELECT * FROM TempBMTable WHERE Historical=0 AND ORDER BY JumpsTo ASC, BMSystem ASC, ExpectedExpiration ASC;"]}]
-		if ${GetSalvageBM.NumRows} > 0
+	}
+	; Might be SQLing too fast, lets break the last segment of SalvagerHub into its own thing.
+	; Basically we have taken our table and filtered it then moved the values to a new temp table that resides in memory. We will now sort by how many jumps, what system.
+	member:bool SalvagerPostFilterBM()
+	{
+		echo DEBUG - SALVAGER - CHECKPOINT 2
+		GetSalvageBM2:Set[${MySalvageBMs.ExecQuery["SELECT * FROM TempBMTable ORDER BY BMJumpsTo ASC, BMSystem DESC;"]}]
+		if ${GetSalvageBM2.NumRows} > 0
 		{
-			This:LogInfo["${GetSalvageBM.NumRows} BMs Found"]
+			This:LogInfo["Post-Filtering ${GetSalvageBM2.NumRows} BMs Found"]
 			do
 			{
-				SalvageBMPrepQueue:Queue[${GetSalvageBM.GetFieldValue["BMName",string]}]
-				GetSalvageBM:NextRow
+				SalvageBMPrepQueue:Queue[${GetSalvageBM2.GetFieldValue["BMName",string]}]
+				GetSalvageBM2:NextRow
 			}
-			while !${GetSalvageBM.LastRow} && ${SalvageBMPrepQueue.Used} < 5
-			GetSalvageBM:Finalize
-		}
-		if ${SalvageBMPrepQueue.Used} > 0
-		{
-			do
+			while !${GetSalvageBM2.LastRow} && ${SalvageBMPrepQueue.Used} < 5
+			GetSalvageBM2:Finalize
+		
+			if ${SalvageBMPrepQueue.Used} > 0
 			{
-				This:ClaimedByCharID[${Me.CharID},${EVE.Bookmark[${SalvageBMPrepQueue.Peek}].ID}]
-				This:LogInfo["Claiming ${SalvageBMPrepQueue.Peek}"]
-				SalvageBMQueue:Queue[${SalvageBMPrepQueue.Peek}]
-				SalvageBMPrepQueue:Dequeue
+				do
+				{
+					This:ClaimedByCharID[${Me.CharID},${EVE.Bookmark[${SalvageBMPrepQueue.Peek}].ID}]
+					This:LogInfo["Claiming ${SalvageBMPrepQueue.Peek}"]
+					SalvageBMQueue:Queue[${SalvageBMPrepQueue.Peek}]
+					SalvageBMPrepQueue:Dequeue
+				}
+				while ${SalvageBMPrepQueue.Used} > 0
 			}
-			while ${SalvageBMPrepQueue.Used} > 0
+			else
+			{
+				echo DEBUG - SALVAGER - SOMETHING WENT INSANELY WRONG HERE
+				This:Stop
+				return TRUE
+			}
+			This:InsertState["SalvagerMoveToBM",5000]
+			This:InsertState["Idle",5000]
+			return TRUE
 		}
 		else
 		{
-			DEBUG - SALVAGER - SOMETHING WENT INSANELY WRONG HERE
+			echo DEBUG - SALVAGER - SOMETHING WENT INSANELY WRONG HERE
 			This:Stop
 			return TRUE
 		}
-		This:InsertState["SalvagerMoveToBM",5000]
-		This:InsertState["Idle",5000]
-		return TRUE
-	}
+	}	
 	; This is where we will travel to our BM
 	member:bool SalvagerMoveToBM()
 	{
@@ -261,13 +324,11 @@ objectdef obj_Salvager inherits obj_StateQueue
 		{
 			This:LogInfo["We need to be undocked for this part"]
 			Move:Undock
+			return FALSE
 		}
-		if ${SalvageBMQueue.Peek}
+		if ${SalvageBMQueue.Peek.NotNULLOrEmpty}
 		{
 			Move:Bookmark[${SalvageBMQueue.Peek},TRUE]
-			This:InsertState["SalvagerOnSiteNavigation",5000]			
-			This:InsertState["Traveling",5000]		
-			return TRUE
 		}
 		else
 		{
@@ -276,11 +337,16 @@ objectdef obj_Salvager inherits obj_StateQueue
 			This:InsertState["SalvagerNavigateToStation",3000]
 			return TRUE
 		}
+		This:InsertState["SalvagerOnSiteNavigation",5000]
+		This:InsertState["Traveling",5000]
+		return TRUE
 	}
 	
 	; This is where we will do our On Site Navigation
 	member:bool SalvagerOnSiteNavigation()
 	{
+		if ${Me.ToEntity.Mode} == MOVE_WARPING
+			return FALSE
 		if ${Move.Traveling}
 			return FALSE
 		if !${Client.Inventory}
@@ -290,8 +356,8 @@ objectdef obj_Salvager inherits obj_StateQueue
 		{
 			This:LogInfo["Salvage", "Unload trip required", "g"]
 			This:InsertState["SalvagerMoveToBM",3000]
+			This:InsertState["Traveling",3000]
 			This:InsertState["Offload",5000]
-			This:InsertState["SalvagerNavigateToStation",3000]
 			return TRUE
 		}
 		
@@ -319,12 +385,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 				{
 					if ${TargetIterator.Value.ID(exists)}
 					{
-						if !${TargetIterator.Value.HaveLootRights}
-						{
-							Move:Approach[${TargetIterator.Value.ID}]
-							return FALSE
-						}
-						elseif	${TargetIterator.Value.Distance} > ${MaxRange}
+						if	${TargetIterator.Value.Distance} > ${MaxRange} && ${Me.ToEntity.Mode} != MOVE_APPROACHING
 						{
 							Move:Approach[${TargetIterator.Value.ID}]
 							return FALSE

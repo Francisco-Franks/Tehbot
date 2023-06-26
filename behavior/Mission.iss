@@ -355,7 +355,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	{
 		CharacterSQLDB:Close
 		SharedSQLDB:Close
-		
+		ExtremelySharedSQLDB:Close
 	}
 	
 	; Vaguely useful.
@@ -434,7 +434,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			if !${CharacterSQLDB.TableExists["MissionLogCombat"]}
 			{
 				echo DEBUG - Creating Mission Log Combat
-				CharacterSQLDB:ExecDML["create table MissionLogCombat (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, TrueCompletion BOOLEAN, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+				CharacterSQLDB:ExecDML["create table MissionLogCombat (RunNumber INTEGER PRIMARY KEY, StartingTimestamp INTEGER, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, TrueCompletion BOOLEAN, FinalTimestamp INTEGER, Historical BOOLEAN);"]
 			}
 			
 			; This table is for keeping track of what we've done during our Courier/Trade missions.
@@ -449,7 +449,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			if !${CharacterSQLDB.TableExists["MissionLogCourier"]}
 			{
 				echo DEBUG - Creating Mission Log Courier
-				CharacterSQLDB:ExecDML["create table MissionLogCourier (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER, DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume INTEGER, UnitsMoved INTEGER, VolumeMoved INTEGER, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+				CharacterSQLDB:ExecDML["create table MissionLogCourier (RunNumber INTEGER PRIMARY KEY, StartingTimestamp INTEGER, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER, DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume INTEGER, UnitsMoved INTEGER, VolumeMoved INTEGER, FinalTimestamp INTEGER, Historical BOOLEAN);"]
 			}			
 
 			; This table is so we can databasify a few things about the NPCs in a given combat mission room. I need this, ultimately, to get the bounties from them.
@@ -469,7 +469,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			if !${SharedSQLDB.TableExists["WatchDogMonitoring"]}
 			{
 				echo DEBUG - Creating Watchdog Monitoring Table
-				SharedSQLDB:ExecDML["create table WatchDogMonitoring (CharID INTEGER PRIMARY KEY, RunNumber INTEGER, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, TripNumber INTEGER, TimeStamp DATETIME, CurrentTarget INTEGER, CurrentDestination TEXT, UnitsMoved INTEGER);"]
+				SharedSQLDB:ExecDML["create table WatchDogMonitoring (CharID INTEGER PRIMARY KEY, RunNumber INTEGER, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, TripNumber INTEGER, TimeStamp INTEGER, CurrentTarget INTEGER, CurrentDestination TEXT, UnitsMoved INTEGER);"]
 			}
 			
 			; This, hopefully final table, exists so that we can gather meaningful statistics about our mission rewards.
@@ -487,7 +487,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			if !${SharedSQLDB.TableExists["MissioneerStats"]}
 			{
 				echo DEBUG - Creating Missioner Stats Table
-				SharedSQLDB:ExecDML["create table MissioneerStats (Timestamp DATETIME, CharName TEXT, CharID INTEGER, RunNumber INTEGER, RoomNumber INTEGER, TripNumber INTEGER, MissionName TEXT, MissionType TEXT, EventType TEXT, RoomBounties INTEGER, RoomFactionSpawn BOOLEAN, RoomDuration DATETIME, RunLP INTEGER, RunISK INTEGER, RunDuration DATETIME, RunTotalBounties INTEGER, ShipType TEXT);"]
+				SharedSQLDB:ExecDML["create table MissioneerStats (Timestamp INTEGER, CharName TEXT, CharID INTEGER, RunNumber INTEGER, RoomNumber INTEGER, TripNumber INTEGER, MissionName TEXT, MissionType TEXT, EventType TEXT, RoomBounties INTEGER, RoomFactionSpawn BOOLEAN, RoomDuration INTEGER, RunLP INTEGER, RunISK INTEGER, RunDuration INTEGER, RunTotalBounties INTEGER, ShipType TEXT);"]
 			}			
 			
 			; I lied, one more shared table remains. The shared table that the Salvagers will use.
@@ -499,7 +499,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			if !${SharedSQLDB.TableExists["SalvageBMTable"]}
 			{
 				echo DEBUG - Creating Salvage Bookmark Table
-				SharedSQLDB:ExecDML["create table SalvageBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
+				SharedSQLDB:ExecDML["create table SalvageBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration INTEGER, ClaimedByCharID INTEGER, SalvageTime INTEGER, Historical BOOLEAN);"]
 			}
 			; Well, that was time consuming and exhausting.
 			; But wait, there's more, mostly for me the author though. I have off-machine salvagers operating and I would like them to be able to utilize this wonderful
@@ -507,7 +507,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			if !${ExtremelySharedSQLDB.TableExists["SalvageBMTable"]} && (${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty})
 			{
 				echo DEBUG - Creating Extremely Shared Salvage Bookmark Table
-				ExtremelySharedSQLDB:ExecDML["create table SalvageBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
+				ExtremelySharedSQLDB:ExecDML["create table SalvageBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration INTEGER, ClaimedByCharID INTEGER, SalvageTime INTEGER, Historical BOOLEAN);"]
 			}			
 		}
 		else
@@ -1215,8 +1215,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		MissionParser.AgentName:Set[${EVE.Agent[${CurrentAgentIndex}].Name}]
 		; We have a journal row, as expected. This should have already been curated, so this mission should, without fail, be one we want.
 		; Let us establish the mission parameters, so we can put it in the correct mission log table.
-		; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER,
-		;  DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume INTEGER, UnitsMoved INTEGER, VolumeMoved INTEGER, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+		; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp INTEGER, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER,
+		;  DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume INTEGER, UnitsMoved INTEGER, VolumeMoved INTEGER, FinalTimestamp INTEGER, Historical BOOLEAN);"]
 		if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Courier"]} || ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Trade"]}
 		{
 			; Gotta do this again, we might have swapped ships going from a trade mission to a courier.
@@ -1247,8 +1247,8 @@ objectdef obj_Mission inherits obj_StateQueue
 				return TRUE
 			}
 		}
-		; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, 
-		;   TrueCompletion BOOLEAN, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+		; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp INTEGER, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, 
+		;   TrueCompletion BOOLEAN, FinalTimestamp INTEGER, Historical BOOLEAN);"]
 		if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Encounter"]}
 		{
 			This:SetCurrentRunDetails[${HaulerLargestBayCapacity},${CurrentAgentVolumeTotal}]
@@ -1493,7 +1493,7 @@ objectdef obj_Mission inherits obj_StateQueue
 						return TRUE
 					}
 				}
-				; (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
+				; (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration INTEGER, ClaimedByCharID INTEGER, SalvageTime INTEGER, Historical BOOLEAN);"]
 				; There is no gate here, let's check for both completion types (technical and true).
 				This:LogInfo["Checking for Completion"]
 				This:InsertState["CombatMission", 4000]
@@ -3418,8 +3418,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		CharacterSQLDB:ExecDML["update MissionJournal SET MissionStatus=${MissionStatus} WHERE AgentID=${AgentID};"]
 	}
 	; This method will be for inserting information into the MissionLogCombat table. This will also be an upsert.
-	; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, 
-	;   TrueCompletion BOOLEAN, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+	; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp INTEGER, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, KilledTarget BOOLEAN, Vanquisher BOOLEAN, ContainerLooted BOOLEAN, HaveItems BOOLEAN, TechnicalCompletion BOOLEAN, 
+	;   TrueCompletion BOOLEAN, FinalTimestamp INTEGER, Historical BOOLEAN);"]
 	method MissionLogCombatUpsert(int RunNumber, int64 StartingTimestamp, string MissionName, string MissionType, int RoomNumber, bool KilledTarget, bool Vanquisher, bool ContainerLooted, bool HaveItems, bool TechnicalCompletion, bool TrueCompletion, int64 FinalTimestamp, int Historical)
 	{
 		CharacterSQLDB:ExecDML["insert into MissionLogCombat (RunNumber,StartingTimestamp,MissionName,MissionType,RoomNumber,KilledTarget,Vanquisher,ContainerLooted,HaveItems,TechnicalCompletion,TrueCompletion,FinalTimestamp,Historical) values (${RunNumber},${StartingTimestamp},'${MissionName}','${MissionType}',${RoomNumber},${KilledTarget},${Vanquisher},${ContainerLooted},${HaveItems},${TechnicalCompletion},${TrueCompletion},${FinalTimestamp},${Historical}) ON CONFLICT (RunNumber) DO UPDATE SET StartingTimestamp=excluded.StartingTimestamp, MissionName=excluded.MissionName, MissionType=excluded.MissionType, RoomNumber=excluded.RoomNumber, KilledTarget=excluded.KilledTarget, Vanquisher=excluded.Vanquisher, ContainerLooted=excluded.ContainerLooted, HaveItems=excluded.HaveItems, TechnicalCompletion=excluded.TechnicalCompletion, TrueCompletion=excluded.TrueCompletion, FinalTimestamp=excluded.FinalTimestamp, Historical=excluded.Historical;"]
@@ -3430,8 +3430,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		CharacterSQLDB:ExecDML["update MissionLogCombat SET RoomNumber=${RoomNumber}, KilledTarget=${KilledTarget}, Vanquisher=${Vanquisher}, ContainerLooted=${ContainerLooted}, HaveItems=${HaveItems}, TechnicalCompletion=${TechnicalCompletion}, TrueCompletion=${TrueCompletion}, FinalTimestamp=${FinalTimestamp}, Historical=${Historical} WHERE RunNumber=${CurrentRunNumber};"]
 	}
 	; This method will be for inserting information into the MissionLogCourier table. This will also be an upsert.
-	; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp DATETIME, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER,
-	;  DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume INTEGER, UnitsMoved INTEGER, VolumeMoved INTEGER, FinalTimestamp DATETIME, Historical BOOLEAN);"]
+	; (RunNumber INTEGER PRIMARY KEY, StartingTimestamp INTEGER, MissionName TEXT, MissionType TEXT, TripNumber INTEGER, ExpectedTrips INTEGER,
+	;  DropoffLocation TEXT, PickupLocation TEXT, TotalUnits INTEGER, TotalVolume INTEGER, UnitsMoved INTEGER, VolumeMoved INTEGER, FinalTimestamp INTEGER, Historical BOOLEAN);"]
 	method MissionLogCourierUpsert(int RunNumber, int64 StartingTimestamp, string MissionName, string MissionType, int TripNumber, int ExpectedTrips, string DropoffLocation, string PickupLocation, int TotalUnits, int64 TotalVolume, int UnitsMoved, int64 VolumeMoved, int64 FinalTimestamp, int Historical)
 	{
 		CharacterSQLDB:ExecDML["insert into MissionLogCourier (RunNumber,StartingTimestamp,MissionName,MissionType,TripNumber,ExpectedTrips,DropoffLocation,PickupLocation,TotalUnits,TotalVolume,UnitsMoved,VolumeMoved,FinalTimestamp,Historical) values (${RunNumber},${StartingTimestamp},'${MissionName}','${MissionType}',${TripNumber},${ExpectedTrips},'${DropoffLocation}','${PickupLocation}',${TotalUnits},${TotalVolume},${UnitsMoved},${VolumeMoved},${FinalTimestamp},${Historical}) ON CONFLICT (RunNumber) DO UPDATE SET StartingTimestamp=excluded.StartingTimestamp, MissionName=excluded.MissionName, MissionType=excluded.MissionType, TripNumber=excluded.TripNumber, ExpectedTrips=excluded.ExpectedTrips, DropoffLocation=excluded.DropoffLocation, PickupLocation=excluded.PickupLocation, TotalUnits=excluded.TotalUnits, TotalVolume=excluded.TotalVolume, UnitsMoved=excluded.UnitsMoved, VolumeMoved=excluded.VolumeMoved, FinalTimestamp=excluded.FinalTimestamp, Historical=excluded.Historical;"]
@@ -3449,20 +3449,20 @@ objectdef obj_Mission inherits obj_StateQueue
 		;NPCDBDML:Insert
 	}
 	; This method will be for inserting information into the WatchDogMonitoring table. This will also be an upsert.
-	; (CharID INTEGER PRIMARY KEY, RunNumber INTEGER, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, TripNumber INTEGER, TimeStamp DATETIME, CurrentTarget INTEGER, CurrentDestination TEXT, UnitsMoved INTEGER);"]
+	; (CharID INTEGER PRIMARY KEY, RunNumber INTEGER, MissionName TEXT, MissionType TEXT, RoomNumber INTEGER, TripNumber INTEGER, TimeStamp INTEGER, CurrentTarget INTEGER, CurrentDestination TEXT, UnitsMoved INTEGER);"]
 	method WatchDogMonitoringUpsert(int64 CharID, int RunNumber, string MissionName, string MissionType, int RoomNumber, int TripNumber, int64 TimeStamp, int64 CurrentTarget, string CurrentDestination, int UnitsMoved)
 	{
 		SharedSQLDB:ExecDML["insert into WatchDogMonitoring (CharID,RunNumber,MissionName,MissionType,RoomNumber,TripNumber,Timestamp,CurrentTarget,CurrentDestination,UnitsMoved) values (${CharID},${RunNumber},'${MissionName}','${MissionType}',${RoomNumber},${TripNumber},${Timestamp},${CurrentTarget},'${CurrentDestination}',${UnitsMoved})  ON CONFLICT (CharID) DO UPDATE SET RunNumber=excluded.RunNumber, MissionName=excluded.MissionName, MissionType=excluded.MissionType, RoomNumber=excluded.RoomNumber, TripNumber=excluded.TripNumber, Timestamp=excluded.Timestamp, CurrentTarget=excluded.CurrentTarget, CurrentDestination=excluded.CurrentDestination, UnitsMoved=excluded.UnitsMoved;"]
 	}
 	; This method will be for inserting information into the MissioneerStats table. This will be a normal insert, no upserts here.
-	; (Timestamp DATETIME, CharName TEXT, CharID INTEGER, RunNumber INTEGER, RoomNumber INTEGER, TripNumber INTEGER, MissionName TEXT, MissionType TEXT, EventType TEXT, RoomBounties INTEGER, RoomFactionSpawn BOOLEAN,
-	;   RoomDuration DATETIME, RunLP INTEGER, RunISK INTEGER, RunDuration DATETIME, RunTotalBounties INTEGER, ShipType TEXT);"]
+	; (Timestamp INTEGER, CharName TEXT, CharID INTEGER, RunNumber INTEGER, RoomNumber INTEGER, TripNumber INTEGER, MissionName TEXT, MissionType TEXT, EventType TEXT, RoomBounties INTEGER, RoomFactionSpawn BOOLEAN,
+	;   RoomDuration INTEGER, RunLP INTEGER, RunISK INTEGER, RunDuration INTEGER, RunTotalBounties INTEGER, ShipType TEXT);"]
 	method MissioneerStatsInsert(int64 Timestamp, string CharName, int64 CharID, int RunNumber, int RoomNumber, int TripNumber, string MissionName, string MissionType, string EventType, int64 RoomBounties, bool RoomFactionSpawn, int64 RoomDuration, int64 RunISK, int RunLP, int64 RunDuration, int64 RunTotalBounties, string ShipType)
 	{
 		SharedSQLDB:ExecDML["insert into MissioneerStats (Timestamp,CharName,CharID,RunNumber,RoomNumber,TripNumber,MissionName,MissionType,EventType,RoomBounties,RoomFactionSpawn,RoomDuration,RunISK,RunLP,RunDuration,RunTotalBounties,ShipType) values (${Timestamp},'${CharName}',${CharID},${RunNumber},${RoomNumber},${TripNumber},'${MissionName}','${MissionType}','${EventType}',${RoomBounties},${RoomFactionSpawn},${RoomDuration},${RunISK},${RunLP},${RunDuration},${RunTotalBounties},'${ShipType}');"]
 	}
 	; This method will be for inserting information into the SalvageBMTable table. I don't anticipate this ever needing to be an Upsert.
-	; (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration DATETIME, ClaimedByCharID INTEGER, SalvageTime DATETIME, Historical BOOLEAN);"]
+	; (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration INTEGER, ClaimedByCharID INTEGER, SalvageTime INTEGER, Historical BOOLEAN);"]
 	; ADDENDUM - This will now be an upsert as we are going to just dump all our valid BMs at the end of the mission instead of on the fly.
 	method SalvageBMTableInsert(int64 BMID, string BMName, int WreckCount, string BMSystem, int64 ExpectedExpiration, int64 ClaimedByCharID, int64 SalvageTime, int Historical)
 	{
