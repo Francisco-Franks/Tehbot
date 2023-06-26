@@ -123,6 +123,11 @@ objectdef obj_Salvager inherits obj_StateQueue
 			ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","{Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
 			echo "${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"
 		}
+		if ${ExtremelySharedSQLDB.ID(exists)} && !${ExtremelySharedSQLDB.TableExists["SalvageBMTable"]}
+		{
+			echo DEBUG - Creating Extremely Shared Salvage Bookmark Table
+			ExtremelySharedSQLDB:ExecDML["create table SalvageBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration INTEGER, ClaimedByCharID INTEGER, SalvageTime INTEGER, Historical BOOLEAN);"]
+		}	
 		if !${MySalvageBMs.ID(exists)}
 		{
 			; This DB will reside in memory. It is temporary.
@@ -173,6 +178,10 @@ objectdef obj_Salvager inherits obj_StateQueue
 		if ${Me.InStation} && ${LastBMCheck} < ${LavishScript.RunningTime}
 		{
 			This:InsertState["SalvagerCheckBookmarks",1000]
+			if ${Config.NetworkedSalvager}
+			{
+				This:InsertState["SalvagerScrapeNetworkDAT",1000]
+			}
 			return TRUE
 		}
 		; We did not find BMs, let us idle for a little while
@@ -339,6 +348,10 @@ objectdef obj_Salvager inherits obj_StateQueue
 		}
 		if ${SalvageBMQueue.Peek.NotNULLOrEmpty}
 		{
+			if ${Config.NetworkedSalvager}
+			{
+				This:InsertState["SalvagerScrapeNetworkDAT",1000]
+			}
 			Move:Bookmark[${SalvageBMQueue.Peek},TRUE]
 		}
 		else
