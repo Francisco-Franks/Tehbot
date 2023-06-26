@@ -4348,10 +4348,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		; This will be used to Set WAL. WAL is persistent but I don't know how to read our current journal state sooo.
 		CharacterSQLDB:ExecDML["PRAGMA journal_mode=WAL;"]
 		SharedSQLDB:ExecDML["PRAGMA journal_mode=WAL;"]
-		if ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty}
-        {
-            ExtremelySharedSQLDB:ExecDML["PRAGMA journal_mode=WAL;"]
-        }
 		WalAssurance:Set[TRUE]
 	}
 	; Stealing this function from evebot and making it into a method instead.
