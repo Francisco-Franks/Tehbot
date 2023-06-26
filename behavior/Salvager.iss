@@ -64,6 +64,10 @@ objectdef obj_Salvager inherits obj_StateQueue
 	variable queue:string SalvageBMPrepQueue
 	; Queue where we will hold the Labels of the BMs we are going to salvage at.
 	variable queue:string SalvageBMQueue
+	; Queue where we will hold the IDs of BMs we are going to mark as historical as part of cleanup.
+	variable queue:int64 SalvageBMCleanupQueue
+	; Queue where we will hold the Labels of BMs we are going to delete as part of cleanup.
+	variable queue:int64 SalvageBMDeletionQueue
 	
 	method Initialize()
 	{
@@ -84,6 +88,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 	{
 		This:DeactivateStateQueueDisplay
 		This:Clear
+		ExtremelySharedSQLDB:Close
 	}
 
 	; This will be our central loop, where we jump off to other states.
@@ -139,21 +144,70 @@ objectdef obj_Salvager inherits obj_StateQueue
 	; Here is where we will check either our Local SharedDB or our Network SharedDB.
 	member:bool SalvagerCheckBookmarks()
 	{
+		; Need to do some BM cleanup.
 		if ${ExtremelySharedSQLDB.ID(exists)}
 		{
-			GetSalvageBM:Set[${SharedSQLDB.ExecQuery["SELECT * FROM SalvageBMTable WHERE Historical=0 AND BMName LIKE '%${Config.Prefix}%' AND (CharID=0 OR CharID=${Me.CharID});"]}]
+			GetSalvageBM:Set[${SharedSQLDB.ExecQuery["SELECT * FROM SalvageBMTable WHERE Historical=0 AND BMName LIKE '%${Config.Prefix}%';"]}]
 		}
 		else
 		{
-			GetSalvageBM:Set[${ExtremelySharedSQLDB.ExecQuery["SELECT * FROM SalvageBMTable WHERE Historical=0 AND BMName LIKE '%${Config.Prefix}%' AND (CharID=0 OR CharID=${Me.CharID});"]}]
+			GetSalvageBM:Set[${ExtremelySharedSQLDB.ExecQuery["SELECT * FROM SalvageBMTable WHERE Historical=0 AND BMName LIKE '%${Config.Prefix}%';"]}]
+		}
+		if ${GetSalvageBM.NumRows} > 0
+		{
+			This:LogInfo["${GetSalvageBM.NumRows} BMs Found, Cleaning up Old BMs."]
+			do
+			{
+				if (${GetSalvageBM.GetFieldValue["ExpectedExpiration",int64]} < ${EVETime.AsInt64}) && ${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}](exists)}
+				{
+					; DB entries that are expired but also have a corresponding BM
+					SalvageBMDeletionQueue:Queue[${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}]}]
+				}
+				if (${GetSalvageBM.GetFieldValue["ExpectedExpiration",int64]} < ${EVETime.AsInt64}) && !${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}](exists)}
+				{
+					; DB entries that are expired but do not have a corresponding BM
+					SalvageBMCleanupQueue:Queue[${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}].ID}]
+				}
+				GetSalvageBM:NextRow
+			}
+			while !${GetSalvageBM.LastRow}
+			GetSalvageBM:Finalize
+		}
+		; Process those queues, hopefully this won't go too fast. Actually lets just process that deletion queue and use other methods to make sure later stuff behaves.
+		if ${SalvageBMDeletionQueue.Used} > 0
+		{
+			do
+			{
+				if ${EVE.Bookmark[${SalvageBMDeletionQueue.Peek}](exists)}
+				EVE.Bookmark[${SalvageBMDeletionQueue.Peek}]:Remove
+				This:LogInfo["Deleting BM ${SalvageBMDeletionQueue.Peek}"]
+				if !${EVE.Bookmark[${SalvageBMDeletionQueue.Peek}](exists)}
+				{
+					SalvageBMDeletionQueue:Dequeue
+				}
+			}
+			while ${SalvageBMDeletionQueue.Used} > 0
+		}
+		; On to actually getting our BMs for real use.
+		if ${ExtremelySharedSQLDB.ID(exists)}
+		{
+			GetSalvageBM:Set[${SharedSQLDB.ExecQuery["SELECT * FROM SalvageBMTable WHERE Historical=0 AND BMName LIKE '%${Config.Prefix}%' AND (CharID=0 OR CharID=${Me.CharID}) AND ExpectedExpiration<${EVETime.AsInt64};"]}]
+		}
+		else
+		{
+			GetSalvageBM:Set[${ExtremelySharedSQLDB.ExecQuery["SELECT * FROM SalvageBMTable WHERE Historical=0 AND BMName LIKE '%${Config.Prefix}%' AND (CharID=0 OR CharID=${Me.CharID}) AND ExpectedExpiration<${EVETime.AsInt64};"]}]
 		}
 		if ${GetSalvageBM.NumRows} > 0
 		{
 			This:LogInfo["${GetSalvageBM.NumRows} BMs Found"]
 			do
 			{
-				;TempBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, BMSystem TEXT, BMJumpsTo INTEGER, ExpectedExpiration DATETIME)
-				SharedSQLDB:ExecDML["insert into TempBMTable (BMID,BMName,BMSystem,BMJumpsTo,ExpectedExpiration) values (${GetSalvageBM.GetFieldValue["BMID",int64]},'${GetSalvageBM.GetFieldValue["BMName",string].ReplaceSubstring[','']}','${GetSalvageBM.GetFieldValue["BMSystem",string].ReplaceSubstring[','']}',${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}].JumpsTo},${GetSalvageBM.GetFieldValue["ExpectedExpiration",int64]}) ON CONFLICT (BMID) DO UPDATE SET BMName=excluded.BMName;"]
+				; Let us make sure we only grab BMs that actually exist.
+				if ${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}](exists)}
+				{
+					;TempBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, BMSystem TEXT, BMJumpsTo INTEGER, ExpectedExpiration DATETIME)
+					SharedSQLDB:ExecDML["insert into TempBMTable (BMID,BMName,BMSystem,BMJumpsTo,ExpectedExpiration) values (${GetSalvageBM.GetFieldValue["BMID",int64]},'${GetSalvageBM.GetFieldValue["BMName",string].ReplaceSubstring[','']}','${GetSalvageBM.GetFieldValue["BMSystem",string].ReplaceSubstring[','']}',${EVE.Bookmark[${GetSalvageBM.GetFieldValue["BMName",string]}].JumpsTo},${GetSalvageBM.GetFieldValue["ExpectedExpiration",int64]}) ON CONFLICT (BMID) DO UPDATE SET BMName=excluded.BMName;"]
+				}
 				GetSalvageBM:NextRow
 			}
 			while !${GetSalvageBM.LastRow}
