@@ -165,11 +165,9 @@ objectdef obj_TargetList inherits obj_StateQueue
 		QueryString:Concat["TypeID = 48253 ||"]
 		QueryString:Concat["GroupID = 1307 ||"]
 		QueryString:Concat["GroupID = 4035 ||"]
-		if !${CommonConfig.Tehbot_Mode.Equal["Abyssal"]}
-		{
-			QueryString:Concat["GroupID = 1310 ||"]
-			QueryString:Concat["GroupID = 1956 ||"]		
-		}
+		QueryString:Concat["GroupID = 1310 ||"]
+		QueryString:Concat["GroupID = 1956 ||"]	
+		QueryString:Concat["GroupID = 4036 ||"]			
 		QueryString:Concat["GroupID = GROUP_ANCIENTSHIPSTRUCTURE ||"]
 		QueryString:Concat["GroupID = GROUP_PRESSURESOLO)"]
 
