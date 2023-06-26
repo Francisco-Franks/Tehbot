@@ -284,6 +284,10 @@ objectdef obj_Mission inherits obj_StateQueue
 	; Annoying as hell, I hate gate moves
 	variable bool HaveGated
 	
+	; Need this to transfer BM information to a non-local client
+	variable file OffsiteDBTransferFile
+	variable index:string OffsiteDBTransferIndex
+	
 	method Initialize()
 	{
 		This[parent]:Initialize
@@ -382,21 +386,23 @@ objectdef obj_Mission inherits obj_StateQueue
 			PrimaryAgentIndex:Set[${EVE.Agent[${AgentList.Get[1]}].Index}]
 		}		
 		; SQL DB related stuff.
-		if !${CharacterSQLDB.ID(exists)} || !${SharedSQLDB.ID(exists)} || ( !${ExtremelySharedSQLDB.ID(exists)} && ( ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
+		if !${CharacterSQLDB.ID(exists)} || !${SharedSQLDB.ID(exists)} 
+		;|| ( !${ExtremelySharedSQLDB.ID(exists)} && ( ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
 		{
 			; Setting our character specific and shared DBs.
 			CharacterSQLDB:Set[${SQLite.OpenDB["${Me.Name}DB","${Me.Name}DB.sqlite3"]}]
 			SharedSQLDB:Set[${SQLite.OpenDB["MissionSharedDB","MissionSharedDB.sqlite3"]}]
-			if ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty}
-            {
-                ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
-            }
+			;if ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty}
+            ;{
+            ;   ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
+            ;}
 			if !${WalAssurance}
 			{
 				This:EnsureWAL
 			}
 		}
-		if ${CharacterSQLDB.ID(exists)} && ${SharedSQLDB.ID(exists)} && ( ${ExtremelySharedSQLDB.ID(exists)} || ( !${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && !${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
+		if ${CharacterSQLDB.ID(exists)} && ${SharedSQLDB.ID(exists)} 
+		;&& ( ${ExtremelySharedSQLDB.ID(exists)} || ( !${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && !${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} ))
 		{
 			; Let us initialize our tables if they don't already exist.
 			; Hopefully, I can remember all the brilliant ideas I had yesterday.
@@ -504,11 +510,11 @@ objectdef obj_Mission inherits obj_StateQueue
 			; Well, that was time consuming and exhausting.
 			; But wait, there's more, mostly for me the author though. I have off-machine salvagers operating and I would like them to be able to utilize this wonderful
 			; technology so we need a NETWORK SHARED SQLDB. It will contain one table that looks identical to the one above.
-			if !${ExtremelySharedSQLDB.TableExists["SalvageBMTable"]} && (${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty})
-			{
-				echo DEBUG - Creating Extremely Shared Salvage Bookmark Table
-				ExtremelySharedSQLDB:ExecDML["create table SalvageBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration INTEGER, ClaimedByCharID INTEGER, SalvageTime INTEGER, Historical BOOLEAN);"]
-			}			
+			;if !${ExtremelySharedSQLDB.TableExists["SalvageBMTable"]} && (${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty})
+			;{
+			;	echo DEBUG - Creating Extremely Shared Salvage Bookmark Table
+			;	ExtremelySharedSQLDB:ExecDML["create table SalvageBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration INTEGER, ClaimedByCharID INTEGER, SalvageTime INTEGER, Historical BOOLEAN);"]
+			;}			
 		}
 		else
 		{
@@ -3110,12 +3116,24 @@ objectdef obj_Mission inherits obj_StateQueue
 					This:SalvageBMTableInsert[${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]},0,0,0}]
 					if ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty}
 					{
-						This:NetworkSalvageBMTableInsert[${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]},0,0,0}]
+						if !${OffsiteDBTransferFile.Path.NotNULLOrEmpty}
+						{
+							OffsiteDBTransferFile:SetPath["${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB.dat"]
+						}
+						OffsiteDBTransferIndex:Insert["insert into SalvageBMTable (BMID,BMName,WreckCount,BMSystem,ExpectedExpiration,ClaimedByCharID,SalvageTime,Historical) values (${BookmarkIterator.Value.ID},'${BookmarkIterator.Value.Label.ReplaceSubstring[','']}',69,'${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']}',${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]},0,0,0) ON CONFLICT (BMID) DO UPDATE SET BMName=excluded.BMName;"]
+						;This:NetworkSalvageBMTableInsert[${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]},0,0,0}]
 					}
 					echo ${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]}
 				}
 			}
 			while ${BookmarkIterator:Next(exists)}
+			; Networked SQLite is PRETTY bad. So we will instead write a canned statement to a .dat in a network location, and insert
+			; it into a Local DB on the salvager's machine. Ez pz.
+			OffsiteDBTransferFile:Open
+			OffsiteDBTransferFile:Write[${OffsiteDBTransferIndex.Expand.AsJSON}]			
+			OffsiteDBTransferFile:Flush
+			OffsiteDBTransferFile:Close
+			OffsiteDBTransferIndex:Clear
 		}
 	}
 	; This method will be for resolving our damage type. So we know what ammo and drones to load for a combat mission.
