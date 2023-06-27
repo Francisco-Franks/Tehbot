@@ -3136,6 +3136,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			OffsiteDBTransferFile:Write["function main()\n{\n"]
 			if ${OffsiteDBTransferIndex.Size} > 0
 			OffsiteDBTransferIndex:GetIterator[OffsiteDBTransferIterator]
+			if ${OffsiteDBTransferIterator:First(exists)}
 			{
 				do 
 				{

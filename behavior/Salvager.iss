@@ -32,7 +32,12 @@ objectdef obj_Configuration_Salvager inherits obj_Configuration_Base
 	; This will be the network path for the Extremely Shared DB. I will use this for my off-machine salvagers to work. Most people will never ever use this.
 	Setting(string, ExtremelySharedDBPath, SetExtremelySharedDBPath)
 	; This will be a prefix slapped onto the DB filename in the above path.
-	Setting(string, ExtremelySharedDBPrefix, SetExtremelySharedDBPrefix)	
+	Setting(string, ExtremelySharedDBPrefix, SetExtremelySharedDBPrefix)
+	; This will be a suffix for the insanity I created to make this work. 1 through 4. You shouldn't serve more than 4 missioneers with 1 salvager tbh.
+	Setting(string, ExtremelySharedDBSuffix1, SetExtremelySharedDBSuffix1)	
+	Setting(string, ExtremelySharedDBSuffix2, SetExtremelySharedDBSuffix2)	
+	Setting(string, ExtremelySharedDBSuffix3, SetExtremelySharedDBSuffix3)	
+	Setting(string, ExtremelySharedDBSuffix4, SetExtremelySharedDBSuffix4)	
 	
 	; This will indicate that this salvager is going to be salvaging for a non-local Missioneer. That is to say, it will be on another computer entirely.
 	Setting(bool, NetworkedSalvager, SetNetworkedSalvager)

@@ -320,7 +320,7 @@
 							
 							<Checkbox name='NetworkedSalvager'>
 								<X>10%</X>
-								<Y>40%</Y>
+								<Y>30%</Y>
 								<Width>30%</Width>
 								<Height>10%</Height>
 								<Text>Network Salvager Mode</Text>
@@ -343,7 +343,7 @@
 							
 							<Text name='ExtremelySharedDBPathTitle'>
 								<X>1%</X>
-								<Y>50%</Y>
+								<Y>40%</Y>
 								<Width>30%</Width>
 								<Height>10%</Height>
 								<Alignment>Center</Alignment>
@@ -355,7 +355,7 @@
 								<Border>1</Border>
 								<BorderColor>FFFFFFFF</BorderColor>
 								<X>25%</X>
-								<Y>50%</Y>
+								<Y>40%</Y>
 								<Width>30%</Width>
 								<Height>10%</Height>
 								<OnLoad>
@@ -374,7 +374,7 @@
 
 							<Text name='ExtremelySharedDBPrefixTitle'>
 								<X>1%</X>
-								<Y>60%</Y>
+								<Y>50%</Y>
 								<Width>30%</Width>
 								<Height>10%</Height>
 								<Alignment>Center</Alignment>
@@ -386,7 +386,7 @@
 								<Border>1</Border>
 								<BorderColor>FFFFFFFF</BorderColor>
 								<X>25%</X>
-								<Y>60%</Y>
+								<Y>50%</Y>
 								<Width>30%</Width>
 								<Height>10%</Height>
 								<OnLoad>
@@ -397,6 +397,130 @@
 								</OnChange>
 								<OnMouseEnter>
 									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText["This will be the prefix to the name of your Networked DB File."]
+								</OnMouseEnter>
+								<OnMouseExit>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText[""]
+								</OnMouseExit>
+							</Textentry>
+							
+							<Text name='ExtremelySharedDBSuffix1Title'>
+								<X>1%</X>
+								<Y>60%</Y>
+								<Width>30%</Width>
+								<Height>10%</Height>
+								<Alignment>Center</Alignment>
+								<Text>Network DB Suffix1</Text>
+							</Text>
+							<Textentry Name="ExtremelySharedDBSuffix1">
+								<Font template='Information.Font' />
+								<BackgroundColor>FF000000</BackgroundColor>
+								<Border>1</Border>
+								<BorderColor>FFFFFFFF</BorderColor>
+								<X>25%</X>
+								<Y>60%</Y>
+								<Width>30%</Width>
+								<Height>10%</Height>
+								<OnLoad>
+									This:SetText[${Script[Tehbot].VariableScope.Salvager.Config.ExtremelySharedDBSuffix1}]
+								</OnLoad>
+								<OnChange>
+									Script[Tehbot].VariableScope.Salvager.Config:SetExtremelySharedDBSuffix1[${This.Text}]
+								</OnChange>
+								<OnMouseEnter>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText["This will be the suffix to the name of your Networked DB File."]
+								</OnMouseEnter>
+								<OnMouseExit>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText[""]
+								</OnMouseExit>
+							</Textentry>
+
+							<Text name='ExtremelySharedDBSuffix2Title'>
+								<X>1%</X>
+								<Y>70%</Y>
+								<Width>30%</Width>
+								<Height>10%</Height>
+								<Alignment>Center</Alignment>
+								<Text>Network DB Suffix2</Text>
+							</Text>
+							<Textentry Name="ExtremelySharedDBSuffix2">
+								<Font template='Information.Font' />
+								<BackgroundColor>FF000000</BackgroundColor>
+								<Border>1</Border>
+								<BorderColor>FFFFFFFF</BorderColor>
+								<X>25%</X>
+								<Y>70%</Y>
+								<Width>30%</Width>
+								<Height>10%</Height>
+								<OnLoad>
+									This:SetText[${Script[Tehbot].VariableScope.Salvager.Config.ExtremelySharedDBSuffix2}]
+								</OnLoad>
+								<OnChange>
+									Script[Tehbot].VariableScope.Salvager.Config:SetExtremelySharedDBSuffix2[${This.Text}]
+								</OnChange>
+								<OnMouseEnter>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText["This will be the suffix to the name of your Networked DB File."]
+								</OnMouseEnter>
+								<OnMouseExit>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText[""]
+								</OnMouseExit>
+							</Textentry>
+
+							<Text name='ExtremelySharedDBSuffix3Title'>
+								<X>1%</X>
+								<Y>80%</Y>
+								<Width>30%</Width>
+								<Height>10%</Height>
+								<Alignment>Center</Alignment>
+								<Text>Network DB Suffix3</Text>
+							</Text>
+							<Textentry Name="ExtremelySharedDBSuffix3">
+								<Font template='Information.Font' />
+								<BackgroundColor>FF000000</BackgroundColor>
+								<Border>1</Border>
+								<BorderColor>FFFFFFFF</BorderColor>
+								<X>25%</X>
+								<Y>80%</Y>
+								<Width>30%</Width>
+								<Height>10%</Height>
+								<OnLoad>
+									This:SetText[${Script[Tehbot].VariableScope.Salvager.Config.ExtremelySharedDBSuffix3}]
+								</OnLoad>
+								<OnChange>
+									Script[Tehbot].VariableScope.Salvager.Config:SetExtremelySharedDBSuffix3[${This.Text}]
+								</OnChange>
+								<OnMouseEnter>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText["This will be the suffix to the name of your Networked DB File."]
+								</OnMouseEnter>
+								<OnMouseExit>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText[""]
+								</OnMouseExit>
+							</Textentry>
+
+							<Text name='ExtremelySharedDBSuffix4Title'>
+								<X>1%</X>
+								<Y>90%</Y>
+								<Width>30%</Width>
+								<Height>10%</Height>
+								<Alignment>Center</Alignment>
+								<Text>Network DB Suffix4</Text>
+							</Text>
+							<Textentry Name="ExtremelySharedDBSuffix4">
+								<Font template='Information.Font' />
+								<BackgroundColor>FF000000</BackgroundColor>
+								<Border>1</Border>
+								<BorderColor>FFFFFFFF</BorderColor>
+								<X>25%</X>
+								<Y>90%</Y>
+								<Width>30%</Width>
+								<Height>10%</Height>
+								<OnLoad>
+									This:SetText[${Script[Tehbot].VariableScope.Salvager.Config.ExtremelySharedDBSuffix4}]
+								</OnLoad>
+								<OnChange>
+									Script[Tehbot].VariableScope.Salvager.Config:SetExtremelySharedDBSuffix4[${This.Text}]
+								</OnChange>
+								<OnMouseEnter>
+									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText["This will be the suffix to the name of your Networked DB File."]
 								</OnMouseEnter>
 								<OnMouseExit>
 									UIElement[Information@InformationFrame@Tehbot_DedicatedSalvager_Frame@Tehbot_DedicatedSalvager]:SetText[""]
