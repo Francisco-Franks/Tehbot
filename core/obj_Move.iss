@@ -283,11 +283,6 @@ objectdef obj_Move inherits obj_StateQueue
 
 	method Gate(int64 ID, bool CalledFromMove=FALSE)
 	{
-		if ${This.Traveling}
-		{
-			return
-		}
-
 		Logger:Log["Move", "Movement queued", "o"]
 		Logger:Log["Move", " ${Entity[${ID}].Name}", "-g"]
 		This.Traveling:Set[TRUE]
@@ -298,7 +293,7 @@ objectdef obj_Move inherits obj_StateQueue
 	{
 		;GateMoveModuleCounter:Inc[1]
 		; If the gate doesn't exist, or it is locked, bail out.
-		if !${Entity[${ID}](exists)} || ${EVEWindow[byName, modal].Text.Find[This gate is locked!]}
+		if !${Entity[${ID}](exists)} || ${EVEWindow[byName, modal].Text.Find[This gate is locked!]} || ${EVEWindow[byName, modal].Text.Find[permit]} || ${EVEWindow[byName, modal].Text.Find[key]}
 		{
 			if !${CalledFromMove}
 			{
