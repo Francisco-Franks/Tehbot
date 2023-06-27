@@ -3133,6 +3133,8 @@ objectdef obj_Mission inherits obj_StateQueue
 			; Networked SQLite is PRETTY bad. So we will instead write a canned statement to a .dat in a network location, and insert
 			; it into a Local DB on the salvager's machine. Ez pz.
 			OffsiteDBTransferFile:Open
+			OffsiteDBTransferFile:Seek[0]
+			OffsiteDBTransferFile:Truncate
 			OffsiteDBTransferFile:Write["function main()\n{\n"]
 			if ${OffsiteDBTransferIndex.Size} > 0
 			OffsiteDBTransferIndex:GetIterator[OffsiteDBTransferIterator]
