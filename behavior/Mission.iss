@@ -286,7 +286,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	
 	; Need this to transfer BM information to a non-local client
 	variable file OffsiteDBTransferFile
-	variable index:string OffsiteDBTransferIndex
+
 	
 	method Initialize()
 	{
@@ -3103,6 +3103,9 @@ objectdef obj_Mission inherits obj_StateQueue
 		variable index:bookmark BookmarkIndex
 		variable iterator BookmarkIterator
 		
+		variable index:string OffsiteDBTransferIndex		
+		variable iterator OffsiteDBTransferIterator
+		
 		EVE:GetBookmarks[BookmarkIndex]
 		;BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[Label =- "${Config.SalvagePrefix}"]}, TRUE]
 		echo ${BookmarkIndex.Used} TOTAL BMS FOUND
@@ -3118,9 +3121,9 @@ objectdef obj_Mission inherits obj_StateQueue
 					{
 						if !${OffsiteDBTransferFile.Path.NotNULLOrEmpty}
 						{
-							OffsiteDBTransferFile:SetFilename["${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB.dat"]
+							OffsiteDBTransferFile:SetFilename["${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB.iss"]
 						}
-						OffsiteDBTransferIndex:Insert[${BookmarkIterator.Value.ID},'${BookmarkIterator.Value.Label.ReplaceSubstring[','']}','${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']}',${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]}\r]
+						OffsiteDBTransferIndex:Insert["insert into SalvageBMTable (BMID,BMName,WreckCount,BMSystem,ExpectedExpiration,ClaimedByCharID,SalvageTime,Historical) values (${BMID},'${BMName}',${WreckCount},'${BMSystem}',${ExpectedExpiration},${ClaimedByCharID},${SalvageTime},${Historical}) ON CONFLICT (BMID) DO UPDATE SET BMName=excluded.BMName;"]
 						;This:NetworkSalvageBMTableInsert[${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]},0,0,0}]
 					}
 					echo ${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]}
@@ -3130,7 +3133,22 @@ objectdef obj_Mission inherits obj_StateQueue
 			; Networked SQLite is PRETTY bad. So we will instead write a canned statement to a .dat in a network location, and insert
 			; it into a Local DB on the salvager's machine. Ez pz.
 			OffsiteDBTransferFile:Open
-			OffsiteDBTransferFile:Write[${OffsiteDBTransferIndex.Expand.AsJSON}]			
+			OffsiteDBTransferFile:Write["function main()\n{\n"]
+			if ${OffsiteDBTransferIndex.Size} > 0
+			OffsiteDBTransferIndex:GetIterator[OffsiteDBTransferIterator]
+			{
+				do 
+				{
+					OffsiteDBTransferFile:Write["GlobalStringIndex:Insert["]
+					OffsiteDBTransferFile:Write[${OffsiteDBTransferIterator.Value.AsJSON}]
+					OffsiteDBTransferFile:Write["]"]
+					OffsiteDBTransferFile:Write["\n"]
+				}
+				while ${OffsiteDBTransferIterator:Next(exists)}
+			}
+			OffsiteDBTransferFile:Write["Script[Tehbot].VariableScope.Salvager.ExtremelySharedSQLDB:ExecDMLTransaction[GlobalStringIndex]"]
+			OffsiteDBTransferFile:Write["\n"]
+			OffsiteDBTransferFile:Write["\}"]			
 			OffsiteDBTransferFile:Flush
 			OffsiteDBTransferFile:Close
 			OffsiteDBTransferIndex:Clear

@@ -173,6 +173,8 @@ function main(string Character="")
 	declarevariable finalizedDC bool global
 	;Global variable for localcheck minimode
 	declarevariable FriendlyLocal bool global
+	;Global variable for my insane Off-Machine Salvager Solution
+	declarevariable GlobalStringIndex index:string global
 
 
 	Logger:Log["Tehbot", "Module initialization complete", "y"]
