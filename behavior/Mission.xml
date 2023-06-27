@@ -1506,7 +1506,7 @@
 							Script[Tehbot].VariableScope.Mission.Config:SetExtremelySharedDBPath[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
-							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This will be the Network Path to where your Networked DB will live. \\\\NetworkShare\\FolderName\\ is how it should look."]
+							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This will be the Network Path to where your Networked DB will live. //NetworkShare//FolderName// is how it should look."]
 						</OnMouseEnter>
 						<OnMouseExit>
 							UIElement[Information@InformationFrame@Storage/Misc@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]

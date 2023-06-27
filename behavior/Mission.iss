@@ -3120,7 +3120,7 @@ objectdef obj_Mission inherits obj_StateQueue
 						{
 							OffsiteDBTransferFile:SetFilename["${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB.dat"]
 						}
-						OffsiteDBTransferIndex:Insert["insert into SalvageBMTable (BMID,BMName,WreckCount,BMSystem,ExpectedExpiration,ClaimedByCharID,SalvageTime,Historical) values (${BookmarkIterator.Value.ID},'${BookmarkIterator.Value.Label.ReplaceSubstring[','']}',69,'${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']}',${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]},0,0,0) ON CONFLICT (BMID) DO UPDATE SET BMName=excluded.BMName;"]
+						OffsiteDBTransferIndex:Insert[${BookmarkIterator.Value.ID},'${BookmarkIterator.Value.Label.ReplaceSubstring[','']}','${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']}',${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]}\r]
 						;This:NetworkSalvageBMTableInsert[${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]},0,0,0}]
 					}
 					echo ${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]}
