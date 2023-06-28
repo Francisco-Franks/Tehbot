@@ -81,6 +81,8 @@ objectdef obj_Salvager inherits obj_StateQueue
 	variable file 			OffsiteDBTransferFile
 	variable index:string 	OffsiteDBTransferIndex
 	variable string 		OffsiteDBTransferString
+	; Variable for my insane Off-Machine Salvager Solution
+	variable index:string 	GlobalStringIndex
 	
 	method Initialize()
 	{
@@ -458,7 +460,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 		{
 			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}${Config.ExtremelySharedDBSuffix3}SharedDB.iss
 			This:LogInfo["Script # 3 Run"]
-			}
+		}
 		if ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} && ${Config.ExtremelySharedDBSuffix4.NotNULLOrEmpty}
 		{
 			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}${Config.ExtremelySharedDBSuffix4}SharedDB.iss
