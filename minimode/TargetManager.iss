@@ -336,10 +336,10 @@ objectdef obj_TargetManager inherits obj_StateQueue
 		if ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
 		{
 			; We really don't want to be shooting that control tower before we kill everything else in this mission tbh
-			if !${Mission.CurrentAgentMissionName.Find["Smash"]}
+			if !${Mission.CurrentAgentMissionName.Find["Smash"]} && !${Mission.CurrentAgentMissionName.Find["Damsel"]} && !${Mission.CurrentAgentMissionName.Find["Midst"]}
 				ActiveNPCs:AddQueryString["Name == \"${Mission.CurrentAgentDestroy}\""]
 			; If everything else is dead then go right ahead.
-			if ${Mission.CurrentAgentMissionName.Find["Smash"]} && ${ActiveNPCs.TargetList.Used} == 0
+			if ( ${Mission.CurrentAgentMissionName.Find["Smash"]} || ${Mission.CurrentAgentMissionName.Find["Damsel"]} || ${Mission.CurrentAgentMissionName.Find["Midst"]})  && ${ActiveNPCs.TargetList.Used} == 0
 				ActiveNPCs:AddQueryString["Name == \"${Mission.CurrentAgentDestroy}\""]
 		}
 		if ${Mission.Config.IgnoreNPCSentries} || ${Mission.CurrentAgentLoot.Equal["Cargo Container"]}
