@@ -3143,9 +3143,9 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				do 
 				{
-					OffsiteDBTransferFile:Write["GlobalStringIndex:Insert["]
-					OffsiteDBTransferFile:Write["${OffsiteDBTransferIterator.Value.AsJSON}"]
-					OffsiteDBTransferFile:Write["]"]
+					OffsiteDBTransferFile:Write["GlobalStringIndex:Insert[\""]
+					OffsiteDBTransferFile:Write[${OffsiteDBTransferIterator.Value.AsJSON}]
+					OffsiteDBTransferFile:Write["\"]"]
 					OffsiteDBTransferFile:Write["\n"]
 				}
 				while ${OffsiteDBTransferIterator:Next(exists)}
