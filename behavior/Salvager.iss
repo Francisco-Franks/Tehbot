@@ -145,12 +145,6 @@ objectdef obj_Salvager inherits obj_StateQueue
 			MySalvageBMs:ExecDML["create table TempBMTable (BMID INTEGER PRIMARY KEY, BMName TEXT, BMSystem TEXT, BMJumpsTo INTEGER, ExpectedExpiration INTEGER);"]
 			;MySalvageBMs:ExecDML["PRAGMA journal_mode=WAL;"]
 		}
-		; The networked DB turned out to be a disaster so we are going to have our missioneers write strings to 
-		; a dat file, which we will import every 30-60 seconds by some means I haven't decided on yet.
-		if !${OffsiteDBTransferFile.Path.NotNULLOrEmpty}
-		{
-			OffsiteDBTransferFile:SetFilename["${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB.dat"]
-		}
 		; We started in space, return to station and restart this state.
 		if ${Client.InSpace}
 		{
@@ -446,48 +440,32 @@ objectdef obj_Salvager inherits obj_StateQueue
 	}
 	
 	; This is where we will do that DAT file scrape crap that is replacing Networked SQL DB things that don't work.
+	; We will now just run the scripts from the network location which will automagically place things in our local DB. Snazzy eh?
+	; Please let this work...
 	method SalvagerScrapeNetworkDAT()
 	{
-		variable int ConcatLoop
-		variable int LoopsNeeded
-		
-		OffsiteDBTransferString:Set[""]
-		OffsiteDBTransferFile:Open
-		OffsiteDBTransferFile:Seek[0]
-		echo DEBUG OFFSITE DB TRANSFER FILE SIZE ${OffsiteDBTransferFile.Size}
-		if ${OffsiteDBTransferFile.Size} < 1
+		if ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} && ${Config.ExtremelySharedDBSuffix1.NotNULLOrEmpty}
 		{
-			This:LogInfo["DAT is empty, returning."]
-			return TRUE
+			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB${Config.ExtremelySharedDBSuffix1}.iss
+			This:LogInfo["Script # 1 Run"]
 		}
-		else
+		if ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} && ${Config.ExtremelySharedDBSuffix2.NotNULLOrEmpty}
 		{
-			LoopsNeeded:Set[${Math.Calc[${OffsiteDBTransferFile.Size} / 1024].Ceil}]
-			This:LogInfo["DAT contains information, scraping."]
-			do
-			{
-				OffsiteDBTransferString:Concat["${OffsiteDBTransferFile.Read}"]
-				ConcatLoop:Inc[1]
+			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB${Config.ExtremelySharedDBSuffix2}.iss
+			This:LogInfo["Script # 2 Run"]
+		}
+		if ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} && ${Config.ExtremelySharedDBSuffix3.NotNULLOrEmpty}
+		{
+			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB${Config.ExtremelySharedDBSuffix3}.iss
+			This:LogInfo["Script # 3 Run"]
 			}
-			while ${ConcatLoop} <= ${LoopsNeeded}
+		if ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} && ${Config.ExtremelySharedDBSuffix4.NotNULLOrEmpty}
+		{
+			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB${Config.ExtremelySharedDBSuffix4}.iss
+			This:LogInfo["Script # 4 Run"]
 		}
-		echo DEBUG ${OffsiteDBTransferString.AsJSON}
-		OffsiteDBTransferFile:Seek[0]
-		OffsiteDBTransferFile:Truncate
-		OffsiteDBTransferFile:Flush
-		OffsiteDBTransferFile:Close
-		if ${OffsiteDBTransferString.NotNULLOrEmpty}
-			OffsiteDBTransferIndex:Insert["${OffsiteDBTransferString}"]
-		This:OffsiteSalvageBMTableInsert
-		return TRUE
 	}
-	; Need to insert our scraped stuff. Maybe this will work easily.
-	method OffsiteSalvageBMTableInsert()
-	{
-		echo ${OffsiteDBTransferIndex.Expand.AsJSON}
-		ExtremelySharedSQLDB:ExecDMLTransaction[${OffsiteDBTransferIndex}]
-		OffsiteDBTransferIndex:Clear
-	}
+
 	member:bool RefreshCargoBayState()
 	{
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"](exists)} && !${LargestBayRefreshed}
