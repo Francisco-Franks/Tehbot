@@ -150,6 +150,13 @@ objectdef obj_TargetManager inherits obj_StateQueue
 			Marshalz:ClearQueryString
 		}
 		ActiveNPCs:ClearQueryString
+		if ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
+		{
+			ActiveNPCs:AddTargetExceptionByPartOfName["EDENCOM"]
+			ActiveNPCs:AddTargetExceptionByPartOfName["Tyrannos"]
+			ActiveNPCs:AddTargetExceptionByPartOfName["Drifter"]
+			ActiveNPCs:AddTargetExceptionByPartOfName["Sleeper"]	
+		}
 		
 
 
@@ -317,6 +324,13 @@ objectdef obj_TargetManager inherits obj_StateQueue
 		}
 
 		NPCs:ClearQueryString
+		if ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
+		{
+			NPCs:AddTargetExceptionByPartOfName["EDENCOM"]
+			NPCs:AddTargetExceptionByPartOfName["Tyrannos"]
+			NPCs:AddTargetExceptionByPartOfName["Drifter"]
+			NPCs:AddTargetExceptionByPartOfName["Sleeper"]			
+		}		
 		NPCs:AddAllNPCs
 		;NPCs:AddQueryString["GroupID = 4033"]
 		if ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}

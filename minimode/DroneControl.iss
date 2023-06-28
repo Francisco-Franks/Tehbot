@@ -400,6 +400,13 @@ objectdef obj_DroneControl inherits obj_StateQueue
 
 		variable int range = ${Math.Calc[${MyShip.MaxTargetRange} * .95]}
 
+		if ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
+		{
+			ActiveNPCs:AddTargetExceptionByPartOfName["EDENCOM"]
+			ActiveNPCs:AddTargetExceptionByPartOfName["Tyrannos"]
+			ActiveNPCs:AddTargetExceptionByPartOfName["Drifter"]
+			ActiveNPCs:AddTargetExceptionByPartOfName["Sleeper"]	
+		}
 		; Add ongoing jammers.
 		variable index:jammer attackers
 		variable iterator attackerIterator

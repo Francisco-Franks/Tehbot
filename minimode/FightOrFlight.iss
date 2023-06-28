@@ -50,7 +50,7 @@ objectdef obj_FightOrFlight inherits obj_StateQueue
 		This.NonGameTiedPulse:Set[TRUE]
 
 		This:BuildPC
-		NPCs:AddAllNPCs
+		;NPCs:AddAllNPCs
 
 		This.LogLevelBar:Set[${Config.LogLevelBar}]
 	}
@@ -253,8 +253,8 @@ objectdef obj_FightOrFlight inherits obj_StateQueue
 		}
 		else
 		{
-			Mission.NPCs.AutoLock:Set[TRUE]
-			Mission.ActiveNPCs.AutoLock:Set[TRUE]
+			;Mission.NPCs.AutoLock:Set[TRUE]
+			;Mission.ActiveNPCs.AutoLock:Set[TRUE]
 		}
 
 		; Flee to a station in the system if not warpscrambled && (in egg or (low hp && not pvp fight) or module offline)
@@ -674,9 +674,9 @@ objectdef obj_FightOrFlight inherits obj_StateQueue
 		Mission.ActiveNPCs.AutoLock:Set[FALSE]
 
 		variable iterator npcIterator
-		NPCs:AddAllNPCs
-		NPCs:RequestUpdate
-		NPCs.LockedTargetList:GetIterator[npcIterator]
+		;NPCs:AddAllNPCs
+		;NPCs:RequestUpdate
+		;NPCs.LockedTargetList:GetIterator[npcIterator]
 		if ${npcIterator:First(exists)}
 		{
 			do
