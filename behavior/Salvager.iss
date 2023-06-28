@@ -121,12 +121,12 @@ objectdef obj_Salvager inherits obj_StateQueue
 			SharedSQLDB:Set[${SQLite.OpenDB["MissionSharedDB","MissionSharedDB.sqlite3"]}]
 
 		}
-		if (${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty}) && !${ExtremelySharedSQLDB.ID(exists)}
+		if (${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty}) && !${ExtremelySharedSQLDB.ID(exists)}
 		{
 			;ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","\\\\${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
 			;echo DEBUG - SALVAGER - "${Config.ExtremelySharedDBPrefix}SharedDB","\\\\${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"
-			ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","{Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
-			echo "${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPath.ReplaceSubstring[\\,\\\\]}${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"
+			ExtremelySharedSQLDB:Set[${SQLite.OpenDB["${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"]}]
+			echo "${Config.ExtremelySharedDBPrefix}SharedDB","${Config.ExtremelySharedDBPrefix}SharedDB.sqlite3"
 		}
 		if ${ExtremelySharedSQLDB.ID(exists)} && !${ExtremelySharedSQLDB.TableExists["SalvageBMTable"]}
 		{
@@ -464,6 +464,9 @@ objectdef obj_Salvager inherits obj_StateQueue
 			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}${Config.ExtremelySharedDBSuffix4}SharedDB.iss
 			This:LogInfo["Script # 4 Run"]
 		}
+		echo DEBUG - SALVAGER - ${GlobalStringIndex.Expand.AsJSON}
+		ExtremelySharedSQLDB:ExecDMLTransaction[GlobalStringIndex]
+		GlobalStringIndex:Clear
 	}
 
 	member:bool RefreshCargoBayState()

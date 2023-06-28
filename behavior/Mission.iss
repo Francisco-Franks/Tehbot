@@ -3132,6 +3132,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			while ${BookmarkIterator:Next(exists)}
 			; Networked SQLite is PRETTY bad. So we will instead write a canned statement to a .dat in a network location, and insert
 			; it into a Local DB on the salvager's machine. Ez pz.
+			; Addendum, we are instead creating a script from this script that will automatically add entries to the DB on the salvager's machine.
 			OffsiteDBTransferFile:Open
 			OffsiteDBTransferFile:Seek[0]
 			OffsiteDBTransferFile:Truncate
@@ -3143,14 +3144,15 @@ objectdef obj_Mission inherits obj_StateQueue
 				do 
 				{
 					OffsiteDBTransferFile:Write["GlobalStringIndex:Insert["]
-					OffsiteDBTransferFile:Write[${OffsiteDBTransferIterator.Value.AsJSON}]
+					OffsiteDBTransferFile:Write["${OffsiteDBTransferIterator.Value.AsJSON}"]
 					OffsiteDBTransferFile:Write["]"]
 					OffsiteDBTransferFile:Write["\n"]
 				}
 				while ${OffsiteDBTransferIterator:Next(exists)}
 			}
-			OffsiteDBTransferFile:Write["Script[Tehbot].VariableScope.Salvager.ExtremelySharedSQLDB:ExecDMLTransaction[GlobalStringIndex]"]
-			OffsiteDBTransferFile:Write["\n"]
+			; Let's make this part of the salvager's script so it doesn't accidentally overlap a bunch of transactions
+			;OffsiteDBTransferFile:Write["Script[Tehbot].VariableScope.Salvager.ExtremelySharedSQLDB:ExecDMLTransaction[GlobalStringIndex]"]
+			;OffsiteDBTransferFile:Write["\n"]
 			OffsiteDBTransferFile:Write["\}"]			
 			OffsiteDBTransferFile:Flush
 			OffsiteDBTransferFile:Close
