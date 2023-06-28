@@ -654,6 +654,13 @@ objectdef obj_Mission inherits obj_StateQueue
 						continue
 					}
 				}
+				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["EpicArc"]}
+				{
+					This:LogInfo["Adding to Decline List - Arcs are not supported at this time."]
+					AgentDeclineQueue:Queue[${GetDBJournalInfo.GetFieldValue["AgentID",int64]}]
+					GetDBJournalInfo:NextRow
+					continue
+				}
 				if ${GetDBJournalInfo.GetFieldValue["MissionType",string].Find["Storyline"]} && !${Config.DoStoryline}
 				{
 					This:LogInfo["Adding to Decline List - Storyline"]
