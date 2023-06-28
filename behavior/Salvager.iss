@@ -446,22 +446,22 @@ objectdef obj_Salvager inherits obj_StateQueue
 	{
 		if ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} && ${Config.ExtremelySharedDBSuffix1.NotNULLOrEmpty}
 		{
-			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB${Config.ExtremelySharedDBSuffix1}.iss
+			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}${Config.ExtremelySharedDBSuffix1}SharedDB.iss
 			This:LogInfo["Script # 1 Run"]
 		}
 		if ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} && ${Config.ExtremelySharedDBSuffix2.NotNULLOrEmpty}
 		{
-			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB${Config.ExtremelySharedDBSuffix2}.iss
+			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}${Config.ExtremelySharedDBSuffix2}SharedDB.iss
 			This:LogInfo["Script # 2 Run"]
 		}
 		if ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} && ${Config.ExtremelySharedDBSuffix3.NotNULLOrEmpty}
 		{
-			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB${Config.ExtremelySharedDBSuffix3}.iss
+			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}${Config.ExtremelySharedDBSuffix3}SharedDB.iss
 			This:LogInfo["Script # 3 Run"]
 			}
 		if ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty} && ${Config.ExtremelySharedDBSuffix4.NotNULLOrEmpty}
 		{
-			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}SharedDB${Config.ExtremelySharedDBSuffix4}.iss
+			runscript ${Config.ExtremelySharedDBPath}${Config.ExtremelySharedDBPrefix}${Config.ExtremelySharedDBSuffix4}SharedDB.iss
 			This:LogInfo["Script # 4 Run"]
 		}
 	}
