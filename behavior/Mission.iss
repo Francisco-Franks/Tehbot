@@ -2441,7 +2441,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			relay "all" -event Tehbot_SalvageBookmark ${Me.ID}
 			CurrentRunGatesUsed:Clear
-			This:InsertState["DropOffLoot", 10000]			
+			This:InsertState["DropOffLoot", 10000]	
+			This:InsertState["RefreshLargestBayState", ${Math.Calc[(3000) * ${Config.InventoryPulseRateModifier}].Int}]			
 			This:InsertState["Repair"]
 		}
 		; Delete the row now that the mission is gone.
