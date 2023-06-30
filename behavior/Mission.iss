@@ -3180,7 +3180,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	; This method will be for resolving our damage type. So we know what ammo and drones to load for a combat mission.
 	method ResolveDamageType(string DmgType)
 	{
-		switch ${damageType}
+		switch ${DmgType}
 		{
 			case kinetic
 				ammo:Set[${Config.KineticAmmo}]
