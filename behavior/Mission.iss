@@ -1742,7 +1742,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			; that would be harder to implement and more prone to failure.
 			Move:Agent[${CurrentAgentIndex}]
 			This:InsertState["CheckForWork"]
-			This:InsertState["DropoffLoot",10000]
+			This:InsertState["DropOffLoot",10000]
 			This:InsertState["Traveling"]
 			return TRUE
 		}
