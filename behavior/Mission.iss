@@ -1736,7 +1736,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	; This state will handle the mission Objectives. String will be what we should do.
 	member:bool CombatMissionObjectives(string ObjectiveAction)
 	{
-		if ${ObjectiveAction.Find["Loot"] && (${Math.Calc[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} - ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].UsedCapacity}] < 150)
+		if ${ObjectiveAction.Find["Loot"]} && (${Math.Calc[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} - ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].UsedCapacity}]} < 150)
 		{
 			; Need to go back to station to offload loot so we can actually pick up the mission item. I chose this over reserving space for the item because
 			; that would be harder to implement and more prone to failure.
