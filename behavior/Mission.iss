@@ -241,8 +241,8 @@ objectdef obj_Mission inherits obj_StateQueue
 
 	; Two more variables so we can record our wallet just BEFORE we complete a mission, and again just AFTER.
 	; Doing this so we can get the isk reward for the mission quantified without dealing with parsing HTML.
-	variable int64 ISKBeforeCompletion
-	variable int64 ISKAfterCompletion
+	variable float ISKBeforeCompletion
+	variable float ISKAfterCompletion
 
 	; These had to be pulled out of Databasification due to do:while complications
 	variable index:agentmission missions
@@ -1736,16 +1736,16 @@ objectdef obj_Mission inherits obj_StateQueue
 	; This state will handle the mission Objectives. String will be what we should do.
 	member:bool CombatMissionObjectives(string ObjectiveAction)
 	{
-		if ${ObjectiveAction.Find["Loot"]} && (${Math.Calc[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} - ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].UsedCapacity}]} < 150)
-		{
+		;if ${ObjectiveAction.Find["Loot"]} && (${Math.Calc[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} - ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].UsedCapacity}]} < 150)
+		;{
 			; Need to go back to station to offload loot so we can actually pick up the mission item. I chose this over reserving space for the item because
 			; that would be harder to implement and more prone to failure.
-			Move:Agent[${CurrentAgentIndex}]
-			This:InsertState["CheckForWork"]
-			This:InsertState["DropOffLoot",10000]
-			This:InsertState["Traveling"]
-			return TRUE
-		}
+			;Move:Agent[${CurrentAgentIndex}]
+			;This:InsertState["CheckForWork"]
+			;This:InsertState["DropOffLoot",10000]
+			;This:InsertState["Traveling"]
+			;return TRUE
+		;}
 		echo ${ObjectiveID} OBJECTIVE ID
 		if ${CurrentAgentLoot.NotNULLOrEmpty}
 		{
@@ -2399,7 +2399,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	member:bool FinishingAgentInteraction()
 	{
 		; Storing our wallet just before we hit complete button.
-		ISKBeforeCompletion:Set[${Me.Wallet.Balance.Int}]
+		ISKBeforeCompletion:Set[${Me.Wallet.Balance}]
 		; Open a conversation window, again.
 		if !${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
 		{
@@ -2421,7 +2421,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			return FALSE
 		}
 		; Storing our wallet just after we hit the complete button.
-		ISKAfterCompletion:Set[${Me.Wallet.Balance.Int}]
+		ISKAfterCompletion:Set[${Me.Wallet.Balance}]
 		; Mission Completion MissioneerStats Update
 		This:UpdateMissioneerStats["RunComplete"]
 		This:BackupSalvageBMTableMethod
@@ -3088,7 +3088,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	; Fourth member will be for getting the ISK reward for doing this mission. Reward + bonus. Returns a int64.
 	; This will also include parsing HTML so fuckin kill me now.
 	; Addendum, we can do this without parsing. Record wallet balance just before mission completion and then again just after. Boom, isk difference was the mission reward, probably.
-	member:int64 RunISK()
+	member:float RunISK()
 	{
 		return ${Math.Calc[${ISKAfterCompletion}-${ISKBeforeCompletion}]}
 	}

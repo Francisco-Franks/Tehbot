@@ -304,7 +304,7 @@ objectdef obj_LootCans inherits obj_StateQueue
 		variable index:item cargo
 		variable iterator cargoIterator
 
-		if !${Client.InSpace} || ${Me.ToEntity.Mode} == MOVE_WARPING
+		if !${Client.InSpace} || ${Me.ToEntity.Mode} == MOVE_WARPING || (${CommonConfig.Tehbot_Mode.Equal["Mission"]} && (${Math.Calc[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} - ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].UsedCapacity}]} < 150))
 		{
 			return FALSE
 		}
@@ -358,6 +358,11 @@ objectdef obj_LootCans inherits obj_StateQueue
 						}
 					}
 					while ${cargoIterator:Next(exists)}
+				}
+				if (${CommonConfig.Tehbot_Mode.Equal["Mission"]} && (${Math.Calc[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} - ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].UsedCapacity}]} < 150))
+				{
+					echo DEBUG - SALVAGE - MISSION PRESERVE SPACE CONTINGENCY
+					continue
 				}
 				EVEWindow[Inventory]:LootAll
 				if ${wreckIterator.Value.GroupID} == GROUP_CARGOCONTAINER || ${Ship.ModuleList_Salvagers.Count} == 0
