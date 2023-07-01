@@ -314,7 +314,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 			{
 				do
 				{
-					This:ClaimedByCharID[${Me.CharID},${EVE.Bookmark[${SalvageBMPrepQueue.Peek}].ID}]
+					This:SalvageBMTableClaim[${Me.CharID},${EVE.Bookmark[${SalvageBMPrepQueue.Peek}].ID}]
 					This:LogInfo["Claiming ${SalvageBMPrepQueue.Peek}"]
 					SalvageBMQueue:Queue[${SalvageBMPrepQueue.Peek}]
 					SalvageBMPrepQueue:Dequeue

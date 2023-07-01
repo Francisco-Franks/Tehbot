@@ -1777,11 +1777,15 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				TargetManager.ActiveNPCs:AddQueryString[Name == "${CurrentAgentDestroy.Escape}"]
 				CurrentOffenseTarget:Set[${Entity[Name == "${CurrentAgentDestroy.Escape}"]}]
+				echo DEBUG ALLOW SIEGE
+				AllowSiegeModule:Set[TRUE]
 			}
 			if !${Entity[Name == "${CurrentAgentDestroy.Escape}"](exists)}
 			{
 				This:LogInfo["Destroyed Target - ${CurrentAgentDestroy}"]
 				CurrentRunKilledTarget:Set[TRUE]
+				echo DEBUG ALLOW SIEGE
+				AllowSiegeModule:Set[FALSE]
 				This:InsertState["CombatMission", 4000]
 				return TRUE						
 			}
