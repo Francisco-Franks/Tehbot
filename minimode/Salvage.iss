@@ -290,7 +290,7 @@ objectdef obj_LootCans inherits obj_StateQueue
 
 	method Enable()
 	{
-		This:QueueState["Loot", 2000]
+		This:QueueState["Loot", 1000]
 	}
 
 	method Disable()
