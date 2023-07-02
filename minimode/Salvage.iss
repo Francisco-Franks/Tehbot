@@ -351,7 +351,7 @@ objectdef obj_LootCans inherits obj_StateQueue
 				{
 					do
 					{
-						if ${cargoIterator.Value.IsContraband}
+						if ${cargoIterator.Value.IsContraband} || ${cargoIterator.Value.Name.Find["Slaves"]} || ${cargoIterator.Value.Name.Find["Slaver"]} || ${cargoIterator.Value.Name.Find["Small Arms"]}
 						{
 							Salvage.WrecksNoLock:AddTargetException[${wreckIterator.Value.ID}]
 							return FALSE
