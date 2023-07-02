@@ -1929,6 +1929,12 @@ objectdef obj_Mission inherits obj_StateQueue
 				This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0]
 				This:UpdateWatchDog			
 			}
+			if ${CurrentAgentMissionName.Find["Collide"]}
+			{
+				CurrentRunTrueComplete:Set[TRUE]
+				This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0]
+				This:UpdateWatchDog			
+			}
 		}
 		if ${EVEWindow[AgentConversation_${CurrentAgentID}](exists)}
 		{
