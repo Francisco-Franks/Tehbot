@@ -386,7 +386,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 			return TRUE
 		}
 		
-		if ${Salvage.WrecksToLock.TargetList.Used} == 0 && ${Salvage.WrecksNoLock.TargetList.Used} == 0
+		if ${Salvage.WrecksToLock.TargetList.Used} == 0 && ${Salvage.WrecksNoLock.TargetList.Used} < 4
 		{
 			This:LogInfo["Area cleared. Marking BM as Historical and Dequeuing"]
 			This:MarkBMAsHistorical[${EVE.Bookmark[${SalvageBMQueue.Peek}].ID}]
