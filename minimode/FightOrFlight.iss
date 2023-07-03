@@ -595,7 +595,13 @@ objectdef obj_FightOrFlight inherits obj_StateQueue
 
 		variable int64 StationID
 		StationID:Set[${Entity["CategoryID = CATEGORYID_STATION"].ID}]
-		if ${Entity[${StationID}](exists)}
+		if ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
+		{
+			Move:Agent[${Mission.CurrentAgentIndex}]
+			This:InsertState["Traveling"]	
+			return TRUE			
+		}
+		elseif ${Entity[${StationID}](exists)}
 		{
 			This:LogInfo["Fleeing to station ${Entity[${StationID}].Name}."]
 			Move.Traveling:Set[FALSE]
