@@ -61,6 +61,8 @@ objectdef obj_Salvager inherits obj_StateQueue
 	
 	variable index:string TempDBInsert
 
+	; Need this to make sure we leave contraband behind instead of sitting there like a mook.
+	variable bool ContrabandDetected
 	
 	; Borrowing from Missioneer, this will be your cargo bay in this instance. I am too lazy to find replace it.
 	variable bool LargestBayRefreshed
@@ -386,9 +388,10 @@ objectdef obj_Salvager inherits obj_StateQueue
 			return TRUE
 		}
 		
-		if ${Salvage.WrecksToLock.TargetList.Used} == 0 && ${Salvage.WrecksNoLock.TargetList.Used} < 4
+		if ${Salvage.WrecksToLock.TargetList.Used} == 0 && (${Salvage.WrecksNoLock.TargetList.Used} == 0 || ${ContrabandDetected})
 		{
 			This:LogInfo["Area cleared. Marking BM as Historical and Dequeuing"]
+			ContrabandDetected:Set[FALSE]
 			This:MarkBMAsHistorical[${EVE.Bookmark[${SalvageBMQueue.Peek}].ID}]
 			SalvageBMQueue:Dequeue
 			This:InsertState["SalvagerMoveToBM",5000]
