@@ -121,3 +121,17 @@ ________________________________________________________________________________
 
 June 18th, 5:10 AM. Combat Missions are now baseline operational. Salvager rewrite is next. Then I need to make... a UI element to display some of the statistics we are gathering.
 Ugh. I hate UI stuff.
+
+_______________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+July 7th, 7:36 AM. Combat Missions are going well, but TargetManager needs improvement. Much Improvement.
+I am making some DB lookup stuff, which will be looking up information about each NPC on grid, so we can assess the following:
+Their Damage Output - Possibly even factoring in our own sig radius and speed and whatnot, otherwise just considering our resists.
+Their Tankiness - Considering their resists, their movement, their sig radius, their expected repairs per second.
+Their EWAR Capabilities - Why wait for a scrammer to scram, why wait for a sensor damp to land, why not know all of these things now?
+Their Destined Orbit Distance and Speed - Will we ever even be able to harm this thing?
+What this boils down to is : Threat Assessment/Prioritization and Are We Even Killing This Thing?
+This won't be limited to just mission NPCs, I hope. It will never apply to PVP uses, there is no way to really get half of this information about players.
+I will eventually make a rudimentary UI, maybe even a non-shitty UI, it will be great. Statistics are on hold for now, reeeeally need to make Missioneer bulletproof before that.
+Also, if you want to look up stats you can just open your DBs in an SQL program, I recommend Beekeeper Community.
+

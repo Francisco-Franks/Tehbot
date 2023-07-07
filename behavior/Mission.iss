@@ -1430,7 +1430,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		else
 		{
 			; Things get a little tricky here. Sometimes it takes a bit for the enemies to Appear. We will cycle through this a few times before we determine a room is Done.
-			if ${Cycles} <= 3
+			if ${Cycles} < 4
 			{
 				This:LogInfo["Awaiting next spawn wave (if it exists). Cycle Number ${Cycles}."]
 				This:InsertState["CombatMission", 4000,"${Math.Calc[${Cycles} + 1]}"]
