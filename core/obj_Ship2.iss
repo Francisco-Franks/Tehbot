@@ -50,21 +50,25 @@ objectdef obj_Ship2
 		;;	echo DEBUG - Ship2 - Creating ShipDefensiveModuleTable
 		;	MyShipInfo:ExecDML["create table ShipDefensiveModuleTable;"]
 		;}
+		
+		
 		; Ammunition table for turrets.
 		; What belongs in this table?
 		;  Ammo Type ID (Integer Primary Key), Ammo Type (String), Ship's Item Type (String), Turret Item Type (String), Turret Tracking (Real), Turret Optimal (Real), Turret Falloff (Real), EM Damage (Real), Explosive Damage (Real), Kinetic Damage (Real), Thermal Damage (Real).
-		if !${MyShipInfo.TableExists["ShipAmmunitionTurret"]}
-		{
-			echo DEBUG - Ship2 - Creating ShipAmmunitionTurret
-			MyShipInfo:ExecDML["create table ShipAmmunitionAndDrones ;"]
-		}
+		;if !${MyShipInfo.TableExists["ShipAmmunitionTurret"]}
+		;{
+		;	echo DEBUG - Ship2 - Creating ShipAmmunitionTurret
+		;	MyShipInfo:ExecDML["create table ShipAmmunitionAndDrones ;"]
+		;}
 		; Ammunition table for missiles.
 		; Ammo Type ID (Integer Primary Key), Ammo Type (String), Ship's Item Type (String), Launcher Item Type (String), Missile Explosion Velocity (Real), Missile Explosion Radius (Real), Missile Range (Real), EM Damage (Real), Explosive Damage (Real), Kinetic Damage (Real), Thermal Damage (Real).
-		if !${MyShipInfo.TableExists["ShipAmmunitionMissile"]}
-		{
-			echo DEBUG - Ship2 - Creating ShipAmmunitionMissile
-			MyShipInfo:ExecDML["create table ShipAmmunitionAndDrones ;"]
-		}		
+		;if !${MyShipInfo.TableExists["ShipAmmunitionMissile"]}
+		;{
+		;	echo DEBUG - Ship2 - Creating ShipAmmunitionMissile
+		;	MyShipInfo:ExecDML["create table ShipAmmunitionAndDrones ;"]
+		;}
+
+		
 		;;; This is where we will store our baseline stats about the actual ship itself. Basically our ships parameters AFTER skills but BEFORE any modules are activated.
 		; How fast does our ship go, whats our sensor range, whats our sig radius, general information that might be of use, at some point. Doesn't really change much for target manager tbh.
 		;if !${MyShipInfo.TableExists["ShipBaselineParameters"]}
