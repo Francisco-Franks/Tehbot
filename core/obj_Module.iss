@@ -1257,98 +1257,98 @@ objectdef obj_Module inherits obj_StateQueue
 		}
 
 		; Temporary workaround for can't get ExplosionRadius and ExplosionVelocity attributes.
-		variable string targetClass
-		targetClass:Set[${NPCData.NPCType[${Entity[${targetID}].GroupID}]}]
+		;variable string targetClass
+		;targetClass:Set[${NPCData.NPCType[${Entity[${targetID}].GroupID}]}]
 		; Avoid using drones against structures which may cause AOE damage when destructed.
-		if ${targetClass.Equal["Frigate"]}
-		{
-			return 0.05
-		}
-		elseif ${targetClass.Equal["Destroyer"]}
-		{
-			return 0.1
-		}
-		elseif ${targetClass.Equal["Cruiser"]}
-		{
-			return 0.4
-		}
+		;if ${targetClass.Equal["Frigate"]}
+		;{
+		;	return 0.05
+		;}
+		;elseif ${targetClass.Equal["Destroyer"]}
+		;{
+		;	return 0.1
+		;}
+		;elseif ${targetClass.Equal["Cruiser"]}
+		;{
+		;	return 0.4
+		;}
 
-		return 1
+		;return 1
+		;;; Elusif Note - All problems can be solved with SQL
+ 		variable float64 targetSignatureRadius
+ 		targetSignatureRadius:Set[${Entity[${targetID}].Radius}]
 
-; 		variable float64 targetSignatureRadius
-; 		targetSignatureRadius:Set[${Entity[${targetID}].Radius}]
+ 		variable float64 targetVelocity
+ 		targetVelocity:Set[${Entity[${targetID}].Velocity}]
 
-; 		variable float64 targetVelocity
-; 		targetVelocity:Set[${Entity[${targetID}].Velocity}]
+ 		variable float64 missileExplosionRadius
+ 		missileExplosionRadius:Set[${NPCData.PlayerMissileExplosionRadius[${This.Charge.TypeID}]}]
 
-; 		variable float64 missileExplosionRadius
-; 		missileExplosionRadius:Set[${This.Charge.ExplosionRadius}]
+ 		variable float64 missileExplosionVelocity
+ 		missileExplosionVelocity:Set[${NPCData.PlayerMissileExplosionVelocity[${This.Charge.TypeID}]}]
 
-; 		variable float64 missileExplosionVelocity
-; 		missileExplosionVelocity:Set[${This.Charge.ExplosionVelocity}]
+		This:LogInfo["torpedo ${This.Charge.Type} ${missileExplosionRadius} ${missileExplosionVelocity} ${This.Charge.MaxVelocity} ${This.Charge.MaxFlightTime}"]
+ 		variable float64 radiusFactor
 
-; This:LogInfo["torpedo ${This.Charge.Type} ${This.Charge.ExplosionRadius} ${This.Charge.ExplosionVelocity} ${This.Charge.MaxVelocity} ${This.Charge.MaxFlightTime}"]
-; 		variable float64 radiusFactor
+		This:LogInfo["radiusFactor ${radiusFactor}"]
+ 		radiusFactor:Set[${Math.Calc[${targetSignatureRadius} / ${missileExplosionRadius}]}]
 
-; This:LogInfo["radiusFactor ${radiusFactor}"]
-; 		radiusFactor:Set[${Math.Calc[${targetSignatureRadius} / ${missileExplosionRadius}]}]
+ 		variable float64 drf
+ 		drf:Set[${NPCData.PlayerMissileDRF[${This.Charge.TypeID}]}]
+		This:LogInfo["drf ${drf}"]
+ 		variable float64 velocityFactor
+ 		if !${targetVelocity.Equal[0]}
+ 		{
+ 			velocityFactor:Set[${Math.Calc[(${radiusFactor} * ${missileExplosionVelocity} / ${targetVelocity}) ^^ ${drf}]}]
+ 		}
+ 		else
+ 		{
+ 			velocityFactor:Set[1]
+ 		}
 
-; 		variable float64 drf
-; 		drf:Set[${This._getDRF}]
-; This:LogInfo["drf ${drf}"]
-; 		variable float64 velocityFactor
-; 		if !${targetVelocity.Equal[0]}
-; 		{
-; 			velocityFactor:Set[${Math.Calc[(${radiusFactor} * ${missileExplosionVelocity} / ${targetVelocity}) ^^ ${drf}]}]
-; 		}
-; 		else
-; 		{
-; 			velocityFactor:Set[1]
-; 		}
+		This:LogInfo["velocityFactor ${velocityFactor}"]
+  		variable float64 efficiency
+ 		efficiency:Set[${Utility.Min[${radiusFactor}, ${velocityFactor}]}]
+  		efficiency:Set[${Utility.Min[1, ${efficiency}]}]
 
-; This:LogInfo["velocityFactor ${velocityFactor}"]
-; 		variable float64 efficiency
-; 		efficiency:Set[${Utility.Min[${radiusFactor}, ${velocityFactor}]}]
-; 		efficiency:Set[${Utility.Min[1, ${efficiency}]}]
-
-; 		return ${efficiency}
+ 		return ${efficiency}
 	}
 
-	member:float64 _getDRF()
-	{
-		if ${This.Charge(exists)}
-		{
-			if ${This.Charge.Type.Find["Rage XL Torpedo"]}
-			{
-				return 0.967
-			}
-			elseif ${This.Charge.Type.Find["Javelin XL Torpedo"]}
-			{
-				return 1.0
-			}
-			elseif ${This.Charge.Type.Find["XL Torpedo"]}
-			{
-				return 1.0
-			}
-			elseif ${This.Charge.Type.Find["Rage Torpedo"]}
-			{
-				return 0.967
-			}
-			elseif ${This.Charge.Type.Find["Javelin Torpedo"]}
-			{
-				return 0.967
-			}
-			elseif ${This.Charge.Type.Find["Torpedo"]}
-			{
-				return 0.944
-			}
-			else
-			{
-				This:LogCritical["drf not implemented ${This.Charge.Type}."]
-				return 1.0
-			}
-		}
-	}
+	;member:float64 _getDRF()
+	;{
+	;	if ${This.Charge(exists)}
+	;	{
+	;		if ${This.Charge.Type.Find["Rage XL Torpedo"]}
+	;		{
+	;			return 0.967
+	;		}
+	;		elseif ${This.Charge.Type.Find["Javelin XL Torpedo"]}
+	;		{
+	;			return 1.0
+	;		}
+	;		elseif ${This.Charge.Type.Find["XL Torpedo"]}
+	;		{
+	;			return 1.0
+	;		}
+	;		elseif ${This.Charge.Type.Find["Rage Torpedo"]}
+	;		{
+	;			return 0.967
+	;		}
+	;		elseif ${This.Charge.Type.Find["Javelin Torpedo"]}
+	;		{
+	;			return 0.967
+	;		}
+	;		elseif ${This.Charge.Type.Find["Torpedo"]}
+	;		{
+	;			return 0.944
+	;		}
+	;		else
+	;		{
+	;			This:LogCritical["drf not implemented ${This.Charge.Type}."]
+	;			return 1.0
+	;		}
+	;	}
+	;}
 
 	; We want to reload charge in advance for aucillary shield booster to
 	; ensure that we always have more than this charge when engaging gankers.

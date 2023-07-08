@@ -10,6 +10,7 @@ objectdef obj_NPCData
 	; Query we will be using for our NPC Data
 	variable sqlitequery GetNPCInfo
 	; Don't know if we will need multiples queries, tbh.
+	variable sqlitequery GetTypeIDByName
 	
 	
 	
@@ -26,7 +27,7 @@ objectdef obj_NPCData
 
 		Logger:Log["Configuration", " ${This.SetName}: Initialized", "-g"]
 		
-		NPCInfoDB:Set[${SQLite.OpenDB["NPCInfoDB","${Script.CurrentDirectory}/NPCInfoDB.sqlite"]}]
+		NPCInfoDB:Set[${SQLite.OpenDB["NPCInfoDB","${Script.CurrentDirectory}/Data/NPCInfoDB.sqlite"]}]
 		
 		
 	}
@@ -1478,8 +1479,250 @@ objectdef obj_NPCData
 	}
 	;;; Ugh, some enemies can do remote reps, either shield or armour, we should probably figure that out at some point. The following members will be for determining if an NPC does remote reps
 	;;; and exactly how strong they will be.
-	; This member will return the expected shield repair per second an NPC can put out. Attributes ??? Old NPCS I can't find the attributes for this. Might have to forgo on this one.
+	; This member will return the expected shield repair per second an NPC can put out. 
+	;;;Attributes ??? Old NPCS I can't find the attributes for this. Might have to forgo on this one.
 	
+	;;; OK, it is now time, time to take this information and return some useful members. It is time for Math!
+	;;; Unfortunately, due to some wonkiness with isxeve, we can't read the stats off of our missiles other than to see how far they will go.
+	;;; Thus, we will need to look up our missile in the DB to get its basic stats and then modify them a bit, but we can't see skill levels
+	;;; so we will have to basically just fake goddamn everything. Off we go.
+	; This member will return the explosion radius of whatever missile we feed into it.
+	member:float64 PlayerMissileExplosionRadius(int TypeID)
+	{
+		variable float64 MissileTypeID
+		variable float64 PlayerExpRadBonus
+		variable float64 PlayerShipExpRadBonus
+		variable float64 MissileExpRad
+		variable float64 FinalValue
+		
+
+		MissileTypeID:Set[${TypeID}]
+
+		; Going to assume you have Guided Missile Precision 4
+		PlayerExpRadBonus:Set[0.8]
+		; Golem no have bonus for this
+		PlayerShipExpRadBonus:Set[1]
+		; If you are in some other kinda ship idgaf, I'll make this use real stats some day whenever Amadeus fixes modulecharge
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${MissileTypeID} AND attributeID=654;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			MissileExpRad:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+		}
+		FinalValue:Set[${Math.Calc[${PlayerShipExpRadBonus}*${PlayerExpRadBonus}*${MissileExpRad}]}]
+		return ${FinalValue}
+	}
+	; This member will return the explosion velocity of whatever missile we feed into it.
+	member:float64 PlayerMissileExplosionVelocity(int TypeID)
+	{
+		variable float64 MissileTypeID
+		variable float64 PlayerExpVelBonus
+		variable float64 PlayerShipExpVelBonus
+		variable float64 MissileExpVel
+		variable float64 FinalValue
+		
+
+		MissileTypeID:Set[${TypeID}]
+
+		; Going to assume you have Target Nav Prediction 4
+		PlayerExpVelBonus:Set[1.4]
+		; Going to assume you are in a Golem, with BS 5[obv]
+		PlayerShipExpVelBonus:Set[1.25]
+		; If you are in some other kinda ship idgaf, I'll make this use real stats some day whenever Amadeus fixes modulecharge.
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${MissileTypeID} AND attributeID=653;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			MissileExpVel:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+		}
+		FinalValue:Set[${Math.Calc[${PlayerShipExpVelBonus}*${PlayerExpVelBonus}*${MissileExpVel}]}]
+		return ${FinalValue}
+	}
+	; This member will return the approximate expected range of the typeID given.
+	member:float64 PlayerMissileMaxRange(int TypeID)
+	{
+		variable float64 MissileTypeID
+		variable float64 PlayerFlightTimeBonus
+		variable float64 PlayerMaxVelocityBonus
+		variable float64 MissileFlightTime
+		variable float64 MissileMaxVelocity
+		variable float64 FinalValue
+		
+
+		MissileTypeID:Set[${TypeID}]
+		; These numbers will be lies until I get what I need from amadeus.
+		PlayerFlightTimeBonus:Set[2]
+		PlayerMaxVelocityBonus:Set[3.5]
+
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${MissileTypeID} AND attributeID=281;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			MissileFlightTime:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+		}
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${MissileTypeID} AND attributeID=37;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			MissileMaxVelocity:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+		}
+		FinalValue:Set[${Math.Calc[(${PlayerFlightTimeBonus}*${MissileFlightTime})*(${PlayerMaxVelocityBonus}*${MissileMaxVelocity})]}]
+		return ${FinalValue}
+	}
+	; This member will return the Damage Reduction Factor for a given input missile typeid. I don't really know what the DRF does.
+	member:float64 PlayerMissileDRF(int TypeID)
+	{
+		variable float64 MissileTypeID
+		variable float64 FinalValue
+		
+
+		MissileTypeID:Set[${TypeID}]
+
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${MissileTypeID} AND attributeID=1353;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+			return ${FinalValue}
+		}
+		else
+			return 1
+		
+	}
+	; This member will return the base EM Damage for an input typeID.
+	member:float64 PlayerAmmoEM(int TypeID)
+	{
+		variable float64 AmmoTypeID
+		variable float64 FinalValue
+		
+
+		AmmoTypeID:Set[${TypeID}]
+
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${AmmoTypeID} AND attributeID=114;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+			return ${FinalValue}
+		}
+		else
+			return 0
+	}
+	; This member will return the base Exp Damage for an input typeID.
+	member:float64 PlayerAmmoExp(int TypeID)
+	{
+		variable float64 AmmoTypeID
+		variable float64 FinalValue
+		
+
+		AmmoTypeID:Set[${TypeID}]
+
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${AmmoTypeID} AND attributeID=116;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+			return ${FinalValue}
+		}
+		else
+			return 0
+	}
+	; This member will return the base Kin Damage for an input typeID.
+	member:float64 PlayerAmmoKin(int TypeID)
+	{
+		variable float64 AmmoTypeID
+		variable float64 FinalValue
+		
+
+		AmmoTypeID:Set[${TypeID}]
+
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${AmmoTypeID} AND attributeID=117;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+			return ${FinalValue}
+		}
+		else
+			return 0
+	}
+	; This member will return the base Therm Damage for an input typeID.
+	member:float64 PlayerAmmoTherm(int TypeID)
+	{
+		variable float64 AmmoTypeID
+		variable float64 FinalValue
+		
+
+		AmmoTypeID:Set[${TypeID}]
+
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${AmmoTypeID} AND attributeID=118;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+			return ${FinalValue}
+		}
+		else
+			return 0
+	}
+	; This member will return the Tracking speed bonus/penalty for an input typeID.
+	member:float64 PlayerTrackingMult(int TypeID)
+	{
+		variable float64 AmmoTypeID
+		variable float64 FinalValue
+		
+
+		AmmoTypeID:Set[${TypeID}]
+
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${AmmoTypeID} AND attributeID=244;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+			return ${FinalValue}
+		}
+		else
+			return 1
+	}
+	; This member will return the Range bonus/penalty for an input typeID.
+	member:float64 PlayerRangeMult(int TypeID)
+	{
+		variable float64 AmmoTypeID
+		variable float64 FinalValue
+		
+
+		AmmoTypeID:Set[${TypeID}]
+
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${AmmoTypeID} AND attributeID=120;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+			return ${FinalValue}
+		}
+		else
+			return 1
+	}
+	;;;
+	; Need a way to get the type ID by feeding in a name, from another table in this DB.
+	member:float64 TypeIDByName(string InputName)
+	{
+		variable int64 TypeID
+		
+		GetTypeIDByName:Set[${NPCInfoDB.ExecQuery["Select * FROM invTypes WHERE typeName IS '${InputName}';"]}]
+		if ${GetTypeIDByName.NumRows} > 0
+		{
+			TypeID:Set[${GetTypeIDByName.GetFieldValue["typeID"]}]
+			GetTypeIDByName:Finalize
+			return ${TypeID}
+		}
+		else
+			return -1
+	}
+	;;;
+	
+	
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;; This was the only thing that was originally here. We will leave it here, I forget what it is even for. Maybe something drone related.
 	member:string NPCType(int GroupID)
 	{

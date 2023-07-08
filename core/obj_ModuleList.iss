@@ -282,7 +282,14 @@ objectdef obj_ModuleList inherits obj_Logger
 		}
 		return ${countInactive}
 	}
-
+	member:int64 ID()
+	{
+		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].ID}
+	}
+	member:int64 Type()
+	{
+		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].Type}
+	}
 	member:float Range()
 	{
 		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].Range}
@@ -303,6 +310,16 @@ objectdef obj_ModuleList inherits obj_Logger
 		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].AccuracyFalloff}
 	}
 
+	member:float DamageModifier()
+	{
+		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].DamageModifier}
+	}
+
+	member:float RateOfFire()
+	{
+		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].RateOfFire}
+	}
+	
 	member:float DamageEfficiency(int64 targetID)
 	{
 		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].DamageEfficiency[${targetID}]}

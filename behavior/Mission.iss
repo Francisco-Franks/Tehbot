@@ -1367,6 +1367,7 @@ objectdef obj_Mission inherits obj_StateQueue
 							Move:AgentBookmark[${bookmarkIterator.Value.ID}]
 							TargetManager.ActiveNPCs.AutoLock:Set[FALSE]
 							TargetManager.NPCs.AutoLock:Set[FALSE]
+							Ship2:GetAmmoInformation
 							This:InsertState["Traveling", 5000]
 							reload:Set[TRUE]
 							This:QueueState["CombatMission", 4000]

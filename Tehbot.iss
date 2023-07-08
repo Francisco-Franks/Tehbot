@@ -25,6 +25,7 @@
 #include core/obj_ModuleList.iss
 ; May work, need to verify querys work with strings instead of IDs
 #include core/obj_Ship.iss
+#include core/obj_Ship2.iss
 ; Might remove altogether
 #include core/obj_Cargo.iss
 ; May need more work, quickly removed IPC and profiling
@@ -150,6 +151,7 @@ function main(string Character="")
 	declarevariable Client obj_Client script
 	declarevariable Move obj_Move script
 	declarevariable Ship obj_Ship script
+	declarevariable Ship2 obj_Ship2 script
 	declarevariable Cargo obj_Cargo script
 	declarevariable RefineData obj_Configuration_RefineData script
 	declarevariable Drones obj_Drones script
