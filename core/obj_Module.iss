@@ -1287,15 +1287,16 @@ objectdef obj_Module inherits obj_StateQueue
  		variable float64 missileExplosionVelocity
  		missileExplosionVelocity:Set[${NPCData.PlayerMissileExplosionVelocity[${This.Charge.TypeID}]}]
 
-		This:LogInfo["torpedo ${This.Charge.Type} ${missileExplosionRadius} ${missileExplosionVelocity} ${This.Charge.MaxVelocity} ${This.Charge.MaxFlightTime}"]
+		;This:LogInfo["torpedo ${This.Charge.Type} ${missileExplosionRadius} ${missileExplosionVelocity} ${This.Charge.MaxVelocity} ${This.Charge.MaxFlightTime}"]
  		variable float64 radiusFactor
 
-		This:LogInfo["radiusFactor ${radiusFactor}"]
- 		radiusFactor:Set[${Math.Calc[${targetSignatureRadius} / ${missileExplosionRadius}]}]
 
+ 		radiusFactor:Set[${Math.Calc[${targetSignatureRadius} / ${missileExplosionRadius}]}]
+		;This:LogInfo["radiusFactor ${radiusFactor}"]
+		
  		variable float64 drf
  		drf:Set[${NPCData.PlayerMissileDRF[${This.Charge.TypeID}]}]
-		This:LogInfo["drf ${drf}"]
+		;This:LogInfo["drf ${drf}"]
  		variable float64 velocityFactor
  		if !${targetVelocity.Equal[0]}
  		{
@@ -1306,7 +1307,7 @@ objectdef obj_Module inherits obj_StateQueue
  			velocityFactor:Set[1]
  		}
 
-		This:LogInfo["velocityFactor ${velocityFactor}"]
+		;This:LogInfo["velocityFactor ${velocityFactor}"]
   		variable float64 efficiency
  		efficiency:Set[${Utility.Min[${radiusFactor}, ${velocityFactor}]}]
   		efficiency:Set[${Utility.Min[1, ${efficiency}]}]

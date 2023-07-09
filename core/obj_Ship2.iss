@@ -23,6 +23,9 @@ objectdef obj_Ship2
 	variable float64 ExpVel
 	variable float64 FlightRange
 	
+	; Storage index for bulk DB insert
+	variable index:string DBInsertIndex
+	
 	
 	method Initialize()
 	{
@@ -55,18 +58,18 @@ objectdef obj_Ship2
 		; Ammunition table for turrets.
 		; What belongs in this table?
 		;  Ammo Type ID (Integer Primary Key), Ammo Type (String), Ship's Item Type (String), Turret Item Type (String), Turret Tracking (Real), Turret Optimal (Real), Turret Falloff (Real), EM Damage (Real), Explosive Damage (Real), Kinetic Damage (Real), Thermal Damage (Real).
-		;if !${MyShipInfo.TableExists["ShipAmmunitionTurret"]}
-		;{
-		;	echo DEBUG - Ship2 - Creating ShipAmmunitionTurret
-		;	MyShipInfo:ExecDML["create table ShipAmmunitionAndDrones ;"]
-		;}
+		if !${MyShipInfo.TableExists["ShipAmmunitionTurret"]}
+		{
+			echo DEBUG - Ship2 - Creating ShipAmmunitionTurret
+			MyShipInfo:ExecDML["create table ShipAmmunitionTurret (AmmoTypeID INTEGER PRIMARY KEY, AmmoType TEXT, ShipType TEXT, TurretType TEXT, EMDamage REAL, ExpDamage REAL, KinDamage REAL, ThermDamage REAL, TrackingSpd REAL, OptimalRng REAL, FalloffRng REAL);"]
+		}
 		; Ammunition table for missiles.
 		; Ammo Type ID (Integer Primary Key), Ammo Type (String), Ship's Item Type (String), Launcher Item Type (String), Missile Explosion Velocity (Real), Missile Explosion Radius (Real), Missile Range (Real), EM Damage (Real), Explosive Damage (Real), Kinetic Damage (Real), Thermal Damage (Real).
-		;if !${MyShipInfo.TableExists["ShipAmmunitionMissile"]}
-		;{
-		;	echo DEBUG - Ship2 - Creating ShipAmmunitionMissile
-		;	MyShipInfo:ExecDML["create table ShipAmmunitionAndDrones ;"]
-		;}
+		if !${MyShipInfo.TableExists["ShipAmmunitionMissile"]}
+		{
+			echo DEBUG - Ship2 - Creating ShipAmmunitionMissile
+			MyShipInfo:ExecDML["create table ShipAmmunitionMissile (AmmoTypeID INTEGER PRIMARY KEY, AmmoType TEXT, ShipType TEXT, LauncherType TEXT, EMDamage REAL, ExpDamage REAL, KinDamage REAL, ThermDamage REAL, ExpRadius REAL, ExpVel REAL, FlightRange REAL);"]
+		}
 
 		
 		;;; This is where we will store our baseline stats about the actual ship itself. Basically our ships parameters AFTER skills but BEFORE any modules are activated.
@@ -96,27 +99,6 @@ objectdef obj_Ship2
 	
 		MyShipInfo:Close
 	}
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
-	;;; And this is what it means to go beyond, I call this Ship 2.
-	;;; Alright so heres the gist of it, this Object is going to be used in conjunction with information from obj_NPCData in another object or minimode
-	;;; So that we can make some decisions based on our paramters vs the NPCs parameters. This will let us accomplish a great deal more I should imagine.
-	;;; Also, we might be able to accomplish things against not NPCs but I'm not quite there yet. One thing at a time.
-	;;; Anywho, within this object we will maintain a DB of our ships configuration, and its basic attributes. Why am I using a DB for this? A great question
-	;;; SQL goes on everything, but more correctly, some of this information is going to be either A) hard to arrive at or B) costly to arrive at (in processing power)
-	;;; Your character, in a ship, with a fit, is a relatively static object. Excepting external forces like EWAR or whatever, if you undock your Myrmidon, dock, log off, log on
-	;;; and undock again, it will be the same ship before and after. Its weapons will be the same, its defenses the same. Maybe things might get weird if a skill finishes training
-	;;; but for the most part, we should be able to undock and define in certain terms every parameter that will form the baseline performance of your ship.
-	;;; If we know what modules we have, what scripts are available, what weapons we have, what ammunition is available, we will be able to calculate and record
-	;;; its ability to deal with any npc that we have in the DB (which is every NPC). 
-	;;; This NPC is going to be orbiting at x distance at y speed and it has z signature radius.
-	;;; We can't hit it with our short range t2 ammo due to the tracking speed malus, even with tracking speed scripts or webification applied. If we switch to ammo with better tracking
-	;;; we can hit it. 
-	;;; This sort of example is what I hope to accomplish here. I want to undock, pull my info from this DB, ensure it hasn't changed significantly, then use its values against
-	;;; the values we pull out of obj_NPCData and know immediately the correct order to destroy all the enemies. Who can be damaged by turrets right now vs
-	;;; who will be effectively invulnerable if allowed to reach their preferred orbit. That however, is a story for the new targetmanager. On to the work at hand, here in this object.
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	;;;
-	;;;
 	;;; For now, I need a somewhat comprehensive solution very quickly. So I will return to my flights of fancy later.
 	;;; Lets get some practical members in here. This first set of members is going to be about looking at our available ammunition, Taking the names and getting TypeIDs, then
 	;;; feeding the TypeIDs to NPCData to get some information about the ammunition types. Things are going to be vaguely awkward for missiles, but turrets shouldn't be too bad. Probably.
@@ -155,6 +137,7 @@ objectdef obj_Ship2
 					FalloffRng:Set[${Math.Calc[${NPCData.PlayerRangeMult[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.ModuleList_Turret.AccuracyFalloff}]}]
 				
 					echo ${EMDamage} ${ExpDamage} ${KinDamage} ${ThermDamage} ${TrackingSpd} ${OptimalRng} ${FalloffRng}
+					DBInsertIndex:Insert["insert into ShipAmmunitionTurret (AmmoTypeID, AmmoType, ShipType, TurretType, EMDamage, ExpDamage, KinDamage, ThermDamage, TrackingSpd, OptimalRng, FalloffRng) values (${AvailableAmmoIterator.Value.TypeID}, '${AvailableAmmoIterator.Value.Type.ReplaceSubstring[','']}', '${MyShip.ToEntity.Type.ReplaceSubstring[','']}', '${Ship.ModuleList_Turret.Type.ReplaceSubstring[','']}', ${EMDamage}, ${ExpDamage}, ${KinDamage}, ${ThermDamage}, ${TrackingSpd}, ${OptimalRng}, ${FalloffRng}) ON CONFLICT (AmmoTypeID) DO UPDATE SET ShipType=excluded.ShipType, TurretType=excluded.TurretType, EMDamage=excluded.EMDamage, ExpDamage=excluded.ExpDamage, KinDamage=excluded.KinDamage, ThermDamage=excluded.ThermDamage, TrackingSpd=excluded.TrackingSpd, OptimalRng=excluded.OptimalRng, FalloffRng=excluded.FalloffRng;"]
 				
 				}
 				while ${AvailableAmmoIterator:Next(exists)}
@@ -184,9 +167,13 @@ objectdef obj_Ship2
 					FlightRange:Set[${NPCData.PlayerMissileMaxRange[${AvailableAmmoIterator.Value.TypeID}]}]
 				
 					echo ${EMDamage} ${ExpDamage} ${KinDamage} ${ThermDamage} ${ExpRadius} ${ExpVel} ${FlightRange}
+					DBInsertIndex:Insert["insert into ShipAmmunitionMissile (AmmoTypeID, AmmoType, ShipType, LauncherType, EMDamage, ExpDamage, KinDamage, ThermDamage, ExpRadius, ExpVel, FlightRange) values (${AvailableAmmoIterator.Value.TypeID}, '${AvailableAmmoIterator.Value.Type.ReplaceSubstring[','']}', '${MyShip.ToEntity.Type.ReplaceSubstring[','']}', '${Ship.ModuleList_MissileLauncher.Type.ReplaceSubstring[','']}', ${EMDamage}, ${ExpDamage}, ${KinDamage}, ${ThermDamage}, ${ExpRadius}, ${ExpVel}, ${FlightRange}) ON CONFLICT (AmmoTypeID) DO UPDATE SET ShipType=excluded.ShipType, LauncherType=excluded.LauncherType, EMDamage=excluded.EMDamage, ExpDamage=excluded.ExpDamage, KinDamage=excluded.KinDamage, ThermDamage=excluded.ThermDamage, ExpRadius=excluded.ExpRadius, ExpVel=excluded.ExpVel, FlightRange=excluded.FlightRange;"]
 				}
 				while ${AvailableAmmoIterator:Next(exists)}
 			}
-		}			
+		}
+		MyShipInfo:ExecDMLTransaction[DBInsertIndex]
+		DBInsertIndex:Clear
 	}
+	
 }

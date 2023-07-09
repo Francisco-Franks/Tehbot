@@ -286,6 +286,9 @@ objectdef obj_Mission inherits obj_StateQueue
 	
 	; Need this to transfer BM information to a non-local client
 	variable file OffsiteDBTransferFile
+	
+	; Have we done our ammunition asssessment?
+	variable bool AmmoInfoAcquired
 
 	
 	method Initialize()
@@ -1367,7 +1370,6 @@ objectdef obj_Mission inherits obj_StateQueue
 							Move:AgentBookmark[${bookmarkIterator.Value.ID}]
 							TargetManager.ActiveNPCs.AutoLock:Set[FALSE]
 							TargetManager.NPCs.AutoLock:Set[FALSE]
-							Ship2:GetAmmoInformation
 							This:InsertState["Traveling", 5000]
 							reload:Set[TRUE]
 							This:QueueState["CombatMission", 4000]
@@ -1383,6 +1385,12 @@ objectdef obj_Mission inherits obj_StateQueue
 	; This state will be the start of Primary Logic for Combat Missions.Basically this state here will be our hub for combat missions.
 	member:bool CombatMission(int Cycles)
 	{
+		if !${AmmoInfoAcquired}
+		{
+			This:LogInfo["Getting current Ammunition Information"]
+			Ship2:GetAmmoInformation
+			AmmoInfoAcquired:Set[TRUE]
+		}
 		variable index:bookmark BookmarkIndex
 		variable index:bookmark BookmarkIndex2
 		variable iterator		BookmarkIterator2
@@ -2472,6 +2480,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		This:ClearCurrentAgentVariables
 		DatabasificationComplete:Set[FALSE]
 		CheckedMissionLogs:Set[FALSE]
+		AmmoInfoAcquired:Set[FALSE]
 		This:QueueState["CheckForWork",4000]
 		return TRUE
 	}

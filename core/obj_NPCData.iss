@@ -1487,7 +1487,7 @@ objectdef obj_NPCData
 	;;; Thus, we will need to look up our missile in the DB to get its basic stats and then modify them a bit, but we can't see skill levels
 	;;; so we will have to basically just fake goddamn everything. Off we go.
 	; This member will return the explosion radius of whatever missile we feed into it.
-	member:float64 PlayerMissileExplosionRadius(int TypeID)
+	member:float64 PlayerMissileExplosionRadius(int64 TypeID)
 	{
 		variable float64 MissileTypeID
 		variable float64 PlayerExpRadBonus
@@ -1513,7 +1513,7 @@ objectdef obj_NPCData
 		return ${FinalValue}
 	}
 	; This member will return the explosion velocity of whatever missile we feed into it.
-	member:float64 PlayerMissileExplosionVelocity(int TypeID)
+	member:float64 PlayerMissileExplosionVelocity(int64 TypeID)
 	{
 		variable float64 MissileTypeID
 		variable float64 PlayerExpVelBonus
@@ -1539,7 +1539,7 @@ objectdef obj_NPCData
 		return ${FinalValue}
 	}
 	; This member will return the approximate expected range of the typeID given.
-	member:float64 PlayerMissileMaxRange(int TypeID)
+	member:float64 PlayerMissileMaxRange(int64 TypeID)
 	{
 		variable float64 MissileTypeID
 		variable float64 PlayerFlightTimeBonus
@@ -1570,7 +1570,7 @@ objectdef obj_NPCData
 		return ${FinalValue}
 	}
 	; This member will return the Damage Reduction Factor for a given input missile typeid. I don't really know what the DRF does.
-	member:float64 PlayerMissileDRF(int TypeID)
+	member:float64 PlayerMissileDRF(int64 TypeID)
 	{
 		variable float64 MissileTypeID
 		variable float64 FinalValue
@@ -1590,7 +1590,7 @@ objectdef obj_NPCData
 		
 	}
 	; This member will return the base EM Damage for an input typeID.
-	member:float64 PlayerAmmoEM(int TypeID)
+	member:float64 PlayerAmmoEM(int64 TypeID)
 	{
 		variable float64 AmmoTypeID
 		variable float64 FinalValue
@@ -1609,7 +1609,7 @@ objectdef obj_NPCData
 			return 0
 	}
 	; This member will return the base Exp Damage for an input typeID.
-	member:float64 PlayerAmmoExp(int TypeID)
+	member:float64 PlayerAmmoExp(int64 TypeID)
 	{
 		variable float64 AmmoTypeID
 		variable float64 FinalValue
@@ -1628,7 +1628,7 @@ objectdef obj_NPCData
 			return 0
 	}
 	; This member will return the base Kin Damage for an input typeID.
-	member:float64 PlayerAmmoKin(int TypeID)
+	member:float64 PlayerAmmoKin(int64 TypeID)
 	{
 		variable float64 AmmoTypeID
 		variable float64 FinalValue
@@ -1647,7 +1647,7 @@ objectdef obj_NPCData
 			return 0
 	}
 	; This member will return the base Therm Damage for an input typeID.
-	member:float64 PlayerAmmoTherm(int TypeID)
+	member:float64 PlayerAmmoTherm(int64 TypeID)
 	{
 		variable float64 AmmoTypeID
 		variable float64 FinalValue
@@ -1666,7 +1666,7 @@ objectdef obj_NPCData
 			return 0
 	}
 	; This member will return the Tracking speed bonus/penalty for an input typeID.
-	member:float64 PlayerTrackingMult(int TypeID)
+	member:float64 PlayerTrackingMult(int64 TypeID)
 	{
 		variable float64 AmmoTypeID
 		variable float64 FinalValue
@@ -1685,7 +1685,7 @@ objectdef obj_NPCData
 			return 1
 	}
 	; This member will return the Range bonus/penalty for an input typeID.
-	member:float64 PlayerRangeMult(int TypeID)
+	member:float64 PlayerRangeMult(int64 TypeID)
 	{
 		variable float64 AmmoTypeID
 		variable float64 FinalValue
@@ -1703,6 +1703,40 @@ objectdef obj_NPCData
 		else
 			return 1
 	}
+	
+	;;; Next up, derived information about NPC defenses, so that we can use those numbers for comparison elsewhere.
+	; This member will return the Effective EM HP for the enemy, considering ALL of their defense layers.
+	member:float64 EnemyEMEHP(int64 TypeID)
+	{
+	
+	
+	
+	
+	}
+	; This member will return the Effective Explosive HP for the enemy, considering ALL of their defense layers.
+	member:float64 EnemyExpEHP(int64 TypeID)
+	{
+	
+	
+	
+	
+	}	
+	; This member will return the Effective Kinetic HP for the enemy, considering ALL of their defense layers.
+	member:float64 EnemyKinEHP(int64 TypeID)
+	{
+	
+	
+	
+	
+	}	
+	; This member will return the Effective Thermal HP for the enemy, considering ALL of their defense layers.
+	member:float64 EnemyThermEHP(int64 TypeID)
+	{
+	
+	
+	
+	
+	}	
 	;;;
 	; Need a way to get the type ID by feeding in a name, from another table in this DB.
 	member:float64 TypeIDByName(string InputName)
