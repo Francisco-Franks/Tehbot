@@ -1593,7 +1593,7 @@ objectdef obj_NPCData
 			MissileMaxVelocity:Set[${GetNPCInfo.GetFieldValue["value"]}]
 			GetNPCInfo:Finalize
 		}
-		FinalValue:Set[${Math.Calc[(${PlayerFlightTimeBonus}*${MissileFlightTime})*(${PlayerMaxVelocityBonus}*${MissileMaxVelocity})]}]
+		FinalValue:Set[${Math.Calc[((${PlayerFlightTimeBonus}*${MissileFlightTime})/1000)*(${PlayerMaxVelocityBonus}*${MissileMaxVelocity})]}]
 		return ${FinalValue}
 	}
 	; This member will return the Damage Reduction Factor for a given input missile typeid. I don't really know what the DRF does.
