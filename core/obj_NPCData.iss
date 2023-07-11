@@ -68,12 +68,13 @@ objectdef obj_NPCData
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			EOD:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			echo ${GetNPCInfo.GetFieldValue["value"]}
 			GetNPCInfo:Finalize
 			return ${EOD}
 		}
 		else
 		{
-			; TypeID not found.
+			echo TypeID not found.
 			return -1
 		}
 	}
@@ -148,7 +149,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Structure EM Resistance for the NPC. This is attribute 113.
@@ -166,7 +167,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Structure Explosive Resistance for the NPC. This is attribute 111.
@@ -184,7 +185,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Structure Kinetic Resistance for the NPC. This is attribute 109.
@@ -202,7 +203,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Structure Thermal Resistance for the NPC. This is attribute 110.
@@ -220,7 +221,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	;;; Armor Tank of NPC
@@ -239,7 +240,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Armor EM Resistance for the NPC. This is attribute 267.
@@ -257,7 +258,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Armor Explosive Resistance for the NPC. This is attribute 268.
@@ -275,7 +276,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Armor Kinetic Resistance for the NPC. This is attribute 269.
@@ -293,7 +294,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Armor Thermal Resistance for the NPC. This is attribute 270.
@@ -311,7 +312,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the expected Armor HP/s the NPC can repair. This will be based on attribute 631 (rep amount), attribute 630 (rep duration, measured in milliseconds), and attribute 638 (chance that the rep will actually occur).
@@ -374,7 +375,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Shield EM Resistance for the NPC. This is attribute 271.
@@ -392,7 +393,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Shield Explosive Resistance for the NPC. This is attribute 272.
@@ -410,7 +411,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Shield Kinetic Resistance for the NPC. This is attribute 273.
@@ -428,7 +429,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Shield Thermal Resistance for the NPC. This is attribute 274.
@@ -446,7 +447,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Shield HP/s the NPC can repair. This will be based on attribute 637 (rep amount), attribute 636 (rep duration, measured in milliseconds), and attribute 639 (chance that rep will actually occur).
@@ -562,7 +563,7 @@ objectdef obj_NPCData
 	{
 		variable float64 WebRange
 		
-		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND (attributeID=514 OR attribute=2500);"]}]
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND (attributeID=514 OR attributeID=2500);"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			WebRange:Set[${GetNPCInfo.GetFieldValue["value"]}]
@@ -1132,6 +1133,32 @@ objectdef obj_NPCData
 		}
 		FinalValue:Set[${Math.Calc[${NPCExpRadBonus}*${MissileExpRad}]}]
 		return ${FinalValue}
+	}
+	; This member will return the DRF of the NPC's missile.
+	; Missile DRF is 1353
+	member:float64 EnemyMissileDRF(int64 TypeID)
+	{
+		variable float64 MissileTypeID
+		variable float64 FinalValue
+		
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=507;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			MissileTypeID:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+		}
+		else
+		{
+			; TypeID not found.
+			return -1
+		}
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=1353;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+			return ${FinalValue}
+		}
 	}
 	; This member will return the Missile EM Damage output for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile EM damage is 114.
 	member:float64 EnemyMissileEMDamage(int64 TypeID)
@@ -1706,37 +1733,125 @@ objectdef obj_NPCData
 	
 	;;; Next up, derived information about NPC defenses, so that we can use those numbers for comparison elsewhere.
 	; This member will return the Effective EM HP for the enemy, considering ALL of their defense layers.
-	member:float64 EnemyEMEHP(int64 TypeID)
+	member:float64 EnemyEMEHP(int64 TypeID, string Layer)
 	{
-	
-	
-	
-	
+		variable float64 FinalValue
+		variable float64 StructEHP
+		variable float64 ArmorEHP
+		variable float64 ShieldEHP
+		
+		if ${Layer.Equals["Struct"]} || ${Layer.Equals["All"]} && ${This.EnemyHullHP[${TypeID}]} > 0
+		{
+			StructEHP:Set[${Math.Calc[${This.EnemyHullHP[${TypeID}]}*${This.EnemyHullEMRes[${TypeID}]}]}]
+			if !${Layer.Equals["All"]}
+				return ${StructEHP}
+		}
+		if (${Layer.Equals["Armor"]} || ${Layer.Equals["All"]}) && ${This.EnemyArmorHP[${TypeID}]} > 0
+		{
+			ArmorEHP:Set[${Math.Calc[${This.EnemyArmorHP[${TypeID}]}*${This.EnemyArmorEMRes[${TypeID}]}]}]
+			if !${Layer.Equals["All"]}
+				return ${ArmorEHP}
+		}
+		if (${Layer.Equals["Shield"]} || ${Layer.Equals["All"]}) && ${This.EnemyShieldHP[${TypeID}]} > 0
+		{
+			ShieldEHP:Set[${Math.Calc[${This.EnemyShieldHP[${TypeID}]}*${This.EnemyShieldEMRes[${TypeID}]}]}]
+			if !${Layer.Equals["All"]}
+				return ${ShieldEHP}
+		}
+		FinalValue:Set[${Math.Calc[${StructEHP}+${ArmorEHP}+${ShieldEHP}]}]
+		if ${Layer.Equals["All"]}
+			return ${FinalValue}		
 	}
 	; This member will return the Effective Explosive HP for the enemy, considering ALL of their defense layers.
-	member:float64 EnemyExpEHP(int64 TypeID)
+	member:float64 EnemyExpEHP(int64 TypeID, string Layer)
 	{
-	
-	
-	
-	
+		variable float64 FinalValue
+		variable float64 StructEHP
+		variable float64 ArmorEHP
+		variable float64 ShieldEHP
+		
+		if (${Layer.Equals["Struct"]} || ${Layer.Equals["All"]}) && ${This.EnemyHullHP[${TypeID}]} > 0
+		{
+			StructEHP:Set[${Math.Calc[${This.EnemyHullHP[${TypeID}]}/${This.EnemyHullExpRes[${TypeID}]}]}]
+			if !${Layer.Equals["All"]}
+				return ${StructEHP}
+		}
+		if (${Layer.Equals["Armor"]} || ${Layer.Equals["All"]}) && ${This.EnemyArmorHP[${TypeID}]} > 0
+		{
+			ArmorEHP:Set[${Math.Calc[${This.EnemyArmorHP[${TypeID}]}/${This.EnemyArmorExpRes[${TypeID}]}]}]
+			if !${Layer.Equals["All"]}
+				return ${ArmorEHP}
+		}
+		if (${Layer.Equals["Shield"]} || ${Layer.Equals["All"]}) && ${This.EnemyShieldHP[${TypeID}]} > 0
+		{
+			ShieldEHP:Set[${Math.Calc[${This.EnemyShieldHP[${TypeID}]}/${This.EnemyShieldExpRes[${TypeID}]}]}]
+			if !${Layer.Equals["All"]}
+				return ${ShieldEHP}
+		}
+		FinalValue:Set[${Math.Calc[${StructEHP}+${ArmorEHP}+${ShieldEHP}]}]
+		if ${Layer.Equals["All"]}
+			return ${FinalValue}
 	}	
 	; This member will return the Effective Kinetic HP for the enemy, considering ALL of their defense layers.
-	member:float64 EnemyKinEHP(int64 TypeID)
+	member:float64 EnemyKinEHP(int64 TypeID, string Layer)
 	{
-	
-	
-	
-	
+		variable float64 FinalValue
+		variable float64 StructEHP
+		variable float64 ArmorEHP
+		variable float64 ShieldEHP
+		
+		if (${Layer.Equals["Struct"]} || ${Layer.Equals["All"]}) && ${This.EnemyHullHP[${TypeID}]} > 0
+		{
+			StructEHP:Set[${Math.Calc[${This.EnemyHullHP[${TypeID}]}/${This.EnemyHullKinRes[${TypeID}]}]}]
+			if !${Layer.Equals["All"]}
+				return ${StructEHP}
+		}
+		if (${Layer.Equals["Armor"]} || ${Layer.Equals["All"]}) && ${This.EnemyArmorHP[${TypeID}]} > 0
+		{
+			ArmorEHP:Set[${Math.Calc[${This.EnemyArmorHP[${TypeID}]}/${This.EnemyArmorKinRes[${TypeID}]}]}]
+			if !${Layer.Equals["All"]}
+				return ${ArmorEHP}
+		}
+		if (${Layer.Equals["Shield"]} || ${Layer.Equals["All"]}) && ${This.EnemyShieldHP[${TypeID}]} > 0
+		{
+			ShieldEHP:Set[${Math.Calc[${This.EnemyShieldHP[${TypeID}]}/${This.EnemyShieldKinRes[${TypeID}]}]}]
+			if !${Layer.Equals["All"]}
+				return ${ShieldEHP}
+		}
+		FinalValue:Set[${Math.Calc[${StructEHP}+${ArmorEHP}+${ShieldEHP}]}]
+		if ${Layer.Equals["All"]}
+			return ${FinalValue}
 	}	
 	; This member will return the Effective Thermal HP for the enemy, considering ALL of their defense layers.
-	member:float64 EnemyThermEHP(int64 TypeID)
+	member:float64 EnemyThermEHP(int64 TypeID, string Layer)
 	{
-	
-	
-	
-	
-	}	
+		variable float64 FinalValue
+		variable float64 StructEHP
+		variable float64 ArmorEHP
+		variable float64 ShieldEHP
+		
+		if (${Layer.Equals["Struct"]} || ${Layer.Equals["All"]}) && ${This.EnemyHullHP[${TypeID}]} > 0
+		{
+			StructEHP:Set[${Math.Calc[${This.EnemyHullHP[${TypeID}]}/${This.EnemyHullThermRes[${TypeID}]}]}]
+			if !${Layer.Equals["All"]}
+				return ${StructEHP}
+		}
+		if (${Layer.Equals["Armor"]} || ${Layer.Equals["All"]}) && ${This.EnemyArmorHP[${TypeID}]} > 0
+		{
+			ArmorEHP:Set[${Math.Calc[${This.EnemyArmorHP[${TypeID}]}/${This.EnemyArmorThermRes[${TypeID}]}]}]
+			if !${Layer.Equals["All"]}
+				return ${ArmorEHP}
+		}
+		if (${Layer.Equals["Shield"]} || ${Layer.Equals["All"]}) && ${This.EnemyShieldHP[${TypeID}]} > 0
+		{
+			ShieldEHP:Set[${Math.Calc[${This.EnemyShieldHP[${TypeID}]}/${This.EnemyShieldThermRes[${TypeID}]}]}]
+			if !${Layer.Equals["All"]}
+				return ${ShieldEHP}
+		}
+		FinalValue:Set[${Math.Calc[${StructEHP}+${ArmorEHP}+${ShieldEHP}]}]
+		if ${Layer.Equals["All"]}
+			return ${FinalValue}
+	}
 	;;;
 	; Need a way to get the type ID by feeding in a name, from another table in this DB.
 	member:float64 TypeIDByName(string InputName)
@@ -1750,6 +1865,22 @@ objectdef obj_NPCData
 			GetTypeIDByName:Finalize
 			return ${TypeID}
 		}
+		else
+			return -1
+	}
+	; This will return the reload time for a given TypeID.
+	member:float64 PlayerReloadTime(int64 TypeID)
+	{
+		variable float64 FinalValue
+		variable int64 WeaponTypeID
+		
+		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${WeaponTypeID} AND attributeID=1795;"]}]
+		if ${GetNPCInfo.NumRows} > 0
+		{
+			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			GetNPCInfo:Finalize
+			return ${FinalValue}
+		}		
 		else
 			return -1
 	}

@@ -72,9 +72,11 @@ objectdef obj_TargetManager inherits obj_StateQueue
 	variable obj_TargetList Dramiels
 
 
+	
 	variable int maxAttackTime
 	variable int switchTargetAfter = 120
 	variable int64 BurstTimer
+	variable int64 CombatComputerTimer
 
 	method Initialize()
 	{
@@ -988,7 +990,27 @@ objectdef obj_TargetManager inherits obj_StateQueue
 		ActiveNPCs.AutoLock:Set[TRUE]
 		ActiveNPCs:RequestUpdate
 		This:PlagiarisedOffense
-		
+		if ${LavishScript.RunningTime} >= ${CombatComputerTimer}
+		{
+			Ship2:GetAmmoInformation
+			Ship2:GetReloadTime
+			variable iterator ActiveNPCIterator
+			ActiveNPCs.TargetList:GetIterator[ActiveNPCIterator]
+			if ${ActiveNPCIterator:First(exists)}
+			{
+				do
+				{
+					echo DEBUG TARGET MANAGER INSERT INTO INDEX ${ActiveNPCIterator.Value}
+					CombatComputer.ActiveNPCIndex:Insert[${ActiveNPCIterator.Value}]
+				}
+				while ${ActiveNPCIterator:Next(exists)}
+			}
+			if ${CombatComputer.ActiveNPCIndex.Size} > 0
+			{
+				CombatComputer:UpsertCurrentData
+				CombatComputerTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 20000]}]
+			}
+		}
 		return FALSE
 	}
 }

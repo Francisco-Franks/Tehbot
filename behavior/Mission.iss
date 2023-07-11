@@ -1388,7 +1388,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		if !${AmmoInfoAcquired}
 		{
 			This:LogInfo["Getting current Ammunition Information"]
-			Ship2:GetAmmoInformation
 			AmmoInfoAcquired:Set[TRUE]
 		}
 		variable index:bookmark BookmarkIndex
@@ -3152,7 +3151,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			do
 			{
-				if ${BookmarkIterator.Value.Label.Find["${Config.SalvagePrefix}"]}
+				if ${BookmarkIterator.Value.Label.Find["${Config.SalvagePrefix}"]} && ${BookmarkIterator.Value.CreatorID} == ${Me.CharID}
 				{
 					This:SalvageBMTableInsert[${BookmarkIterator.Value.ID},${BookmarkIterator.Value.Label.ReplaceSubstring[','']},69,${Universe[${BookmarkIterator.Value.SolarSystemID}].Name.ReplaceSubstring[','']},${Math.Calc[${BookmarkIterator.Value.Created.AsInt64} + 71000000000]},0,0,0}]
 					if ${Config.ExtremelySharedDBPath.NotNULLOrEmpty} && ${Config.ExtremelySharedDBPrefix.NotNULLOrEmpty}

@@ -32,7 +32,7 @@ objectdef obj_Ship2
 
 		; We shouldnt need WAL on this, it is a DB intended to be accessed by a singular client.
 		
-		MyShipInfo:Set[${SQLite.OpenDB["${Me.Name}ShipDB","${Script.CurrentDirectory}/${Me.Name}ShipDB.sqlite3"]}]
+		MyShipInfo:Set[${SQLite.OpenDB["${Me.Name}ShipDB","${Script.CurrentDirectory}/Data/${Me.Name}ShipDB.sqlite3"]}]
 
 		;;; These are where we will store our modules and pertinent information about each module. A module can be in more than one table.
 		; General modules, and general information. Generally speaking.
@@ -117,6 +117,7 @@ objectdef obj_Ship2
 		; No pacifists plz
 		if ${Ship.ModuleList_Weapon.Count} <= 0
 			return FALSE
+		This:SetMinimumAmmoAmount
 		; Turrets. We want the four damage types/amounts, tracking, optimal, and falloff with the ammo. I think thats all.
 		; Ammo Type ID (Integer Primary Key), Ammo Type (String), Ship's Item Type (String), Turret Item Type (String), Turret Tracking (Real), Turret Optimal (Real), Turret Falloff (Real), EM Damage (Real), Explosive Damage (Real), Kinetic Damage (Real), Thermal Damage (Real).
 		if ${Ship.ModuleList_Turret.Count} > 0
@@ -128,6 +129,8 @@ objectdef obj_Ship2
 			{
 				do
 				{
+					if ${AvailableAmmoIterator.Value.TypeID} < ${CombatComputer.MinAmmoAmount}
+						continue
 					EMDamage:Set[${Math.Calc[${NPCData.PlayerAmmoEM[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
 					ExpDamage:Set[${Math.Calc[${NPCData.PlayerAmmoExp[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
 					KinDamage:Set[${Math.Calc[${NPCData.PlayerAmmoKin[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
@@ -138,7 +141,7 @@ objectdef obj_Ship2
 				
 					echo ${EMDamage} ${ExpDamage} ${KinDamage} ${ThermDamage} ${TrackingSpd} ${OptimalRng} ${FalloffRng}
 					DBInsertIndex:Insert["insert into ShipAmmunitionTurret (AmmoTypeID, AmmoType, ShipType, TurretType, EMDamage, ExpDamage, KinDamage, ThermDamage, TrackingSpd, OptimalRng, FalloffRng) values (${AvailableAmmoIterator.Value.TypeID}, '${AvailableAmmoIterator.Value.Type.ReplaceSubstring[','']}', '${MyShip.ToEntity.Type.ReplaceSubstring[','']}', '${Ship.ModuleList_Turret.Type.ReplaceSubstring[','']}', ${EMDamage}, ${ExpDamage}, ${KinDamage}, ${ThermDamage}, ${TrackingSpd}, ${OptimalRng}, ${FalloffRng}) ON CONFLICT (AmmoTypeID) DO UPDATE SET ShipType=excluded.ShipType, TurretType=excluded.TurretType, EMDamage=excluded.EMDamage, ExpDamage=excluded.ExpDamage, KinDamage=excluded.KinDamage, ThermDamage=excluded.ThermDamage, TrackingSpd=excluded.TrackingSpd, OptimalRng=excluded.OptimalRng, FalloffRng=excluded.FalloffRng;"]
-				
+					CombatComputer.AmmoCollection:Set[${AvailableAmmoIterator.Value.Name},${AvailableAmmoIterator.Value.TypeID}]
 				}
 				while ${AvailableAmmoIterator:Next(exists)}
 			}
@@ -156,6 +159,8 @@ objectdef obj_Ship2
 			{
 				do
 				{
+					if ${AvailableAmmoIterator.Value.TypeID} < ${CombatComputer.MinAmmoAmount}
+						continue
 					; These damage estimates are going to be based on both of my golem archtypes, both cruise and torp with 3 damage mods
 					; and mostly level 4 skills yields around 4x damage, so we're going with that until amadeus gives me what i need.
 					EMDamage:Set[${Math.Calc[${NPCData.PlayerAmmoEM[${AvailableAmmoIterator.Value.TypeID}]}*(4)]}]
@@ -168,6 +173,7 @@ objectdef obj_Ship2
 				
 					echo ${EMDamage} ${ExpDamage} ${KinDamage} ${ThermDamage} ${ExpRadius} ${ExpVel} ${FlightRange}
 					DBInsertIndex:Insert["insert into ShipAmmunitionMissile (AmmoTypeID, AmmoType, ShipType, LauncherType, EMDamage, ExpDamage, KinDamage, ThermDamage, ExpRadius, ExpVel, FlightRange) values (${AvailableAmmoIterator.Value.TypeID}, '${AvailableAmmoIterator.Value.Type.ReplaceSubstring[','']}', '${MyShip.ToEntity.Type.ReplaceSubstring[','']}', '${Ship.ModuleList_MissileLauncher.Type.ReplaceSubstring[','']}', ${EMDamage}, ${ExpDamage}, ${KinDamage}, ${ThermDamage}, ${ExpRadius}, ${ExpVel}, ${FlightRange}) ON CONFLICT (AmmoTypeID) DO UPDATE SET ShipType=excluded.ShipType, LauncherType=excluded.LauncherType, EMDamage=excluded.EMDamage, ExpDamage=excluded.ExpDamage, KinDamage=excluded.KinDamage, ThermDamage=excluded.ThermDamage, ExpRadius=excluded.ExpRadius, ExpVel=excluded.ExpVel, FlightRange=excluded.FlightRange;"]
+					CombatComputer.AmmoCollection:Set[${AvailableAmmoIterator.Value.Name}},${AvailableAmmoIterator.Value.TypeID}]
 				}
 				while ${AvailableAmmoIterator:Next(exists)}
 			}
@@ -175,5 +181,23 @@ objectdef obj_Ship2
 		MyShipInfo:ExecDMLTransaction[DBInsertIndex]
 		DBInsertIndex:Clear
 	}
-	
+	; This method will set the minimum amount of ammo to be considered for the previous method.
+	method SetMinimumAmmoAmount()
+	{
+		; 1000 is a good amount of missiles right
+		if ${Ship.ModuleList_MissileLauncher.Count} > 0
+			CombatComputer.MinAmmoAmount:Set[1000]
+		; Turrets in general, 1000
+		if ${Ship.ModuleList_Turret.Count} > 0
+			CombatComputer.MinAmmoAmount:Set[1000]
+		; Energy Weapons specifically, 4 or more crystals.
+		if ${Ship.ModuleList_Turret.GroupID} == 53
+			CombatComputer.MinAmmoAmount:Set[4]	
+	}
+	; This method will set the Reload Time for our weapon.
+	method GetReloadTime()
+	{
+		CombatComputer.ChangeTime:Set[${NPCData.PlayerReloadTime[${Ship.ModuleList_Weapon.TypeID}]}]
+		echo DEBUG - Ship 2 - Change Ammo Time ${NPCData.PlayerReloadTime[${Ship.ModuleList_Weapon.TypeID}]}
+	}
 }

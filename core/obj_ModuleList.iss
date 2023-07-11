@@ -286,13 +286,21 @@ objectdef obj_ModuleList inherits obj_Logger
 	{
 		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].ID}
 	}
-	member:int64 Type()
+	member:string Type()
 	{
 		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].Type}
+	}
+	member:int64 TypeID()
+	{
+		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].TypeID}
 	}
 	member:float Range()
 	{
 		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].Range}
+	}
+	member:float GroupID()
+	{
+		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].GroupID}
 	}
 
 	member:float OptimalRange()
