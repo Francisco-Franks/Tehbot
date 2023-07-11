@@ -498,8 +498,8 @@ objectdef obj_CombatComputer
 		; Enemy velocity, sig radius, distance.
 		variable float64 NPCSigRad 
 		NPCSigRad:Set[${Entity[${EntityID}].Radius}]
-		variable float64 NPCVeloc
-		NPCVeloc:Set[${Entity[${EntityID}].Velocity}]
+		variable float64 NPCVel
+		NPCVel:Set[${Entity[${EntityID}].Velocity}]
 		variable float64 NPCDist 
 		NPCDist:Set[${Entity[${EntityID}].Distance}]
 		; Turret Calcs
@@ -526,9 +526,13 @@ objectdef obj_CombatComputer
 		{
 			RadiusFactor:Set[${Math.Calc[${NPCSigRad} / ${MisslExpRad}]}]
 			if !${NPCVel.Equal[0]}
+			{
 				VelocityFactor:Set[${Math.Calc[(${RadiusFactor} * ${MisslExpVel} / ${NPCVel}) ^^ ${MisslDRF}]}]
+			}
 			else
+			{
 				VelocityFactor:Set[1]
+			}
 			MissileDmgMod:Set[${Utility.Min[${RadiusFactor}, ${VelocityFactor}]}]
 			MissileDmgMod:Set[${Utility.Min[1, ${MissileDmgMod}]}]
 		}
@@ -560,12 +564,16 @@ objectdef obj_CombatComputer
 		else
 		{
 			DmgPMCollection:Set[${Math.Calc[${AmmoDmgEM}*${MissileDmgMod}].Int.LeadingZeroes[8]},EM]
+			AmmoDmgEMPM:Set[${Math.Calc[${AmmoDmgEM}*${MissileDmgMod}].Int.LeadingZeroes[8]}]
 			echo ${Math.Calc[${AmmoDmgEM}*${MissileDmgMod}].Int.LeadingZeroes[8]},EM
 			DmgPMCollection:Set[${Math.Calc[${AmmoDmgExp}*${MissileDmgMod}].Int.LeadingZeroes[8]},Exp]
+			AmmoDmgExpPM:Set[${Math.Calc[${AmmoDmgExp}*${MissileDmgMod}].Int.LeadingZeroes[8]}]
 			echo ${Math.Calc[${AmmoDmgExp}*${MissileDmgMod}].Int.LeadingZeroes[8]},Exp
 			DmgPMCollection:Set[${Math.Calc[${AmmoDmgKin}*${MissileDmgMod}].Int.LeadingZeroes[8]},Kin]
+			AmmoDmgKinPM:Set[${Math.Calc[${AmmoDmgKin}*${MissileDmgMod}].Int.LeadingZeroes[8]}]
 			echo ${Math.Calc[${AmmoDmgKin}*${MissileDmgMod}].Int.LeadingZeroes[8]},Kin
 			DmgPMCollection:Set[${Math.Calc[${AmmoDmgTherm}*${MissileDmgMod}].Int.LeadingZeroes[8]},Therm]
+			AmmoDmgThermPM:Set[${Math.Calc[${AmmoDmgTherm}*${MissileDmgMod}].Int.LeadingZeroes[8]}]
 			echo ${Math.Calc[${AmmoDmgTherm}*${MissileDmgMod}].Int.LeadingZeroes[8]},Therm
 		}
 		; Need these for ROF kinda stuff. We have a Bastion Module and it is On, or we don't have one at all, use the current ROF.
