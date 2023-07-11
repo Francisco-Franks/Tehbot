@@ -498,6 +498,7 @@ objectdef obj_CombatComputer
 		; Enemy velocity, sig radius, distance.
 		variable float64 NPCSigRad 
 		NPCSigRad:Set[${Entity[${EntityID}].Radius}]
+
 		variable float64 NPCVel
 		NPCVel:Set[${Entity[${EntityID}].Velocity}]
 		variable float64 NPCDist 
@@ -525,6 +526,7 @@ objectdef obj_CombatComputer
 		if ${Missl}
 		{
 			RadiusFactor:Set[${Math.Calc[${NPCSigRad} / ${MisslExpRad}]}]
+			echo NPCEXPECTEDDAMAGE MISSL ${NPCSigRad} RADIUS FACTOR ${RadiusFactor} RAD ${MisslExpRad} VEL ${MisslExpVel} DRF ${MisslDRF}
 			if !${NPCVel.Equal[0]}
 			{
 				VelocityFactor:Set[${Math.Calc[(${RadiusFactor} * ${MisslExpVel} / ${NPCVel}) ^^ ${MisslDRF}]}]
@@ -534,7 +536,9 @@ objectdef obj_CombatComputer
 				VelocityFactor:Set[1]
 			}
 			MissileDmgMod:Set[${Utility.Min[${RadiusFactor}, ${VelocityFactor}]}]
+			echo NPC EXPECTEDDAMAGE MISSL MISSL MISSL MISSL RADIUS FACTOR ${RadiusFactor} VELOCITY FACTOR ${VelocityFactor}
 			MissileDmgMod:Set[${Utility.Min[1, ${MissileDmgMod}]}]
+			echo NPC EXPECTATRATORNSD MISSL MISSL MISSL MISSSSSLLLLL ${MissileDmgMod} 
 		}
 		if ${ReqInfo.Equals["OurDamageEff"]} && ${Missl}
 		{
@@ -630,10 +634,9 @@ objectdef obj_CombatComputer
 		NPCHullHPStart:Set[${NPCHullHP}]
 		; I'm not sure anymore.
 		variable float64 LowestDmgNmbr
-		
 		if ${DmgPMCollection.FirstKey(exists)}
 		{
-			echo ${DmgPMCollection.FirstKey) DMGPMCOLLECTION FIRSTKEY
+			echo ${DmgPMCollection.FirstKey}			DMGPMCOLLECTION FIRSTKEY
 			do
 			{
 				if ${DmgPMCollection.CurrentKey} == 0
@@ -647,6 +650,11 @@ objectdef obj_CombatComputer
 				}
 			}
 			while ${DmgPMCollection.NextKey(exists)}
+		}
+		; You know, missiles never ever come with multiple damage types so lets just divide it by fucking 50 and call it a god damn day.
+		if ${Missl}
+		{
+			LowestDmgNmbr:Set[50]
 		}
 		variable float64 EMDec 
 		EMDec:Set[${Math.Calc[${AmmoDmgEMPM}/${LowestDmgNmbr}]}]
