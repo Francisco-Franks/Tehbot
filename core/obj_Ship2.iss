@@ -129,7 +129,7 @@ objectdef obj_Ship2
 			{
 				do
 				{
-					if ${AvailableAmmoIterator.Value.TypeID} < ${CombatComputer.MinAmmoAmount}
+					if ${AvailableAmmoIterator.Value.Quantity} < ${CombatComputer.MinAmmoAmount}
 						continue
 					EMDamage:Set[${Math.Calc[${NPCData.PlayerAmmoEM[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
 					ExpDamage:Set[${Math.Calc[${NPCData.PlayerAmmoExp[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
@@ -145,6 +145,23 @@ objectdef obj_Ship2
 				}
 				while ${AvailableAmmoIterator:Next(exists)}
 			}
+			if ${Ship.ModuleList_Turret.Charge.Name.NotNULLOrEmpty}
+			{
+				if ${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Name}](exists)}
+				{
+					EMDamage:Set[${Math.Calc[${NPCData.PlayerAmmoEM[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Name}].TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
+					ExpDamage:Set[${Math.Calc[${NPCData.PlayerAmmoExp[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Name}].TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
+					KinDamage:Set[${Math.Calc[${NPCData.PlayerAmmoKin[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Name}].TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
+					ThermDamage:Set[${Math.Calc[${NPCData.PlayerAmmoTherm[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Name}].TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
+					TrackingSpd:Set[${Math.Calc[${NPCData.PlayerTrackingMult[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Name}].TypeID}]}*${Ship.ModuleList_Turret.TrackingSpeed}]}]
+					OptimalRng:Set[${Math.Calc[${NPCData.PlayerRangeMult[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Name}].TypeID}]}*${Ship.ModuleList_Turret.OptimalRange}]}]
+					FalloffRng:Set[${Math.Calc[${NPCData.PlayerRangeMult[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Name}].TypeID}]}*${Ship.ModuleList_Turret.AccuracyFalloff}]}]
+				
+					echo ${EMDamage} ${ExpDamage} ${KinDamage} ${ThermDamage} ${TrackingSpd} ${OptimalRng} ${FalloffRng}
+					DBInsertIndex:Insert["insert into ShipAmmunitionTurret (AmmoTypeID, AmmoType, ShipType, TurretType, EMDamage, ExpDamage, KinDamage, ThermDamage, TrackingSpd, OptimalRng, FalloffRng) values (${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Name}].TypeID}, '${AvailableAmmoIterator.Value.Type.ReplaceSubstring[','']}', '${MyShip.ToEntity.Type.ReplaceSubstring[','']}', '${Ship.ModuleList_Turret.Type.ReplaceSubstring[','']}', ${EMDamage}, ${ExpDamage}, ${KinDamage}, ${ThermDamage}, ${TrackingSpd}, ${OptimalRng}, ${FalloffRng}) ON CONFLICT (AmmoTypeID) DO UPDATE SET ShipType=excluded.ShipType, TurretType=excluded.TurretType, EMDamage=excluded.EMDamage, ExpDamage=excluded.ExpDamage, KinDamage=excluded.KinDamage, ThermDamage=excluded.ThermDamage, TrackingSpd=excluded.TrackingSpd, OptimalRng=excluded.OptimalRng, FalloffRng=excluded.FalloffRng;"]
+					CombatComputer.AmmoCollection:Set[${Ship.ModuleList_Turret.Charge.Name},${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Name}].TypeID}]
+				}
+			}
 		}
 		; Missiles. We want the four damage types/amounts and your skills, the explosion velocity, the explosion radius, the approximate range.
 		; This is going to be slightly worse because I have to just make up multipliers here, if your skills differ you will have different results. Going to try and keep it reasonable
@@ -159,7 +176,7 @@ objectdef obj_Ship2
 			{
 				do
 				{
-					if ${AvailableAmmoIterator.Value.TypeID} < ${CombatComputer.MinAmmoAmount}
+					if ${AvailableAmmoIterator.Value.Quantity} < ${CombatComputer.MinAmmoAmount}
 						continue
 					; These damage estimates are going to be based on both of my golem archtypes, both cruise and torp with 3 damage mods
 					; and mostly level 4 skills yields around 4x damage, so we're going with that until amadeus gives me what i need.
@@ -176,6 +193,23 @@ objectdef obj_Ship2
 					CombatComputer.AmmoCollection:Set[${AvailableAmmoIterator.Value.Name}},${AvailableAmmoIterator.Value.TypeID}]
 				}
 				while ${AvailableAmmoIterator:Next(exists)}
+			}
+			if ${Ship.ModuleList_MissileLauncher.Charge.Name.NotNULLOrEmpty}
+			{
+				if ${MyShip.Cargo[${Ship.ModuleList_MissileLauncher.Charge.Name}](exists)} 
+				{
+					EMDamage:Set[${Math.Calc[${NPCData.PlayerAmmoEM[${MyShip.Cargo[${Ship.ModuleList_MissileLauncher.Charge.Name}].TypeID}]}*(4)]}]
+					ExpDamage:Set[${Math.Calc[${NPCData.PlayerAmmoExp[${MyShip.Cargo[${Ship.ModuleList_MissileLauncher.Charge.Name}].TypeID}]}*(4)]}]
+					KinDamage:Set[${Math.Calc[${NPCData.PlayerAmmoKin[${MyShip.Cargo[${Ship.ModuleList_MissileLauncher.Charge.Name}].TypeID}]}*(4)]}]
+					ThermDamage:Set[${Math.Calc[${NPCData.PlayerAmmoTherm[${MyShip.Cargo[${Ship.ModuleList_MissileLauncher.Charge.Name}].TypeID}]}*(4)]}]				
+					ExpRadius:Set[${NPCData.PlayerMissileExplosionRadius[${MyShip.Cargo[${Ship.ModuleList_MissileLauncher.Charge.Name}].TypeID}]}]
+					ExpVel:Set[${NPCData.PlayerMissileExplosionVelocity[${MyShip.Cargo[${Ship.ModuleList_MissileLauncher.Charge.Name}].TypeID}]}]
+					FlightRange:Set[${NPCData.PlayerMissileMaxRange[${MyShip.Cargo[${Ship.ModuleList_MissileLauncher.Charge.Name}].TypeID}]}]
+				
+					echo ${EMDamage} ${ExpDamage} ${KinDamage} ${ThermDamage} ${ExpRadius} ${ExpVel} ${FlightRange}
+					DBInsertIndex:Insert["insert into ShipAmmunitionMissile (AmmoTypeID, AmmoType, ShipType, LauncherType, EMDamage, ExpDamage, KinDamage, ThermDamage, ExpRadius, ExpVel, FlightRange) values (${MyShip.Cargo[${Ship.ModuleList_MissileLauncher.Charge.Name}].TypeID}, '${AvailableAmmoIterator.Value.Type.ReplaceSubstring[','']}', '${MyShip.ToEntity.Type.ReplaceSubstring[','']}', '${Ship.ModuleList_MissileLauncher.Type.ReplaceSubstring[','']}', ${EMDamage}, ${ExpDamage}, ${KinDamage}, ${ThermDamage}, ${ExpRadius}, ${ExpVel}, ${FlightRange}) ON CONFLICT (AmmoTypeID) DO UPDATE SET ShipType=excluded.ShipType, LauncherType=excluded.LauncherType, EMDamage=excluded.EMDamage, ExpDamage=excluded.ExpDamage, KinDamage=excluded.KinDamage, ThermDamage=excluded.ThermDamage, ExpRadius=excluded.ExpRadius, ExpVel=excluded.ExpVel, FlightRange=excluded.FlightRange;"]
+					CombatComputer.AmmoCollection:Set[${Ship.ModuleList_MissileLauncher.Charge.Name}},${MyShip.Cargo[${Ship.ModuleList_MissileLauncher.Charge.Name}].TypeID}]
+				}
 			}
 		}
 		MyShipInfo:ExecDMLTransaction[DBInsertIndex]

@@ -337,6 +337,11 @@ objectdef obj_ModuleList inherits obj_Logger
 	{
 		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}]._turretTrackingDecayFactor[${targetID}]}
 	}
+	
+	member:string ChargeName()
+	{
+		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].Charge.Name}
+	}
 
 	member:string FallbackAmmo()
 	{
