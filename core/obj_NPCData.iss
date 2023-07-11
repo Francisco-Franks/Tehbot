@@ -332,7 +332,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=630;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -343,7 +343,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=638;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -354,7 +354,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		ArmorReps:Set[${Math.Calc[(${RepAmount}/${RepDuration})*${RepChance}]}]
 		return ${ArmorReps}
@@ -467,7 +467,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=636;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -478,7 +478,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=639;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -489,7 +489,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		ShieldReps:Set[${Math.Calc[(${RepAmount}/${RepDuration})*${RepChance}]}]
 		return ${ShieldReps}
@@ -511,7 +511,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		if ${ScramStrength} < 2
 		{
@@ -523,7 +523,7 @@ objectdef obj_NPCData
 		else
 		{
 			; This is a Scram.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Warp SCRAMBLER Distance the NPC uses. This will be based on attribute 103 (range) and attribute 105 (strength, if strength is over 1 then its a scram).
@@ -542,7 +542,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		if ${ScramStrength} >= 2
 		{
@@ -554,7 +554,7 @@ objectdef obj_NPCData
 		else
 		{
 			; This is a regular Warp Disruptor.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float 64 will be the Stasis Webifier range for the NPC. This will be based on attribute 514.
@@ -573,7 +573,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the Energy Neutralizer range for the NPC. This will be based on attribute 98. It says optimal, neuts work past optimal, but it doesn't tell me the falloff. So this will have to do.
@@ -591,7 +591,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the amount of capacitor the NPC eats with neuts. Attribute 97.
@@ -609,7 +609,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, this float64 will be the amount of capacitor the NPC eats with neuts PER SECOND. Attribute 97 (amount), attribute 942 (duration), and attribute 931 (chance)
@@ -629,7 +629,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=942;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -640,7 +640,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=931;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -651,7 +651,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		NeutSec:Set[${Math.Calc[(${NeutAmount}/${NeutDuration})*${NeutChance}]}]
 		return ${NeutSec}
@@ -731,7 +731,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return a float64, the float64 will be the Strength of the Sensor Damp. 237 for old NPCs. For new NPCs they use a freakin negative number instead of a .80 or whatever. Attribute 309, we need to make it into a positive decimal.
@@ -754,7 +754,7 @@ objectdef obj_NPCData
 		if ${DampStrength} > 0
 			return ${DampStrength}
 		else
-			return -1
+			return 0
 	}
 	;;; The following members will be for actual damaging Offensive Capabilities. Turrets first.
 	; This member will return the Optimal Range for the NPCs turrets. Attribute 54
@@ -772,7 +772,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return the Falloff Range for the NPCs turrets. Attribute 158
@@ -790,7 +790,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 	}
 	; This member will return the Tracking Speed for the NPCs turrets. Unfortunately, while old NPCs and new NPCs use the same attribute, 160, the old NPCs have numbers below 1 and new NPCs have numbers much higher
@@ -820,7 +820,7 @@ objectdef obj_NPCData
 			return ${TurretTracking}
 		}
 		else
-			return -1
+			return 0
 	}
 	; This member will return the Turret EM Damage Alpha for the NPC. Attribute 114 (em damage), attribute 64 (damage multiplier).
 	member:float64 EnemyTurretEMDamage(int64 TypeID)
@@ -845,7 +845,7 @@ objectdef obj_NPCData
 		if ${TurretDamage} > 0
 			return ${TurretDamage}
 		else
-			return -1
+			return 0
 	}
 	; This member will return the Turret EM Damage PER SECOND for the NPC. Attribute 114 (em damage), attribute 64 (damage multiplier), attribute 51 (rate of fire).
 	member:float64 EnemyTurretEMDPS(int64 TypeID)
@@ -879,7 +879,7 @@ objectdef obj_NPCData
 			if ${TurretDamage} > 0
 				return ${TurretDamage}
 			else
-				return -1
+				return 0
 		}
 	}
 	; This member will return the Turret Explosive Damage Alpha for the NPC. Attribute 116 (Explosive damage), attribute 64 (damage multiplier).
@@ -905,7 +905,7 @@ objectdef obj_NPCData
 		if ${TurretDamage} > 0
 			return ${TurretDamage}
 		else
-			return -1
+			return 0
 	}
 	; This member will return the Turret Explosive Damage PER SECOND for the NPC. Attribute 116 (Explosive damage), attribute 64 (damage multiplier), attribute 51 (rate of fire).
 	member:float64 EnemyTurretExplosiveDPS(int64 TypeID)
@@ -939,7 +939,7 @@ objectdef obj_NPCData
 			if ${TurretDamage} > 0
 				return ${TurretDamage}
 			else
-				return -1
+				return 0
 		}
 	}
 	; This member will return the Turret Kinetic Damage Alpha for the NPC. Attribute 117 (Kinetic damage), attribute 64 (damage multiplier).
@@ -965,7 +965,7 @@ objectdef obj_NPCData
 		if ${TurretDamage} > 0
 			return ${TurretDamage}
 		else
-			return -1
+			return 0
 	}
 	; This member will return the Turret Kinetic Damage PER SECOND for the NPC. Attribute 117 (Kinetic damage), attribute 64 (damage multiplier), attribute 51 (rate of fire).
 	member:float64 EnemyTurretKineticDPS(int64 TypeID)
@@ -999,7 +999,7 @@ objectdef obj_NPCData
 			if ${TurretDamage} > 0
 				return ${TurretDamage}
 			else
-				return -1
+				return 0
 		}
 	}
 	; This member will return the Turret Thermal Damage Alpha for the NPC. Attribute 118 (Thermal damage), attribute 64 (damage multiplier).
@@ -1025,7 +1025,7 @@ objectdef obj_NPCData
 		if ${TurretDamage} > 0
 			return ${TurretDamage}
 		else
-			return -1
+			return 0
 	}
 	; This member will return the Turret Thermal Damage PER SECOND for the NPC. Attribute 118 (Thermal damage), attribute 64 (damage multiplier), attribute 51 (rate of fire).
 	member:float64 EnemyTurretThermalDPS(int64 TypeID)
@@ -1059,7 +1059,7 @@ objectdef obj_NPCData
 			if ${TurretDamage} > 0
 				return ${TurretDamage}
 			else
-				return -1
+				return 0
 		}
 	}
 	;;; Missiles now.
@@ -1082,7 +1082,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=859;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1117,7 +1117,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=858;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1150,7 +1150,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=1353;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1177,7 +1177,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=212;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1195,7 +1195,7 @@ objectdef obj_NPCData
 		if ${FinalValue} > 0
 			return ${FinalValue}
 		else
-			return -1
+			return 0
 	}
 	; This member will return the Missile EM Damage PER SECOND for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile EM damage is 114, ROF is 506.
 	member:float64 EnemyMissileEMDPS(int64 TypeID)
@@ -1215,7 +1215,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=506;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1241,10 +1241,10 @@ objectdef obj_NPCData
 			if ${FinalValue} > 0
 				return ${FinalValue}
 			else
-				return -1
+				return 0
 		}
 		else
-			return -1
+			return 0
 	}
 	; This member will return the Missile Explosive Damage output for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile Exp damage is 116.
 	member:float64 EnemyMissileExplosiveDamage(int64 TypeID)
@@ -1263,7 +1263,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=212;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1281,7 +1281,7 @@ objectdef obj_NPCData
 		if ${FinalValue} > 0
 			return ${FinalValue}
 		else
-			return -1
+			return 0
 	}
 	; This member will return the Missile Exp Damage PER SECOND for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile Exp damage is 116, ROF is 506.
 	member:float64 EnemyMissileExplosiveDPS(int64 TypeID)
@@ -1301,7 +1301,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=506;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1327,10 +1327,10 @@ objectdef obj_NPCData
 			if ${FinalValue} > 0
 				return ${FinalValue}
 			else
-				return -1
+				return 0
 		}
 		else
-			return -1
+			return 0
 	}
 	; This member will return the Missile Kinetic Damage output for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile Kinetic damage is 117.
 	member:float64 EnemyMissileKineticDamage(int64 TypeID)
@@ -1349,7 +1349,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=212;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1367,7 +1367,7 @@ objectdef obj_NPCData
 		if ${FinalValue} > 0
 			return ${FinalValue}
 		else
-			return -1
+			return 0
 	}
 	; This member will return the Missile Kinetic Damage PER SECOND for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile Kinetic damage is 117, ROF is 506.
 	member:float64 EnemyMissileKineticDPS(int64 TypeID)
@@ -1387,7 +1387,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=506;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1413,10 +1413,10 @@ objectdef obj_NPCData
 			if ${FinalValue} > 0
 				return ${FinalValue}
 			else
-				return -1
+				return 0
 		}
 		else
-			return -1
+			return 0
 	}
 	; This member will return the Missile Thermal Damage output for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile Thermal damage is 118.
 	member:float64 EnemyMissileThermalDamage(int64 TypeID)
@@ -1435,7 +1435,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=212;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1453,7 +1453,7 @@ objectdef obj_NPCData
 		if ${FinalValue} > 0
 			return ${FinalValue}
 		else
-			return -1
+			return 0
 	}
 	; This member will return the Missile Thermal Damage PER SECOND for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile Thermal damage is 118, ROF is 506.
 	member:float64 EnemyMissileThermalDPS(int64 TypeID)
@@ -1473,7 +1473,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return -1
+			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=506;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1499,10 +1499,10 @@ objectdef obj_NPCData
 			if ${FinalValue} > 0
 				return ${FinalValue}
 			else
-				return -1
+				return 0
 		}
 		else
-			return -1
+			return 0
 	}
 	;;; Ugh, some enemies can do remote reps, either shield or armour, we should probably figure that out at some point. The following members will be for determining if an NPC does remote reps
 	;;; and exactly how strong they will be.

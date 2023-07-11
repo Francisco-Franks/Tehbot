@@ -78,7 +78,8 @@ objectdef obj_CombatComputer
 		{
 			if !${Entity[${EntityIDIterator.Value}](exists)}
 				continue
-			echo (${EntityIDIterator.Value}, '${This.NPCName[${EntityIDIterator.Value}].ReplaceSubstring[','']}', ${This.NPCTypeID[${EntityIDIterator.Value}]}, ${This.NPCCurrentDist[${EntityIDIterator.Value}]}, ${This.NPCFutureDist[${EntityIDIterator.Value}]}, ${This.NPCCurrentVel[${EntityIDIterator.Value}]}, ${This.NPCMaximumVel[${EntityIDIterator.Value}]}, ${This.NPCCruiseVel[${EntityIDIterator.Value}]}, ${This.NPCNeutRange[${EntityIDIterator.Value}]}, ${This.NPCNeutAmount[${EntityIDIterator.Value}]}, '${This.NPCEWARType[${EntityIDIterator.Value}]}', ${This.NPCEWARStrength[${EntityIDIterator.Value}]}, ${This.NPCEWARRange[${EntityIDIterator.Value}]}, ${This.NPCWebRange[${EntityIDIterator.Value}]}, ${This.NPCDisruptRange[${EntityIDIterator.Value}]}, ${This.NPCScramRange[${EntityIDIterator.Value}]}, ${This.NPCDPSOutput[${EntityIDIterator.Value}]}, ${This.NPCThreatLevel[${EntityIDIterator.Value}]})	
+			;echo (${EntityIDIterator.Value}, '${This.NPCName[${EntityIDIterator.Value}].ReplaceSubstring[','']}', ${This.NPCTypeID[${EntityIDIterator.Value}]}, ${This.NPCCurrentDist[${EntityIDIterator.Value}]}, ${This.NPCFutureDist[${EntityIDIterator.Value}]}, ${This.NPCCurrentVel[${EntityIDIterator.Value}]}, ${This.NPCMaximumVel[${EntityIDIterator.Value}]}, ${This.NPCCruiseVel[${EntityIDIterator.Value}]}, ${This.NPCNeutRange[${EntityIDIterator.Value}]}, ${This.NPCNeutAmount[${EntityIDIterator.Value}]}, '${This.NPCEWARType[${EntityIDIterator.Value}]}', ${This.NPCEWARStrength[${EntityIDIterator.Value}]}, ${This.NPCEWARRange[${EntityIDIterator.Value}]}, ${This.NPCWebRange[${EntityIDIterator.Value}]}, ${This.NPCDisruptRange[${EntityIDIterator.Value}]}, ${This.NPCScramRange[${EntityIDIterator.Value}]}, ${This.NPCDPSOutput[${EntityIDIterator.Value}]}, ${This.NPCThreatLevel[${EntityIDIterator.Value}]})	
+			;echo ${This.NPCDPSOutput[${EntityIDIterator.Value}]}
 			CurrentDataTransactionIndex:Insert["insert into CurrentData (EntityID, NPCName, NPCTypeID, CurDist, FtrDist, CurVel, MaxVel, CruiseVel, NeutRng, NeutStr, EWARType, EWARStr, EWARRng, WebRng, WrpDisRng, WrpScrRng, EffNPCDPS, ThreatLevel) values (${EntityIDIterator.Value}, '${This.NPCName[${EntityIDIterator.Value}].ReplaceSubstring[','']}', ${This.NPCTypeID[${EntityIDIterator.Value}]}, ${This.NPCCurrentDist[${EntityIDIterator.Value}]}, ${This.NPCFutureDist[${EntityIDIterator.Value}]}, ${This.NPCCurrentVel[${EntityIDIterator.Value}]}, ${This.NPCMaximumVel[${EntityIDIterator.Value}]}, ${This.NPCCruiseVel[${EntityIDIterator.Value}]}, ${This.NPCNeutRange[${EntityIDIterator.Value}]}, ${This.NPCNeutAmount[${EntityIDIterator.Value}]}, '${This.NPCEWARType[${EntityIDIterator.Value}]}', ${This.NPCEWARStrength[${EntityIDIterator.Value}]}, ${This.NPCEWARRange[${EntityIDIterator.Value}]}, ${This.NPCWebRange[${EntityIDIterator.Value}]}, ${This.NPCDisruptRange[${EntityIDIterator.Value}]}, ${This.NPCScramRange[${EntityIDIterator.Value}]}, ${This.NPCDPSOutput[${EntityIDIterator.Value}]}, ${This.NPCThreatLevel[${EntityIDIterator.Value}]}) ON CONFLICT (EntityID) DO UPDATE SET CurDist=excluded.CurDist, CurVel=excluded.CurVel, EffNPCDps=excluded.EffNPCDPS, ThreatLevel=excluded.ThreatLevel;"]
 		}
 		while ${EntityIDIterator:Next(exists)}
@@ -112,6 +113,7 @@ objectdef obj_CombatComputer
 				{
 					echo DEBUG AMMOTABLE (${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, '${AmmoCollectionIterator.Key.ReplaceSubstring[','']}', ${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "ExpectedShotDmg"]}, ${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "ShotsToKill"]}, ${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "TimeToKill"]} ,${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "OurDamageEff"]}, ${ChangeTime})
 					AmmoTableTransactionIndex:Insert["insert into AmmoTable (EntityID, AmmoTypeID, AmmoName, ExpectedShotDmg, ShotsToKill, TimeToKill, OurDamageEff, ChangeTime) values (${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, '${AmmoCollectionIterator.Key.ReplaceSubstring[','']}', ${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "ExpectedShotDmg"]}, ${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "ShotsToKill"]}, ${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "TimeToKill"]} ,${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "OurDamageEff"]}, ${ChangeTime}) ON CONFLICT (EntityID, AmmoTypeID) DO UPDATE SET ExpectedShotDmg=excluded.ExpectedShotDmg, ShotsToKill=excluded.ShotsToKill, TimeToKill=excluded.TimeToKill, OurDamageEff=excluded.OurDamageEff;"]
+					;echo plz hold
 				}
 				while ${AmmoCollectionIterator:Next(exists)}
 			}
@@ -311,8 +313,12 @@ objectdef obj_CombatComputer
 		NPCTurretKin:Set[${NPCData.EnemyTurretKineticDPS[${This.NPCTypeID[${EntityID}]}]}]
 		variable float64 NPCTurretTherm 
 		NPCTurretTherm:Set[${NPCData.EnemyTurretThermalDPS[${This.NPCTypeID[${EntityID}]}]}]
+		
 		if ${NPCTurretEM} > 0 || ${NPCTurretExp} > 0 || ${NPCTurretKin} > 0 || ${NPCTurretTherm} > 0
+		{
+			echo NPCDPSOUTPUT[" NPCDPSOUTPUT ${NPCTurretEM} ${NPCTurretExp} ${NPCTurretKin} ${NPCTurretTherm}"]
 			HasTurrets:Set[TRUE]
+		}
 		; Enemy Missile DPS by Damage Type, Before Modifiers
 		variable float64 NPCMslEM 
 		NPCMslEM:Set[${NPCData.EnemyMissileEMDPS[${This.NPCTypeID[${EntityID}]}]}]
@@ -322,8 +328,12 @@ objectdef obj_CombatComputer
 		NPCMslKin:Set[${NPCData.EnemyMissileKineticDPS[${This.NPCTypeID[${EntityID}]}]}]
 		variable float64 NPCMslTherm 
 		NPCMslTherm:Set[${NPCData.EnemyMissileThermalDPS[${This.NPCTypeID[${EntityID}]}]}]
+		
 		if ${NPCMslEM} > 0 || ${NPCMslExp} > 0 || ${NPCMslKin} > 0 || ${NPCMslTherm} > 0
+		{
+			echo NPCDPSOUTPUT[" NPCDPSOUTPUT ${NPCMslEM} ${NPCMslExp} ${NPCMslKin} ${NPCMslTherm}"]
 			HasMissiles:Set[TRUE]
+		}
 		if !${HasTurrets} && !${HasMissiles}
 			return 0
 		; Enemy Turret Damage Application Parameters
@@ -340,6 +350,8 @@ objectdef obj_CombatComputer
 			NPCFalloff:Set[${NPCData.EnemyTurretFalloffRange[${This.NPCTypeID[${EntityID}]}]}]
 			NPCChanceToHit:Set[${This.TurretChanceToHit[${EntityID},${NPCTrackingSpd},${NPCOptimal},${NPCFalloff},TRUE]}]
 			NPCTurretDPSMod:Set[${Math.Calc[0.5 * (${Utility.Min[${Math.Calc[(${NPCChanceToHit}^^2) + (0.98 * ${NPCChanceToHit}) + 0.0501]}, ${Math.Calc[${NPCChanceToHit}*6]}]})]}]
+			echo NPCDPSOUTPUT[" NPCDPSOUTPUT CHANCETOHIT ${NPCChanceToHit}"]
+			echo NPCDPSOUTPUT[" NPCDPSOUTPUT  NPCTurretDPSMod ${Math.Calc[0.5 * (${Utility.Min[${Math.Calc[(${NPCChanceToHit}^^2) + (0.98 * ${NPCChanceToHit}) + 0.0501]}, ${Math.Calc[${NPCChanceToHit}*6]}]})]}]"]
 			;TurretDmgMod:Set[${Math.Calc[0.5 * (${Utility.Min[${Math.Calc[(${ChanceToHit}^^2) + (0.98 * ${ChanceToHit}) + 0.0501]}, ${Math.Calc[${ChanceToHit}*6]}]})]}]
 		}
 		; Enemy Missile Damage Application paramters
@@ -366,27 +378,34 @@ objectdef obj_CombatComputer
 				VelocityFactor:Set[1]
 			NPCMissileDPSMod:Set[${Utility.Min[${RadiusFactor}, ${VelocityFactor}]}]
 			NPCMissileDPSMod:Set[${Utility.Min[1, ${NPCMissileDPSMod}]}]
+			echo DPSOUTPUT NPCMISSILEDPSMOD ${NPCMissileDPSMod}
 		}
 		; Our Ship's tanking layer resists.
 		; Going to have to manually config these, we can't actually read the resists of our ship? Ugh.
 		variable float64 TankLayerEMRes 
 		TankLayerEMRes:Set[${Math.Calc[1 - ${MissionTargetManager.Config.TankLayerEMResist}]}]
+		TankLayerEMRes:Set[0.28]
 		variable float64 TankLayerExpRes 
 		TankLayerExpRes:Set[${Math.Calc[1 - ${MissionTargetManager.Config.TankLayerExpResist}]}]
+		TankLayerExpRes:Set[0.3]
 		variable float64 TankLayerKinRes 
 		TankLayerKinRes:Set[${Math.Calc[1 - ${MissionTargetManager.Config.TankLayerKinResist}]}]
+		TankLayerKinRes:Set[0.3]
 		variable float64 TankLayerThermRes 
 		TankLayerThermRes:Set[${Math.Calc[1 - ${MissionTargetManager.Config.TankLayerThermResist}]}]
+		TankLayerThermRes:Set[0.28]
+		echo NPCDPSOUTPUT ${TankLayerEMRes} ${TankLayerExpRes} ${TankLayerKinRes} ${TankLayerThermRes}
 		
 		; And now to get the Turret DPS Post Resistance and Damage Modification
 		variable float64 NPCTurretEMPR 
-		NPCTurretEMPR:Set[${Math.Calc[${NPCTurretEM}*${TankLayerEMRes}*${NPCTurretDPSMod}]}]
+		NPCTurretEMPR:Set[${Math.Calc[${NPCTurretEM}*${TankLayerEMRes}*${NPCTurretDPSMod}*1000]}]
 		variable float64 NPCTurretExpPR 
-		NPCTurretExpPR:Set[${Math.Calc[${NPCTurretExp}*${TankLayerExpRes}*${NPCTurretDPSMod}]}]
+		NPCTurretExpPR:Set[${Math.Calc[${NPCTurretExp}*${TankLayerExpRes}*${NPCTurretDPSMod}*1000]}]
 		variable float64 NPCTurretKinPR 
-		NPCTurretKinPR:Set[${Math.Calc[${NPCTurretKin}*${TankLayerKinRes}*${NPCTurretDPSMod}]}]
+		NPCTurretKinPR:Set[${Math.Calc[${NPCTurretKin}*${TankLayerKinRes}*${NPCTurretDPSMod}*1000]}]
 		variable float64 NPCTurretThermPR
-		NPCTurretThermPR:Set[${Math.Calc[${NPCTurretTherm}*${TankLayerThermRes}*${NPCTurretDPSMod}]}]
+		NPCTurretThermPR:Set[${Math.Calc[${NPCTurretTherm}*${TankLayerThermRes}*${NPCTurretDPSMod}*1000]}]
+		echo NPCDPSOUTPUT POST RESISTS TURRET ${NPCTurretEMPR} ${NPCTurretExpPR} ${NPCTurretKinPR} ${NPCTurretThermPR}
 		; And now the same, but for missiles
 		variable float64 NPCMslEMPR 
 		NPCMslEMPR:Set[${Math.Calc[${NPCMslEM}*${TankLayerEMRes}*${NPCMissileDPSMod}]}]
@@ -396,10 +415,12 @@ objectdef obj_CombatComputer
 		NPCMslKinPR:Set[${Math.Calc[${NPCMslKin}*${TankLayerKinRes}*${NPCMissileDPSMod}]}]
 		variable float64 NPCMslThermPR 
 		NPCMslThermPR:Set[${Math.Calc[${NPCMslTherm}*${TankLayerThermRes}*${NPCMissileDPSMod}]}]
+		echo NPCDPSOUTPUT POST RESISTS MSL ${NPCMslEMPR} ${NPCMslExpPR} ${NPCMslKinPR} ${NPCMslThermPR}
 		; And finally, to Sum.
 		
-		FinalValue:Set[${Math.Calc[${NPCTurretEMPR}+${NPCTurretExpPR}+${NPCTurretKinPR}+${NPCTurretThermPR}+${NPCMslEMPR}+${NPCMslExpPR}+${NPCMslKinPR}+${NPCMslThermPR}]
-		; echo DEBUG - CombatComputer - Entity ${EntityID} DPS Output ${FinalValue}
+		FinalValue:Set[${Math.Calc[${NPCTurretEMPR}+${NPCTurretExpPR}+${NPCTurretKinPR}+${NPCTurretThermPR}+${NPCMslEMPR}+${NPCMslExpPR}+${NPCMslKinPR}+${NPCMslThermPR}]}]
+		echo FinalValue:Set${NPCTurretEMPR}+${NPCTurretExpPR}+${NPCTurretKinPR}+${NPCTurretThermPR}+${NPCMslEMPR}+${NPCMslExpPR}+${NPCMslKinPR}+${NPCMslThermPR}
+		 echo DEBUG - CombatComputer - Entity ${EntityID} DPS Output ${FinalValue}
 		return ${FinalValue}
 	}
 	
