@@ -636,9 +636,17 @@ objectdef obj_CombatComputer
 			echo ${DmgPMCollection.FirstKey) DMGPMCOLLECTION FIRSTKEY
 			do
 			{
-				LowestDmgNmbr:Set[${DmgPMCollection.CurrentKey}]
+				if ${DmgPMCollection.CurrentKey} == 0
+				{
+					continue
+				}
+				if ${DmgPMCollection.CurrentKey} > 0
+				{
+					LowestDmgNmbr:Set[${DmgPMCollection.CurrentKey}]
+					break
+				}
 			}
-			while ${LowestDmgNmbr} == 0 && ${DmgPMCollection.NextKey(exists)}
+			while ${DmgPMCollection.NextKey(exists)}
 		}
 		variable float64 EMDec 
 		EMDec:Set[${Math.Calc[${AmmoDmgEMPM}/${LowestDmgNmbr}]}]
