@@ -167,7 +167,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return 0
+			return 1
 		}
 	}
 	; This member will return a float64, this float64 will be the Structure Explosive Resistance for the NPC. This is attribute 111.
@@ -185,7 +185,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return 0
+			return 1
 		}
 	}
 	; This member will return a float64, this float64 will be the Structure Kinetic Resistance for the NPC. This is attribute 109.
@@ -203,7 +203,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return 0
+			return 1
 		}
 	}
 	; This member will return a float64, this float64 will be the Structure Thermal Resistance for the NPC. This is attribute 110.
@@ -221,7 +221,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return 0
+			return 1
 		}
 	}
 	;;; Armor Tank of NPC
@@ -258,7 +258,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return 0
+			return 1
 		}
 	}
 	; This member will return a float64, this float64 will be the Armor Explosive Resistance for the NPC. This is attribute 268.
@@ -276,7 +276,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return 0
+			return 1
 		}
 	}
 	; This member will return a float64, this float64 will be the Armor Kinetic Resistance for the NPC. This is attribute 269.
@@ -294,7 +294,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return 0
+			return 1
 		}
 	}
 	; This member will return a float64, this float64 will be the Armor Thermal Resistance for the NPC. This is attribute 270.
@@ -312,7 +312,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return 0
+			return 1
 		}
 	}
 	; This member will return a float64, this float64 will be the expected Armor HP/s the NPC can repair. This will be based on attribute 631 (rep amount), attribute 630 (rep duration, measured in milliseconds), and attribute 638 (chance that the rep will actually occur).
@@ -393,7 +393,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return 0
+			return 1
 		}
 	}
 	; This member will return a float64, this float64 will be the Shield Explosive Resistance for the NPC. This is attribute 272.
@@ -411,7 +411,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return 0
+			return 1
 		}
 	}
 	; This member will return a float64, this float64 will be the Shield Kinetic Resistance for the NPC. This is attribute 273.
@@ -429,7 +429,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return 0
+			return 1
 		}
 	}
 	; This member will return a float64, this float64 will be the Shield Thermal Resistance for the NPC. This is attribute 274.
@@ -447,7 +447,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
-			return 0
+			return 1
 		}
 	}
 	; This member will return a float64, this float64 will be the Shield HP/s the NPC can repair. This will be based on attribute 637 (rep amount), attribute 636 (rep duration, measured in milliseconds), and attribute 639 (chance that rep will actually occur).

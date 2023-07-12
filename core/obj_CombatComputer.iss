@@ -127,6 +127,7 @@ objectdef obj_CombatComputer
 	
 	; And a method to remove things that don't belong here anymore.
 	; We won't be employing this just yet. Also it isn't built yet.
+	; Addendum, ultimately this DB will reside entirely within memory (after I get everything working) so this doesn't really need to exist at all.
 	method CleanupTables()
 	{
 		; Well, if it doesn't exist, kick it from the Table and move on.
@@ -445,7 +446,7 @@ objectdef obj_CombatComputer
 		variable collection:string DmgPMCollection
 		; Need this for the Shots to Kill return
 		variable int ShotCounter
-		; Need these for both the Shots to Kill return and the Time to Kill return
+		; Need these for both the Shots to Kill return and the Time to Kill return. This is seconds between shots.
 		variable float64 TimeBetweenShots
 		echo EXPECTEDSHOTDMG ${EntityID} ${AmmoID} ${ReqInfo}
 		if ${Ship.ModuleList_Turret.Count} > 0
@@ -581,11 +582,15 @@ objectdef obj_CombatComputer
 			echo ${Math.Calc[${AmmoDmgTherm}*${MissileDmgMod}].Int.LeadingZeroes[8]},Therm
 		}
 		; Need these for ROF kinda stuff. We have a Bastion Module and it is On, or we don't have one at all, use the current ROF.
-		if ${Ship.ModuleList_Siege.ActiveCount} > 0 || ${Ship.ModuleList_Siege.Count} < 1
+		if ${Ship.ModuleList_Siege.ActiveCount} > 0 || ${Ship.ModuleList_Siege.Count} == 0
+		{
 			TimeBetweenShots:Set[${Ship.ModuleList_Weapon.RateOfFire}]
+		}
 		; We have a bastion module and it is off. Pretend it is on. It is supposedly stacking penalized but from the numbers I'm looking at it doesn't seem to be. ROF Cuts in half.
 		if ${Ship.ModuleList_Siege.ActiveCount} == 0 && ${Ship.ModuleList_Siege.Count} > 0
-			TimeBetweenShots:Set[${Math.Calc[${Ship.ModuleList_Weapon.RateOfFire} * 0.5]}]
+			{
+				TimeBetweenShots:Set[${Math.Calc[${Ship.ModuleList_Weapon.RateOfFire} * 0.5]}]
+			}
 		; Need to calculate how much rep/s an NPC can do and for what layer.
 		variable float64 NPCShieldRep 
 		NPCShieldRep:Set[${NPCData.EnemyShieldRepSecond[${This.NPCTypeID[${EntityID}]}]}]
@@ -629,7 +634,7 @@ objectdef obj_CombatComputer
 		variable float64 NPCShieldHPStart 
 		NPCShieldHPStart:Set[${NPCShieldHP}]
 		variable float64 NPCArmorHPStart 
-		NPCArmorHP:Set[${NPCArmorHP}]
+		NPCArmorHPStart:Set[${NPCArmorHP}]
 		variable float64 NPCHullHPStart 
 		NPCHullHPStart:Set[${NPCHullHP}]
 		; I'm not sure anymore.
@@ -656,101 +661,188 @@ objectdef obj_CombatComputer
 		{
 			LowestDmgNmbr:Set[50]
 		}
-		variable float64 EMDec 
-		EMDec:Set[${Math.Calc[${AmmoDmgEMPM}/${LowestDmgNmbr}]}]
+		; Our decrement number will be made larger so that ExpectedShotDmg will take fewer loops. We maintain the proportionality, we just apply a larger slice of our damage per iteration now.
+		variable float64 EMDec
+		EMDec:Set[${Math.Calc[${AmmoDmgEMPM}/(${LowestDmgNmbr}/10)]}]
+		variable float64 EMDecTurbo
+		EMDecTurbo:Set[${AmmoDmgEMPM}]
 		variable float64 ExpDec 
-		ExpDec:Set[${Math.Calc[${AmmoDmgExpPM}/${LowestDmgNmbr}]}]
+		ExpDec:Set[${Math.Calc[${AmmoDmgExpPM}/(${LowestDmgNmbr}/10)]}]
+		variable float64 ExpDecTurbo
+		ExpDecTurbo:Set[${AmmoDmgExpPM}]
 		variable float64 KinDec 
-		KinDec:Set[${Math.Calc[${AmmoDmgKinPM}/${LowestDmgNmbr}]}]
+		KinDec:Set[${Math.Calc[${AmmoDmgKinPM}/(${LowestDmgNmbr}/10)]}]
+		variable float64 KinDecTurbo
+		KinDecTurbo:Set[${AmmoDmgKinPM}]
 		variable float64 ThermDec 
-		ThermDec:Set[${Math.Calc[${AmmoDmgThermPM}/${LowestDmgNmbr}]}]
+		ThermDec:Set[${Math.Calc[${AmmoDmgThermPM}/(${LowestDmgNmbr}/10)]}]
+		variable float64 ThermDecTurbo
+		ThermDecTurbo:Set[${AmmoDmgThermPM}]
+		variable float64 ShotPctDmgShld
+		variable float64 ShotPctDmgArm
+		variable float64 ShotPctDmgHull
+		; Did we kill it in a single shot? Would we have killed it in two?
+		variable bool OneShot = FALSE
+		variable bool SecondShotAttempted = FALSE
+		variable bool TwoShot = FALSE
 		; Now, some math... I don't know what I'm doing here exactly so I'm going to be reinventing math as we go.
 		; Need a case switch here now that this member has 4 purposes, 1 purpose completed above so 3 cases below.
 		; Shots to kill may be a little inaccurate, if we don't factor in the enemy's repair ability...
 		; Going to forgo that for the moment.
-		switch ${ReqInfo}
+		if ${ReqInfo.Equals[ExpectedShotDmg]} || ${ReqInfo.Equals[ShotsToKill]} || ${ReqInfo.Equals[TimeToKill]}
 		{
-			case ExpectedShotDmg
+			while ${NPCShieldHP} > 0 && (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
 			{
-				while ${NPCShieldHP} > 0 && (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
+				NPCShieldHP:Set[${Math.Calc[${NPCShieldHP} - ((${EMDec} * ${NPCShieldEMRes}) + (${ExpDec} * ${NPCShieldExpRes}) + (${KinDec} * ${NPCShieldKinRes}) + (${ThermDec} * ${NPCShieldThermRes}))]}]
+				AmmoDmgEMPM:Set[${Math.Calc[${AmmoDmgEMPM} - ${EMDec}]}]
+				AmmoDmgExpPM:Set[${Math.Calc[${AmmoDmgExpPM} - ${ExpDec}]}]
+				AmmoDmgKinPM:Set[${Math.Calc[${AmmoDmgKinPM} - ${KinDec}]}]
+				AmmoDmgThermPM:Set[${Math.Calc[${AmmoDmgThermPM} - ${ThermDec}]}]
+				if !${SecondShotAttempted} && (${NPCShieldHP} > 0 && (${AmmoDmgEMPM} <= 0 && ${AmmoDmgExpPM} <= 0 && ${AmmoDmgKinPM} <= 0 && ${AmmoDmgThermPM} <= 0)) && (${ReqInfo.Equals[ShotsToKill]} || ${ReqInfo.Equals[TimeToKill]})
 				{
-					NPCShieldHP:Set[${Math.Calc[${NPCShieldHP} - ((${EMDec} * ${NPCShieldEMRes}) + (${ExpDec} * ${NPCShieldExpRes}) + (${KinDec} * ${NPCShieldKinRes}) + (${ThermDec} * ${NPCShieldThermRes}))]}]
-					AmmoDmgEMPM:Set[${Math.Calc[${AmmoDmgEMPM} - ${EMDec}]}]
-					AmmoDmgExpPM:Set[${Math.Calc[${AmmoDmgExpPM} - ${ExpDec}]}]
-					AmmoDmgKinPM:Set[${Math.Calc[${AmmoDmgKinPM} - ${KinDec}]}]
-					AmmoDmgThermPM:Set[${Math.Calc[${AmmoDmgThermPM} - ${ThermDec}]}]
+					SecondShotAttempted:Set[TRUE]
+					AmmoDmgEMPM:Set[${Math.Calc[${AmmoDmgEMPM} + ${EMDecTurbo}]}]
+					AmmoDmgExpPM:Set[${Math.Calc[${AmmoDmgExpPM} + ${ExpDecTurbo}]}]
+					AmmoDmgKinPM:Set[${Math.Calc[${AmmoDmgKinPM} + ${KinDecTurbo}]}]
+					AmmoDmgThermPM:Set[${Math.Calc[${AmmoDmgThermPM} + ${ThermDecTurbo}]}]					
 				}
-				if ${NPCShieldHP} > 0
-					return ${Math.Calc[${NPCShieldHPStart} - ${NPCShieldHP}]}
-				while ${NPCArmorHP} > 0 && (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
+			}
+			if ${NPCShieldHP} > 0 && ${ReqInfo.Equals[ExpectedShotDmg]}
+				return ${Math.Calc[${NPCShieldHPStart} - ${NPCShieldHP}]}
+			while ${NPCArmorHP} > 0 && (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
+			{
+				NPCArmorHP:Set[${Math.Calc[${NPCArmorHP} - ((${EMDec} * ${NPCArmorEMRes}) + (${ExpDec} * ${NPCArmorExpRes}) + (${KinDec} * ${NPCArmorKinRes}) + (${ThermDec} * ${NPCArmorThermRes}))]}]
+				AmmoDmgEMPM:Set[${Math.Calc[${AmmoDmgEMPM} - ${EMDec}]}]
+				AmmoDmgExpPM:Set[${Math.Calc[${AmmoDmgExpPM} - ${ExpDec}]}]
+				AmmoDmgKinPM:Set[${Math.Calc[${AmmoDmgKinPM} - ${KinDec}]}]
+				AmmoDmgThermPM:Set[${Math.Calc[${AmmoDmgThermPM} - ${ThermDec}]}]
+				if !${SecondShotAttempted} && (${NPCArmorHP} > 0 && (${AmmoDmgEMPM} <= 0 && ${AmmoDmgExpPM} <= 0 && ${AmmoDmgKinPM} <= 0 && ${AmmoDmgThermPM} <= 0)) && (${ReqInfo.Equals[ShotsToKill]} || ${ReqInfo.Equals[TimeToKill]})
 				{
-					NPCArmorHP:Set[${Math.Calc[${NPCArmorHP} - ((${EMDec} * ${NPCArmorEMRes}) + (${ExpDec} * ${NPCArmorExpRes}) + (${KinDec} * ${NPCArmorKinRes}) + (${ThermDec} * ${NPCArmorThermRes}))]}]
-					AmmoDmgEMPM:Set[${Math.Calc[${AmmoDmgEMPM} - ${EMDec}]}]
-					AmmoDmgExpPM:Set[${Math.Calc[${AmmoDmgExpPM} - ${ExpDec}]}]
-					AmmoDmgKinPM:Set[${Math.Calc[${AmmoDmgKinPM} - ${KinDec}]}]
-					AmmoDmgThermPM:Set[${Math.Calc[${AmmoDmgThermPM} - ${ThermDec}]}]
+					SecondShotAttempted:Set[TRUE]
+					AmmoDmgEMPM:Set[${Math.Calc[${AmmoDmgEMPM} + ${EMDecTurbo}]}]
+					AmmoDmgExpPM:Set[${Math.Calc[${AmmoDmgExpPM} + ${ExpDecTurbo}]}]
+					AmmoDmgKinPM:Set[${Math.Calc[${AmmoDmgKinPM} + ${KinDecTurbo}]}]
+					AmmoDmgThermPM:Set[${Math.Calc[${AmmoDmgThermPM} + ${ThermDecTurbo}]}]					
 				}
-				if ${NPCArmorHP} > 0
-					return ${Math.Calc[(${NPCArmorHPStart} - ${NPCArmorHP}) + ${NPCShieldHPStart}]}
-				while ${NPCHullHP} > 0 && (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
+			}
+			if ${NPCArmorHP} > 0 && ${ReqInfo.Equals[ExpectedShotDmg]}
+				return ${Math.Calc[(${NPCArmorHPStart} - ${NPCArmorHP}) + ${NPCShieldHPStart}]}
+			while ${NPCHullHP} > 0 && (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
+			{
+				NPCHullHP:Set[${Math.Calc[${NPCHullHP} - ((${EMDec} * ${NPCHullEMRes}) + (${ExpDec} * ${NPCHullExpRes}) + (${KinDec} * ${NPCHullKinRes}) + (${ThermDec} * ${NPCHullThermRes}))]}]
+				AmmoDmgEMPM:Set[${Math.Calc[${AmmoDmgEMPM} - ${EMDec}]}]
+				AmmoDmgExpPM:Set[${Math.Calc[${AmmoDmgExpPM} - ${ExpDec}]}]
+				AmmoDmgKinPM:Set[${Math.Calc[${AmmoDmgKinPM} - ${KinDec}]}]
+				AmmoDmgThermPM:Set[${Math.Calc[${AmmoDmgThermPM} - ${ThermDec}]}]
+				if !${SecondShotAttempted} && (${NPCHullHP} > 0 && (${AmmoDmgEMPM} <= 0 && ${AmmoDmgExpPM} <= 0 && ${AmmoDmgKinPM} <= 0 && ${AmmoDmgThermPM} <= 0)) && (${ReqInfo.Equals[ShotsToKill]} || ${ReqInfo.Equals[TimeToKill]})
 				{
-					NPCHullHP:Set[${Math.Calc[${NPCHullHP} - ((${EMDec} * ${NPCHullEMRes}) + (${ExpDec} * ${NPCHullExpRes}) + (${KinDec} * ${NPCHullKinRes}) + (${ThermDec} * ${NPCHullThermRes}))]}]
-					AmmoDmgEMPM:Set[${Math.Calc[${AmmoDmgEMPM} - ${EMDec}]}]
-					AmmoDmgExpPM:Set[${Math.Calc[${AmmoDmgExpPM} - ${ExpDec}]}]
-					AmmoDmgKinPM:Set[${Math.Calc[${AmmoDmgKinPM} - ${KinDec}]}]
-					AmmoDmgThermPM:Set[${Math.Calc[${AmmoDmgThermPM} - ${ThermDec}]}]
+					SecondShotAttempted:Set[TRUE]
+					AmmoDmgEMPM:Set[${Math.Calc[${AmmoDmgEMPM} + ${EMDecTurbo}]}]
+					AmmoDmgExpPM:Set[${Math.Calc[${AmmoDmgExpPM} + ${ExpDecTurbo}]}]
+					AmmoDmgKinPM:Set[${Math.Calc[${AmmoDmgKinPM} + ${KinDecTurbo}]}]
+					AmmoDmgThermPM:Set[${Math.Calc[${AmmoDmgThermPM} + ${ThermDecTurbo}]}]					
 				}
-				if ${NPCHullHP} > 0
-					return ${Math.Calc[(${NPCHullHPStart} - ${NPCHullHP}) + ${NPCArmorHPStart} + ${NPCShieldHPStart}]}
-				; If we got here it means it died, and we had damage to spare. Overkill, if you will.
-				if (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
-					This:LogDebug["Entity ${Entity[${EntityID}].Name} will be destroyed with ${Math.Calc[(${AmmoDmgEMPM} + ${AmmoDmgExpPM} + ${AmmoDmgKinPM} + ${AmmoDmgThermPM})]} Excess Damage"]
+			}
+			if ${NPCHullHP} > 0 && ${ReqInfo.Equals[ExpectedShotDmg]}
+				return ${Math.Calc[(${NPCHullHPStart} - ${NPCHullHP}) + ${NPCArmorHPStart} + ${NPCShieldHPStart}]}
+			; If we got here it means it died, and we had damage to spare. Overkill, if you will.
+			if (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0) && ${ReqInfo.Equals[ExpectedShotDmg]}
+				echo ["Entity ${Entity[${EntityID}].Name} will be destroyed with ${Math.Calc[(${AmmoDmgEMPM} + ${AmmoDmgExpPM} + ${AmmoDmgKinPM} + ${AmmoDmgThermPM})]} Excess Damage"]
+			if ${ReqInfo.Equals[ExpectedShotDmg]}
 				return ${Math.Calc[${NPCHullHPStart} + ${NPCArmorHPStart} + ${NPCShieldHPStart}]}
-			}
-			case ShotsToKrill
+			if (${ReqInfo.Equals[ShotsToKill]} || ${ReqInfo.Equals[TimeToKill]}) && ${NPCHullHP} <= 0
 			{
-				; Adding the Damage checks back in here to ensure we don't get looped forever.
-				while ${NPCShieldHP} > 0 && (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
-				{
-					NPCShieldHP:Set[${Math.Calc[${NPCShieldHP} - ((${EMDec} * ${NPCShieldEMRes}) + (${ExpDec} * ${NPCShieldExpRes}) + (${KinDec} * ${NPCShieldKinRes}) + (${ThermDec} * ${NPCShieldThermRes}))]}]
-					ShotCounter:Inc[1]
-				}
-				while ${NPCArmorHP} > 0 && (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
-				{
-					NPCArmorHP:Set[${Math.Calc[${NPCArmorHP} - ((${EMDec} * ${NPCArmorEMRes}) + (${ExpDec} * ${NPCArmorExpRes}) + (${KinDec} * ${NPCArmorKinRes}) + (${ThermDec} * ${NPCArmorThermRes}))]}]
-					ShotCounter:Inc[1]
-				}
-				while ${NPCHullHP} > 0 && (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
-				{
-					NPCHullHP:Set[${Math.Calc[${NPCHullHP} - ((${EMDec} * ${NPCHullEMRes}) + (${ExpDec} * ${NPCHullExpRes}) + (${KinDec} * ${NPCHullKinRes}) + (${ThermDec} * ${NPCHullThermRes}))]}]
-					ShotCounter:Inc[1]
-				}
-				This:LogDebug["Entity ${Entity[${EntityID}].Name} will be destroyed with ${ShotCounter} Shots"]
-				return ${ShotCounter}
+				if !${SecondShotAttempted}
+					OneShot:Set[TRUE]
+				else
+					TwoShot:Set[TRUE]
 			}
-			case TimeToKrill
+			if (${ReqInfo.Equals[ShotsToKill]} || ${ReqInfo.Equals[TimeToKill]}) && ${NPCHullHP} > 0
 			{
-				; Adding the Damage checks back in here to ensure we don't get looped forever.
-				while ${NPCShieldHP} > 0 && (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
-				{
-					NPCShieldHP:Set[${Math.Calc[${NPCShieldHP} - ((${EMDec} * ${NPCShieldEMRes}) + (${ExpDec} * ${NPCShieldExpRes}) + (${KinDec} * ${NPCShieldKinRes}) + (${ThermDec} * ${NPCShieldThermRes}))]}]
-					ShotCounter:Inc[1]
-				}
-				while ${NPCArmorHP} > 0 && (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
-				{
-					NPCArmorHP:Set[${Math.Calc[${NPCArmorHP} - ((${EMDec} * ${NPCArmorEMRes}) + (${ExpDec} * ${NPCArmorExpRes}) + (${KinDec} * ${NPCArmorKinRes}) + (${ThermDec} * ${NPCArmorThermRes}))]}]
-					ShotCounter:Inc[1]
-				}
-				while ${NPCHullHP} > 0 && (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
-				{
-					NPCHullHP:Set[${Math.Calc[${NPCHullHP} - ((${EMDec} * ${NPCHullEMRes}) + (${ExpDec} * ${NPCHullExpRes}) + (${KinDec} * ${NPCHullKinRes}) + (${ThermDec} * ${NPCHullThermRes}))]}]
-					ShotCounter:Inc[1]
-				}
-				This:LogDebug["Entity ${Entity[${EntityID}].Name} will be destroyed in ${Math.Calc[${ShotCounter}*${TimeBetweenShots}]} Seconds "]
-				return ${Math.Calc[${ShotCounter}*${TimeBetweenShots}]}
-			}	
+				OneShot:Set[FALSE]
+				TwoShot:Set[FALSE]
+			}
 		}
+		if ${ReqInfo.Equals[ShotsToKill]}
+		{
+			if ${OneShot}
+			{
+				echo ["Entity ${Entity[${EntityID}].Name} will be destroyed with 1 Shot"]
+				return 1
+			}
+			if ${TwoShot}
+			{
+				echo ["Entity ${Entity[${EntityID}].Name} will be destroyed with 2 Shots"]
+				return 2		
+			}
+			; These should return the % of damage we will do to the particular layer after Modifiers and Resists. 
+			; Shield is annoying some enemies don't have a shield layer...
+			if ${NPCShieldHPStart} > 0
+			{
+				ShotPctDmgShld:Set[${Math.Calc[(1-(${NPCShieldHPStart} - ((${EMDecTurbo} * ${NPCShieldEMRes}) + (${ExpDecTurbo} * ${NPCShieldExpRes}) + (${KinDecTurbo} * ${NPCShieldKinRes}) + (${ThermDecTurbo} * ${NPCShieldThermRes})))/${NPCShieldHPStart})]}]
+				if ${ShotPctDmgShld} < 0
+					ShotPctDmgShld:Set[1]
+				echo SHOTPCDTDMGSHLD ${Math.Calc[(${NPCShieldHPStart} - ((${EMDecTurbo} * ${NPCShieldEMRes}) + (${ExpDecTurbo} * ${NPCShieldExpRes}) + (${KinDecTurbo} * ${NPCShieldKinRes}) + (${ThermDecTurbo} * ${NPCShieldThermRes})))/${NPCShieldHPStart}]} [(${NPCShieldHPStart} - ((${EMDecTurbo} * ${NPCShieldEMRes}) + (${ExpDecTurbo} * ${NPCShieldExpRes}) + (${KinDecTurbo} * ${NPCShieldKinRes}) + (${ThermDecTurbo} * ${NPCShieldThermRes})))/${NPCShieldHPStart}]
+			}
+			ShotPctDmgArm:Set[${Math.Calc[(1-(${NPCArmorHPStart} - ((${EMDecTurbo} * ${NPCArmorEMRes}) + (${ExpDecTurbo} * ${NPCArmorExpRes}) + (${KinDecTurbo} * ${NPCArmorKinRes}) + (${ThermDecTurbo} * ${NPCArmorThermRes})))/${NPCArmorHPStart})]}]
+			if ${ShotPctDmgArm} < 0
+				ShotPctDmgArm:Set[1]
+			echo SHOTPCDTDMGARM ${Math.Calc[(1-(${NPCArmorHPStart} - ((${EMDecTurbo} * ${NPCArmorEMRes}) + (${ExpDecTurbo} * ${NPCArmorExpRes}) + (${KinDecTurbo} * ${NPCArmorKinRes}) + (${ThermDecTurbo} * ${NPCArmorThermRes})))/${NPCArmorHPStart})]} [(${NPCArmorHPStart} - ((${EMDecTurbo} * ${NPCArmorEMRes}) + (${ExpDecTurbo} * ${NPCArmorExpRes}) + (${KinDecTurbo} * ${NPCArmorKinRes}) + (${ThermDecTurbo} * ${NPCArmorThermRes})))/${NPCArmorHPStart}]
+			ShotPctDmgHull:Set[${Math.Calc[(1-(${NPCHullHPStart} - ((${EMDecTurbo} * ${NPCHullEMRes}) + (${ExpDecTurbo} * ${NPCHullExpRes}) + (${KinDecTurbo} * ${NPCHullKinRes}) + (${ThermDecTurbo} * ${NPCHullThermRes})))/${NPCHullHPStart})]}]
+			if ${ShotPctDmgArm} < 0
+				ShotPctDmgArm:Set[1]
+			echo SHOTPCDTDMGHULL${Math.Calc[(1-(${NPCHullHPStart} - ((${EMDecTurbo} * ${NPCHullEMRes}) + (${ExpDecTurbo} * ${NPCHullExpRes}) + (${KinDecTurbo} * ${NPCHullKinRes}) + (${ThermDecTurbo} * ${NPCHullThermRes})))/${NPCHullHPStart})]} [(${NPCHullHPStart} - ((${EMDecTurbo} * ${NPCHullEMRes}) + (${ExpDecTurbo} * ${NPCHullExpRes}) + (${KinDecTurbo} * ${NPCHullKinRes}) + (${ThermDecTurbo} * ${NPCHullThermRes})))/${NPCHullHPStart}]
+
+			if ${ShotPctDmgShld} > 0 && ${NPCShieldHPStart} > 0
+			{
+				ShotCounter:Inc[${Math.Calc[1/${ShotPctDmgShld}].Ceil}]
+			}
+			if ${ShotPctDmgArm} > 0
+			{
+				ShotCounter:Inc[${Math.Calc[1/${ShotPctDmgArm}].Ceil}]
+			}
+			if ${ShotPctDmgHull} > 0
+			{
+				ShotCounter:Inc[${Math.Calc[1/${ShotPctDmgHull}].Ceil}]
+			}
+			echo ["Entity ${Entity[${EntityID}].Name} will be destroyed with ${ShotCounter} Shots"]
+			return ${ShotCounter}
+		}
+		if ${ReqInfo.Equals[TimeToKill]}
+		{
+			if ${OneShot}
+			{
+				echo ["Entity ${Entity[${EntityID}].Name} will be destroyed in ${Math.Calc[1*${TimeBetweenShots}]} Seconds"]
+				return 1
+			}
+			if ${TwoShot}
+			{
+				echo ["Entity ${Entity[${EntityID}].Name} will be destroyed in ${Math.Calc[2*${TimeBetweenShots}]} Seconds"]
+				return 2		
+			}
+			if ${NPCShieldHPStart} > 0
+			{
+				ShotPctDmgShld:Set[${Math.Calc[(1-(${NPCShieldHPStart} - ((${EMDecTurbo} * ${NPCShieldEMRes}) + (${ExpDecTurbo} * ${NPCShieldExpRes}) + (${KinDecTurbo} * ${NPCShieldKinRes}) + (${ThermDecTurbo} * ${NPCShieldThermRes})))/${NPCShieldHPStart})]}]
+			}
+			ShotPctDmgArm:Set[${Math.Calc[(1-(${NPCArmorHPStart} - ((${EMDecTurbo} * ${NPCArmorEMRes}) + (${ExpDecTurbo} * ${NPCArmorExpRes}) + (${KinDecTurbo} * ${NPCArmorKinRes}) + (${ThermDecTurbo} * ${NPCArmorThermRes})))/${NPCArmorHPStart})]}]
+			ShotPctDmgHull:Set[${Math.Calc[(1-(${NPCHullHPStart} - ((${EMDecTurbo} * ${NPCHullEMRes}) + (${ExpDecTurbo} * ${NPCHullExpRes}) + (${KinDecTurbo} * ${NPCHullKinRes}) + (${ThermDecTurbo} * ${NPCHullThermRes})))/${NPCHullHPStart})]}]
+			if ${ShotPctDmgShld} > 0 && ${NPCShieldHPStart} > 0
+			{
+				ShotCounter:Inc[${Math.Calc[1/${ShotPctDmgShld}].Ceil}]
+			}
+			if ${ShotPctDmgArm} > 0
+			{
+				ShotCounter:Inc[${Math.Calc[1/${ShotPctDmgArm}].Ceil}]
+			}
+			if ${ShotPctDmgHull} > 0
+			{
+				ShotCounter:Inc[${Math.Calc[1/${ShotPctDmgHull}].Ceil}]
+			}
+			echo ["Entity ${Entity[${EntityID}].Name} will be destroyed in ${Math.Calc[${ShotCounter}*${TimeBetweenShots}]} Seconds "]
+			return ${Math.Calc[${ShotCounter}*${TimeBetweenShots}]}
+		}	
 	}
+
 	
 	;;;;;;;;;;;;;;;
 	;;; Borrowing these from obj_Module
