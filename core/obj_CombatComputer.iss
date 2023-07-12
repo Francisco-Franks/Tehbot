@@ -349,10 +349,10 @@ objectdef obj_CombatComputer
 			NPCOptimal:Set[${NPCData.EnemyTurretOptimalRange[${This.NPCTypeID[${EntityID}]}]}]
 			NPCFalloff:Set[${NPCData.EnemyTurretFalloffRange[${This.NPCTypeID[${EntityID}]}]}]
 			NPCChanceToHit:Set[${This.TurretChanceToHit[${EntityID},${NPCTrackingSpd},${NPCOptimal},${NPCFalloff},TRUE]}]
-			NPCTurretDPSMod:Set[${Math.Calc[0.5 * (${Utility.Min[${Math.Calc[(${NPCChanceToHit}^^2) + (0.98 * ${NPCChanceToHit}) + 0.0501]}, ${Math.Calc[${NPCChanceToHit}*6]}]})]}]
+			NPCTurretDPSMod:Set[${Math.Calc[0.5 * (${Utility.MinFloat[${Math.Calc[(${NPCChanceToHit}^^2) + (0.98 * ${NPCChanceToHit}) + 0.0501]}, ${Math.Calc[${NPCChanceToHit}*6]}]})]}]
 			echo NPCDPSOUTPUT[" NPCDPSOUTPUT CHANCETOHIT ${NPCChanceToHit}"]
-			echo NPCDPSOUTPUT[" NPCDPSOUTPUT  NPCTurretDPSMod ${Math.Calc[0.5 * (${Utility.Min[${Math.Calc[(${NPCChanceToHit}^^2) + (0.98 * ${NPCChanceToHit}) + 0.0501]}, ${Math.Calc[${NPCChanceToHit}*6]}]})]}]"]
-			;TurretDmgMod:Set[${Math.Calc[0.5 * (${Utility.Min[${Math.Calc[(${ChanceToHit}^^2) + (0.98 * ${ChanceToHit}) + 0.0501]}, ${Math.Calc[${ChanceToHit}*6]}]})]}]
+			echo NPCDPSOUTPUT[" NPCDPSOUTPUT  NPCTurretDPSMod ${Math.Calc[0.5 * (${Utility.MinFloat[${Math.Calc[(${NPCChanceToHit}^^2) + (0.98 * ${NPCChanceToHit}) + 0.0501]}, ${Math.Calc[${NPCChanceToHit}*6]}]})]}]"]
+			;TurretDmgMod:Set[${Math.Calc[0.5 * (${Utility.MinFloat[${Math.Calc[(${ChanceToHit}^^2) + (0.98 * ${ChanceToHit}) + 0.0501]}, ${Math.Calc[${ChanceToHit}*6]}]})]}]
 		}
 		; Enemy Missile Damage Application paramters
 		variable float64 NPCExpRad 
@@ -376,8 +376,8 @@ objectdef obj_CombatComputer
 				VelocityFactor:Set[${Math.Calc[(${RadiusFactor} * ${NPCExpVel} / ${PlayerVel}) ^^ ${drf}]}]
 			else
 				VelocityFactor:Set[1]
-			NPCMissileDPSMod:Set[${Utility.Min[${RadiusFactor}, ${VelocityFactor}]}]
-			NPCMissileDPSMod:Set[${Utility.Min[1, ${NPCMissileDPSMod}]}]
+			NPCMissileDPSMod:Set[${Utility.MinFloat[${RadiusFactor}, ${VelocityFactor}]}]
+			NPCMissileDPSMod:Set[${Utility.MinFloat[1, ${NPCMissileDPSMod}]}]
 			echo DPSOUTPUT NPCMISSILEDPSMOD ${NPCMissileDPSMod}
 		}
 		; Our Ship's tanking layer resists.
@@ -511,7 +511,7 @@ objectdef obj_CombatComputer
 		{
 			ChanceToHit:Set[${This.TurretChanceToHit[${EntityID},${TurretTrack},${TurretOpt},${TurretFall},TRUE]}]
 			echo ${ChanceToHit} CHANCETOHIT
-			TurretDmgMod:Set[${Math.Calc[0.5 * (${Utility.Min[${Math.Calc[(${ChanceToHit}^^2) + (0.98 * ${ChanceToHit}) + 0.0501]}, ${Math.Calc[${ChanceToHit}*6]}]})]}]
+			TurretDmgMod:Set[${Math.Calc[0.5 * (${Utility.MinFloat[${Math.Calc[(${ChanceToHit}^^2) + (0.98 * ${ChanceToHit}) + 0.0501]}, ${Math.Calc[${ChanceToHit}*6]}]})]}]
 			echo ${TurretDmgMod} TURRETDMGMOD
 		}
 		if ${ReqInfo.Equals["OurDamageEff"]} && !${Missl}
@@ -535,9 +535,9 @@ objectdef obj_CombatComputer
 			{
 				VelocityFactor:Set[1]
 			}
-			MissileDmgMod:Set[${Utility.Min[${RadiusFactor}, ${VelocityFactor}]}]
+			MissileDmgMod:Set[${Utility.MinFloat[${RadiusFactor}, ${VelocityFactor}]}]
 			echo NPC EXPECTEDDAMAGE MISSL MISSL MISSL MISSL RADIUS FACTOR ${RadiusFactor} VELOCITY FACTOR ${VelocityFactor}
-			MissileDmgMod:Set[${Utility.Min[1, ${MissileDmgMod}]}]
+			MissileDmgMod:Set[${Utility.MinFloat[1, ${MissileDmgMod}]}]
 			echo NPC EXPECTATRATORNSD MISSL MISSL MISSL MISSSSSLLLLL ${MissileDmgMod} 
 		}
 		if ${ReqInfo.Equals["OurDamageEff"]} && ${Missl}

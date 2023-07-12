@@ -190,7 +190,7 @@ objectdef obj_Ship2
 				
 					echo ${EMDamage} ${ExpDamage} ${KinDamage} ${ThermDamage} ${ExpRadius} ${ExpVel} ${FlightRange}
 					DBInsertIndex:Insert["insert into ShipAmmunitionMissile (AmmoTypeID, AmmoType, ShipType, LauncherType, EMDamage, ExpDamage, KinDamage, ThermDamage, ExpRadius, ExpVel, FlightRange) values (${AvailableAmmoIterator.Value.TypeID}, '${AvailableAmmoIterator.Value.Type.ReplaceSubstring[','']}', '${MyShip.ToEntity.Type.ReplaceSubstring[','']}', '${Ship.ModuleList_MissileLauncher.Type.ReplaceSubstring[','']}', ${EMDamage}, ${ExpDamage}, ${KinDamage}, ${ThermDamage}, ${ExpRadius}, ${ExpVel}, ${FlightRange}) ON CONFLICT (AmmoTypeID) DO UPDATE SET ShipType=excluded.ShipType, LauncherType=excluded.LauncherType, EMDamage=excluded.EMDamage, ExpDamage=excluded.ExpDamage, KinDamage=excluded.KinDamage, ThermDamage=excluded.ThermDamage, ExpRadius=excluded.ExpRadius, ExpVel=excluded.ExpVel, FlightRange=excluded.FlightRange;"]
-					CombatComputer.AmmoCollection:Set[${AvailableAmmoIterator.Value.Name}},${AvailableAmmoIterator.Value.TypeID}]
+					CombatComputer.AmmoCollection:Set[${AvailableAmmoIterator.Value.Name},${AvailableAmmoIterator.Value.TypeID}]
 				}
 				while ${AvailableAmmoIterator:Next(exists)}
 			}
@@ -208,7 +208,7 @@ objectdef obj_Ship2
 				
 					echo ${EMDamage} ${ExpDamage} ${KinDamage} ${ThermDamage} ${ExpRadius} ${ExpVel} ${FlightRange}
 					DBInsertIndex:Insert["insert into ShipAmmunitionMissile (AmmoTypeID, AmmoType, ShipType, LauncherType, EMDamage, ExpDamage, KinDamage, ThermDamage, ExpRadius, ExpVel, FlightRange) values (${MyShip.Cargo[${Ship.ModuleList_MissileLauncher.Charge.Name}].TypeID}, '${AvailableAmmoIterator.Value.Type.ReplaceSubstring[','']}', '${MyShip.ToEntity.Type.ReplaceSubstring[','']}', '${Ship.ModuleList_MissileLauncher.Type.ReplaceSubstring[','']}', ${EMDamage}, ${ExpDamage}, ${KinDamage}, ${ThermDamage}, ${ExpRadius}, ${ExpVel}, ${FlightRange}) ON CONFLICT (AmmoTypeID) DO UPDATE SET ShipType=excluded.ShipType, LauncherType=excluded.LauncherType, EMDamage=excluded.EMDamage, ExpDamage=excluded.ExpDamage, KinDamage=excluded.KinDamage, ThermDamage=excluded.ThermDamage, ExpRadius=excluded.ExpRadius, ExpVel=excluded.ExpVel, FlightRange=excluded.FlightRange;"]
-					CombatComputer.AmmoCollection:Set[${Ship.ModuleList_MissileLauncher.Charge.Name}},${MyShip.Cargo[${Ship.ModuleList_MissileLauncher.Charge.Name}].TypeID}]
+					CombatComputer.AmmoCollection:Set[${Ship.ModuleList_MissileLauncher.Charge.Name},${MyShip.Cargo[${Ship.ModuleList_MissileLauncher.Charge.Name}].TypeID}]
 				}
 			}
 		}

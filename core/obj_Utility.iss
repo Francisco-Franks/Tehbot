@@ -99,4 +99,24 @@ objectdef obj_Utility
 
 		return ${a}
 	}
+	
+	member:float64 MinFloat(float64 a, float64 b)
+	{
+		if ${a} < ${b}
+		{
+			return ${a}
+		}
+
+		return ${b}
+	}
+
+	member:float64 MaxFloat(float64 a, float64 b)
+	{
+		if ${a} < ${b}
+		{
+			return ${b}
+		}
+
+		return ${a}
+	}	
 }
