@@ -433,6 +433,132 @@ objectdef obj_CombatComputer
 		return 9999
 		
 	}
+	;;; The following members will be involved in formulating the actual ThreatLevel of the enemy.
+	; This member will return an integer representing the threat value presented by webs.
+	member:int64 NPCThreatLevelWebs()
+	{
+		variable int64 FinalValue
+	
+		; Does this enemy use webs?
+		; Are we in a ship that even cares? Most ships care at least a little, except marauders. If you are in a marauder this is a 0.
+	}
+	; This member will return an integer representing the threat value presented by Warp Disruption (not scrams)
+	member:int64 NPCThreatLevelDisrupt()
+	{
+		variable int64 FinalValue
+	
+		; Does this enemy use warp disruptors. The thing that doesn't turn off an mwd.
+		; If you are in 0.0 or lowsec or wormholes this is a problem.
+		; Otherwise, this is literally less than nothing. Returns a 0.
+	
+	}
+	; This member will return an integer representing the threat value presented by Warp Scrambling (not warp disruptors)
+	member:int64 NPCThreatLevelScram()
+	{
+		variable int64 FinalValue
+		
+		; Does this enemy use WARP SCRAMBLERS. The things that stop you warping and also MWDing.
+		; If you are in a ship with an MWD that isn't a marauder and keeps the MWD going then this is a problem.
+		; If you are in 0.0 this is also a problem.
+		; Otherwise its a threat value of 0.
+	
+	
+	}
+	; This member will return an integer representing the threat value presented by Target Painting
+	member:int64 NPCThreatLevelPainting()
+	{
+		variable int64 FinalValue
+		
+		; Does this enemy apply target painting? Do we even care about that?
+		; A battleship hull probably doesn't care. If you have an MWD you also probably don't care. Returns 0 in those cases.
+	
+	
+	}
+	; This member will return an integer representing the threat value presented by ECM
+	member:int64 NPCThreatLevelECM()
+	{
+		variable int64 FinalValue
+		
+		; Does this enemy use ECM? ECM will keep us from killing what we actually want to kill.
+		; This gets the highest threat level except for a couple other edge cases (we literally can't hit this enemy / some other super urgent thing is going on).
+	
+	
+	}
+	; This member will return an integer representing the threat value presented by Sensor Damps
+	member:int64 NPCThreatLevelDamps()
+	{
+		variable int64 FinalValue
+	
+		; Does this enemy use Sensor Damps? Are they particularly strong? Is our sensor range already kinda awful?
+		; This member will be a higher threat gen than most others, sensor damps are really debilitating (usually).
+	
+	}
+	; This member will return an integer representing the threat value presented by Tracking Disruption
+	member:int64 NPCThreatLevelTrackDis()
+	{
+		variable int64 FinalValue
+		
+		; Does this enemy use tracking disruption? Are our weapons borderline as far as application is concerned (range is short or tracking is poor already.?
+		; Are we using missiles? If yes this returns a 0.
+		; Are you a maniac using a drone boat or something like some kind of a fucking monster? It also returns a 0.
+	
+	
+	}
+	; This member will return an integer representing the threat value presented by Guidance Disruption
+	member:int64 NPCThreatLevelGuideDis()
+	{
+		variable int64 FinalValue
+		
+		; Does this enemy use guidance disruptors? Are we using weaponry that is inordinately affected by Guidance Disruption (our range is bad or our application is mediocre.)?
+		; Are we a turret ship? If yes this returns 0.
+		; Are you a maniac using a drone boat or something like some kind of a fucking monster? It also returns a 0.
+		
+	
+	}
+	; This member will return an integer representing the threat value presented by Energy Neutralizers
+	member:int64 NPCThreatLevelNeuts()
+	{
+		variable int64 FinalValue
+		
+		; Is this enemy capable of neuting? Are they in range to neut? Are the neuts of a significant strength? Are we in a ship that even cares about neuting?
+		; That last one is going to be kinda hard to rectify, tbh. Maybe we will leave that off for now. 
+	
+	
+	}
+	; This member will return an integer representing the threat value presented by Proximity and its relation to enemy DPS output.
+	member:int64 NPCThreatLevelProximityDPS()
+	{
+		variable int64 FinalValue
+		
+		; Is this enemy in the optimal range zone required for them to do their maximum dps to you? Then they get a higher number.
+		; If this enemy is not at that range yet, they get a lower number.
+		; Might get fancier with this, some day.
+	
+	
+	}
+	; This member will return an integer representing the threat value presented by Proximity and its relation to our ability to actually hit an enemy.
+	member:int64 NPCThreatLevelProximityHitChance()
+	{
+		variable int64 FinalValue
+		
+		; Alright so the basic premise here is, if we are in a missile ship this always returns 0. Close or far (but not too far) makes 0 difference.
+		; Otherwise, we will assign a larger value for enemies that WILL at some point in the future arrive at an orbit where we literally can not hit them.
+		; I think I can pipe the ultimate orbit/speed/sig numbers into our turret hitchance stuff below and arrive at an accurate number, probably. 
+		; If an enemy can be hit (adquately) at any range then this number is 0.
+	
+	
+	}
+	; This member will return an integer representing the threat value presented by all enemies, as a baseline.
+	member:int64 NPCThreatLevelBaseline()
+	{
+		variable int64 FinalValue
+		
+		; The baseline threat level will primarily be based upon damage output. These numbers probably won't be particularly large.
+		; The threat level increases from other sources will generally greatly outweigh these.
+		; There will be minor increases included for existing NPC damage.
+	
+	
+	}
 
 	;;; These members will end up in the AmmoTable.
 	; This member will return the damage one single shot will do to the given enemy after resists, after sig radius and everything.
@@ -608,6 +734,7 @@ objectdef obj_CombatComputer
 		NPCHullThermRes:Set[${NPCData.EnemyHullThermRes[${This.NPCTypeID[${EntityID}]}]}]
 		variable float64 NPCHullHP 
 		NPCHullHP:Set[${NPCData.EnemyHullHP[${This.NPCTypeID[${EntityID}]}]}]
+		NPCHullHP:Set[${Math.Calc[${NPCHullHP}*${Entity[${EntityID}].StructurePct}]}
 		; Enemy Armor Resists + HP
 		variable float64 NPCArmorEMRes	
 		NPCArmorEMRes:Set[${NPCData.EnemyArmorEMRes[${This.NPCTypeID[${EntityID}]}]}]
@@ -618,7 +745,8 @@ objectdef obj_CombatComputer
 		variable float64 NPCArmorThermRes 
 		NPCArmorThermRes:Set[${NPCData.EnemyArmorThermRes[${This.NPCTypeID[${EntityID}]}]}]
 		variable float64 NPCArmorHP 
-		NPCArmorHP:Set[${NPCData.EnemyArmorHP[${This.NPCTypeID[${EntityID}]}]}]	
+		NPCArmorHP:Set[${NPCData.EnemyArmorHP[${This.NPCTypeID[${EntityID}]}]}]
+		NPCArmorHP:Set[${Math.Calc[${NPCArmorHP}*${Entity[${EntityID}].ArmorPct}]}
 		; Enemy Shield Resists + HP
 		variable float64 NPCShieldEMRes	
 		NPCShieldEMRes:Set[${NPCData.EnemyShieldEMRes[${This.NPCTypeID[${EntityID}]}]}]
@@ -630,6 +758,7 @@ objectdef obj_CombatComputer
 		NPCShieldThermRes:Set[${NPCData.EnemyShieldThermRes[${This.NPCTypeID[${EntityID}]}]}]
 		variable float64 NPCShieldHP 
 		NPCShieldHP:Set[${NPCData.EnemyShieldHP[${This.NPCTypeID[${EntityID}]}]}]
+		NPCShieldHP:Set[${Math.Calc[${NPCShieldHP}*${Entity[${EntityID}].ShieldPct}]}
 		; Need to store those HP values twice.
 		variable float64 NPCShieldHPStart 
 		NPCShieldHPStart:Set[${NPCShieldHP}]

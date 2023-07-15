@@ -1914,7 +1914,8 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			;missionIterator.Value:GetDetails
 			EVE.Agent[${CurrentAgentIndex}]:StartConversation
-			return FALSE
+			This:InsertState["CheckForCompletion",5000]
+			return TRUE	
 		}
 		if ${MissionParser.IsComplete}
 		{
