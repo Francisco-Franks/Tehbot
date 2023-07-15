@@ -113,32 +113,43 @@ objectdef obj_WatchDog inherits obj_StateQueue
 		; get slightly fancy to try and mitigate the dangers there. 
 
 		
-		
+		;;;;;;;;;;;;;;;;;;; THESE DONT ACTUALLY WORK, also with new targetmanager in the works they are pointless. I'll leave them here for hubris and posterity reasons.
 		; WatchDog stuff
-		if !${This.AreWeMakingProgressDC}
-		{
-			if ${Math.Calc[${DroneControlNoProgressTimestamp} + 30]} < ${Time.Timestamp}
-			{
-				echo DEBUG - WATCHDOG RESET DRONE CONTROL
-				This:ResetDroneControl
-			}
-		}
+		;if !${This.AreWeMakingProgressDC}
+		;{
+			;if ${Math.Calc[${DroneControlNoProgressTimestamp} + 30]} < ${Time.Timestamp}
+			;{
+			;	echo DEBUG - WATCHDOG RESET DRONE CONTROL
+			;	This:ResetDroneControl
+			;}
+		;}
 		
-		if !${This.AreWeMakingProgressTM}
-		{
-			if ${Math.Calc[${TargetManagerNoProgressTimestamp} + 30]} < ${Time.Timestamp}
-			{
-				echo DEBUG - WATCHDOG RESET TARGET MANAGER
-				This:ResetTargetManager
-			}		
-		}
+		;if !${This.AreWeMakingProgressTM}
+		;{
+			;if ${Math.Calc[${TargetManagerNoProgressTimestamp} + 30]} < ${Time.Timestamp}
+			;{
+			;	echo DEBUG - WATCHDOG RESET TARGET MANAGER
+			;	This:ResetTargetManager
+			;}		
+		;}
 		
-		if ${Math.Calc[${LastTargetException} + 30]} < ${Time.Timestamp}
+		;if ${Math.Calc[${LastTargetException} + 30]} < ${Time.Timestamp}
+		;{
+		;	TargetManager.ActiveNPCs:ClearExcludeTargetID
+			;DroneControl.ActiveNPCs:ClearExcludeTargetID
+		;	LastTargetException:Set[99999999999999999999999999999]
+		;	echo DEBUG - WATCHDOG CLEAR TARGET EXCEPTIONS
+		;}
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		
+		; I need the inventory window kept open at all goddamn times.
+		; Something keeps closing it and I have no idea what, and its pissing me off.
+		; Open the inventory, stop closing the inventory, never close your inventory.
+		if (!${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo](exists)} || ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo].Capacity} < 0)
 		{
-			TargetManager.ActiveNPCs:ClearExcludeTargetID
-			DroneControl.ActiveNPCs:ClearExcludeTargetID
-			LastTargetException:Set[99999999999999999999999999999]
-			echo DEBUG - WATCHDOG CLEAR TARGET EXCEPTIONS
+			; Please keep your inventory open at all times, please. We have to use a freakin keyboard hotkey for this because I cant figure out an isxeve command to do it. The default is ALT + C
+			echo OPENING INVENTORY
+			EVE:Execute[OpenInventory]
 		}
 		return FALSE
 	}
