@@ -1519,6 +1519,8 @@ objectdef obj_NPCData
 		variable float64 MissileTypeID
 		variable float64 PlayerExpRadBonus
 		variable float64 PlayerShipExpRadBonus
+		variable float64 PlayerGuidanceComputerBonus
+		variable int	 PlayeryGuidanceComputerCount
 		variable float64 MissileExpRad
 		variable float64 FinalValue
 		
@@ -1529,6 +1531,10 @@ objectdef obj_NPCData
 		PlayerExpRadBonus:Set[0.8]
 		; Golem no have bonus for this
 		PlayerShipExpRadBonus:Set[1]
+		; Guidance Computer
+		PlayerGuidanceComputerBonus:Set[${Math.Calc[0.85 ^^ ${PlayerGuidanceComputerCount}]}
+		; Guidance Computer Count
+		PlayerGuidanceComputerCount:Set[${Ship.ModuleList_TrackingComputer.Count}]
 		; If you are in some other kinda ship idgaf, I'll make this use real stats some day whenever Amadeus fixes modulecharge
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${MissileTypeID} AND attributeID=654;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1536,7 +1542,7 @@ objectdef obj_NPCData
 			MissileExpRad:Set[${GetNPCInfo.GetFieldValue["value"]}]
 			GetNPCInfo:Finalize
 		}
-		FinalValue:Set[${Math.Calc[${PlayerShipExpRadBonus}*${PlayerExpRadBonus}*${MissileExpRad}]}]
+		FinalValue:Set[${Math.Calc[${PlayerShipExpRadBonus}*${PlayerExpRadBonus}*${MissileExpRad}*${PlayerGuidanceComputerBonus}]}]
 		return ${FinalValue}
 	}
 	; This member will return the explosion velocity of whatever missile we feed into it.
@@ -1545,6 +1551,8 @@ objectdef obj_NPCData
 		variable float64 MissileTypeID
 		variable float64 PlayerExpVelBonus
 		variable float64 PlayerShipExpVelBonus
+		variable float64 PlayerGuidanceComputerBonus
+		variable int	 PlayeryGuidanceComputerCount
 		variable float64 MissileExpVel
 		variable float64 FinalValue
 		
@@ -1555,6 +1563,10 @@ objectdef obj_NPCData
 		PlayerExpVelBonus:Set[1.4]
 		; Going to assume you are in a Golem, with BS 5[obv]
 		PlayerShipExpVelBonus:Set[1.25]
+		; Guidance Computer
+		PlayerGuidanceComputerBonus:Set[${Math.Calc[1.15 ^^ ${PlayerGuidanceComputerCount}]}
+		; Guidance Computer Count
+		PlayerGuidanceComputerCount:Set[${Ship.ModuleList_TrackingComputer.Count}]
 		; If you are in some other kinda ship idgaf, I'll make this use real stats some day whenever Amadeus fixes modulecharge.
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${MissileTypeID} AND attributeID=653;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1562,7 +1574,7 @@ objectdef obj_NPCData
 			MissileExpVel:Set[${GetNPCInfo.GetFieldValue["value"]}]
 			GetNPCInfo:Finalize
 		}
-		FinalValue:Set[${Math.Calc[${PlayerShipExpVelBonus}*${PlayerExpVelBonus}*${MissileExpVel}]}]
+		FinalValue:Set[${Math.Calc[${PlayerShipExpVelBonus}*${PlayerExpVelBonus}*${MissileExpVel}*${PlayerGuidanceComputerBonus}]}]
 		return ${FinalValue}
 	}
 	; This member will return the approximate expected range of the typeID given.

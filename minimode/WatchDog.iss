@@ -145,7 +145,7 @@ objectdef obj_WatchDog inherits obj_StateQueue
 		; I need the inventory window kept open at all goddamn times.
 		; Something keeps closing it and I have no idea what, and its pissing me off.
 		; Open the inventory, stop closing the inventory, never close your inventory.
-		if (!${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo](exists)} || ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo].Capacity} < 0)
+		if (!${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo](exists)} || ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipCargo].Capacity} < 0) && ${Client.InSpace}
 		{
 			; Please keep your inventory open at all times, please. We have to use a freakin keyboard hotkey for this because I cant figure out an isxeve command to do it. The default is ALT + C
 			echo OPENING INVENTORY
