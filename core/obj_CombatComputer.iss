@@ -705,7 +705,7 @@ objectdef obj_CombatComputer
 	;		GetCurrentData:Finalize
 	;	}
 	;}
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
+
 	; This member will return an integer representing the threat value presented by all enemies, as a baseline.
 	member:int64 NPCThreatLevelBaseline(int64 EntityID)
 	{

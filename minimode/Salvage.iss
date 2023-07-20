@@ -304,7 +304,7 @@ objectdef obj_LootCans inherits obj_StateQueue
 		variable index:item cargo
 		variable iterator cargoIterator
 
-		if !${Client.InSpace} || ${Me.ToEntity.Mode} == MOVE_WARPING || (${CommonConfig.Tehbot_Mode.Equal["Mission"]} && (${Math.Calc[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} - ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].UsedCapacity}]} < 150))
+		if !${Client.InSpace} || ${Me.ToEntity.Mode} == MOVE_WARPING || (${CommonConfig.Tehbot_Mode.Equal["Mission"]} && (${Math.Calc[${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].Capacity} - ${EVEWindow[Inventory].ChildWindow[${MyShip.ID},"ShipCargo"].UsedCapacity}]} < 200))
 		{
 			return FALSE
 		}
