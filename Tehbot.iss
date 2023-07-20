@@ -177,6 +177,8 @@ function main(string Character="")
 	declarevariable finalizedDC bool global
 	;Global variable for localcheck minimode
 	declarevariable FriendlyLocal bool global
+	;Global bool for Inhibiting the operation of TargetManager (so we don't shoot weird things, or other circumstances)
+	declarevariable TargetManagerInhibited bool global
 
 
 

@@ -61,6 +61,7 @@ objectdef obj_Ship inherits obj_StateQueue
 		This:AddModuleList[Repair_Armor, "ToItem.GroupID = GROUP_ARMOR_REPAIRERS"]
 		This:AddModuleList[Repair_Hull, "ToItem.GroupID = NONE"]
 		This:AddModuleList[AB_MWD, "ToItem.GroupID = GROUP_AFTERBURNER"]
+		This:AddModuleList[MWD, "ToItem.GroupID = GROUP_AFTERBURNER && ToItem.Name =- \"Microwarpdrive\""]
 		This:AddModuleList[Salvagers, "ToItem.GroupID = GROUP_SALVAGER"]
 		This:AddModuleList[TractorBeams, "ToItem.GroupID = GROUP_TRACTOR_BEAM"]
 		This:AddModuleList[Cloaks, "ToItem.GroupID = GROUP_CLOAKING_DEVICE"]

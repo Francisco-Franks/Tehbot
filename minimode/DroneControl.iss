@@ -580,6 +580,11 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			return FALSE
 		}
 		
+		if ${Mission.CurrentAgentMissionName.Find["Minesweeper"]})
+		{
+			return FALSE
+		}
+		
 		if ${MaxDroneCount} > ${Me.MaxActiveDrones} && !${MyShip.ToEntity.Type.Find[Rattlesnake]} && !${MyShip.ToEntity.Type.Find[Gila]}
 		{
 			MaxDroneCount:Set[${Me.MaxActiveDrones}]

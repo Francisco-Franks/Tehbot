@@ -222,7 +222,7 @@ objectdef obj_CombatComputer
 	{
 		variable float64 FinalValue
 		
-		FinalValue:Set[${NPCData.EnemyEnergyNeutAmount[${This.NPCTypeID[${EntityID}]}]}]
+		FinalValue:Set[${NPCData.EnemyEnergyNeutPerSecond[${This.NPCTypeID[${EntityID}]}]}]
 		return ${FinalValue}
 	}
 	
@@ -430,20 +430,47 @@ objectdef obj_CombatComputer
 	{
 		variable int64 FinalValue
 		
-		return 9999
+		FinalValue:Inc[${This.NPCThreatLevelWebs[${EntityID}]}]
+		FinalValue:Inc[${This.NPCThreatLevelDisrupt[${EntityID}]}]
+		FinalValue:Inc[${This.NPCThreatLevelScram[${EntityID}]}]
+		FinalValue:Inc[${This.NPCThreatLevelPainting[${EntityID}]}]
+		FinalValue:Inc[${This.NPCThreatLevelECM[${EntityID}]}]
+		FinalValue:Inc[${This.NPCThreatLevelDamps[${EntityID}]}]
+		FinalValue:Inc[${This.NPCThreatLevelTrackDis[${EntityID}]}]
+		FinalValue:Inc[${This.NPCThreatLevelGuideDis[${EntityID}]}]
+		FinalValue:Inc[${This.NPCThreatLevelNeuts[${EntityID}]}]
+		FinalValue:Inc[${This.NPCThreatLevelBaseline[${EntityID}]}]
+		
+		return ${FinalValue}
 		
 	}
+	;FinalValue:Inc[${This.NPCThreatLevelProximityDPS[${EntityID}]}]
+	;FinalValue:Inc[${This.NPCThreatLevelProximityHitChance[${EntityID}]}]
+	
 	;;; The following members will be involved in formulating the actual ThreatLevel of the enemy.
 	; This member will return an integer representing the threat value presented by webs.
-	member:int64 NPCThreatLevelWebs()
+	member:int64 NPCThreatLevelWebs(int64 EntityID)
 	{
 		variable int64 FinalValue
 	
 		; Does this enemy use webs?
 		; Are we in a ship that even cares? Most ships care at least a little, except marauders. If you are in a marauder this is a 0.
+
+		if ${MyShip.ToEntity.Group.Equals[Marauder]}
+			return 0
+			
+		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE WebRng>0 AND EntityID=${EntityID};"]}]
+		if ${GetCurrentData.NumRows} > 0
+		{
+			; It webs, add some threat. Expect this to get more complicated in the future, if I ever get there.
+			FinalValue:Set[10]
+			GetCurrentData:Finalize
+		}
+		return ${FinalValue}
+
 	}
 	; This member will return an integer representing the threat value presented by Warp Disruption (not scrams)
-	member:int64 NPCThreatLevelDisrupt()
+	member:int64 NPCThreatLevelDisrupt(int64 EntityID)
 	{
 		variable int64 FinalValue
 	
@@ -451,9 +478,22 @@ objectdef obj_CombatComputer
 		; If you are in 0.0 or lowsec or wormholes this is a problem.
 		; Otherwise, this is literally less than nothing. Returns a 0.
 	
+		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE WarpDisRng>0 AND EntityID=${EntityID};"]}]
+		if ${GetCurrentData.NumRows} > 0
+		{
+			; Are we somewhere that this actually matters?
+			if ${Universe[${Me.SolarSystemID}].Security} < 0.5
+			{
+				FinalValue:Set[200]
+			}
+			else
+				FinalValue:Set[0]
+			GetCurrentData:Finalize
+		}
+		return ${FinalValue}
 	}
 	; This member will return an integer representing the threat value presented by Warp Scrambling (not warp disruptors)
-	member:int64 NPCThreatLevelScram()
+	member:int64 NPCThreatLevelScram(int64 EntityID)
 	{
 		variable int64 FinalValue
 		
@@ -461,51 +501,114 @@ objectdef obj_CombatComputer
 		; If you are in a ship with an MWD that isn't a marauder and keeps the MWD going then this is a problem.
 		; If you are in 0.0 this is also a problem.
 		; Otherwise its a threat value of 0.
-	
-	
+
+		if ${MyShip.ToEntity.Group.Equals[Marauder]}
+			return 0
+			
+		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE WarpScrRng>0 AND EntityID=${EntityID};"]}]
+		if ${GetCurrentData.NumRows} > 0
+		{
+			; Are we somewhere that this actually matters?
+			if ${Universe[${Me.SolarSystemID}].Security} < 0.5
+			{
+				FinalValue:Inc[200]
+			}
+			elseif ${Ship.ModuleList_MWD.Count} > 0
+			{
+				; Are we using an MWD?
+				FinalValue:Inc[200]
+			}
+			else
+				FinalValue:Set[0]
+			GetCurrentData:Finalize
+		}
+		return ${FinalValue}		
 	}
 	; This member will return an integer representing the threat value presented by Target Painting
-	member:int64 NPCThreatLevelPainting()
+	member:int64 NPCThreatLevelPainting(int64 EntityID)
 	{
 		variable int64 FinalValue
 		
 		; Does this enemy apply target painting? Do we even care about that?
 		; A battleship hull probably doesn't care. If you have an MWD you also probably don't care. Returns 0 in those cases.
-	
+
+		if ${MyShip.ToEntity.Group.Equals[Marauder]} || ${MyShip.ToEntity.Group.Equals[Battleship]}
+			return 0
+			
+		if ${Ship.ModuleList_MWD.Count} > 0
+		{
+			; Are we using an MWD?
+			FinalValue:Inc[200]
+		}
+		
+		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Painter%' AND EntityID=${EntityID};"]}]
+		if ${GetCurrentData.NumRows} > 0
+		{
+			FinalValue:Inc[20]
+			GetCurrentData:Finalize
+		}
+		return ${FinalValue}		
 	
 	}
 	; This member will return an integer representing the threat value presented by ECM
-	member:int64 NPCThreatLevelECM()
+	member:int64 NPCThreatLevelECM(int64 EntityID)
 	{
 		variable int64 FinalValue
 		
 		; Does this enemy use ECM? ECM will keep us from killing what we actually want to kill.
 		; This gets the highest threat level except for a couple other edge cases (we literally can't hit this enemy / some other super urgent thing is going on).
-	
-	
+		
+		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%ECM%' AND EntityID=${EntityID};"]}]
+		if ${GetCurrentData.NumRows} > 0
+		{
+			FinalValue:Set[1000]
+			GetCurrentData:Finalize
+		}
+		return ${FinalValue}	
 	}
 	; This member will return an integer representing the threat value presented by Sensor Damps
-	member:int64 NPCThreatLevelDamps()
+	member:int64 NPCThreatLevelDamps(int64 EntityID)
 	{
 		variable int64 FinalValue
 	
 		; Does this enemy use Sensor Damps? Are they particularly strong? Is our sensor range already kinda awful?
 		; This member will be a higher threat gen than most others, sensor damps are really debilitating (usually).
-	
+
+		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Damp%' AND EntityID=${EntityID};"]}]
+		if ${GetCurrentData.NumRows} > 0
+		{
+			; Are we somewhere that this actually matters?
+			FinalValue:Set[20]
+			GetCurrentData:Finalize
+		}
+		return ${FinalValue}	
 	}
 	; This member will return an integer representing the threat value presented by Tracking Disruption
-	member:int64 NPCThreatLevelTrackDis()
+	member:int64 NPCThreatLevelTrackDis(int64 EntityID)
 	{
 		variable int64 FinalValue
 		
-		; Does this enemy use tracking disruption? Are our weapons borderline as far as application is concerned (range is short or tracking is poor already.?
+		; Does this enemy use tracking disruption? Are our weapons borderline as far as application is concerned (range is short or tracking is poor already.)?
 		; Are we using missiles? If yes this returns a 0.
 		; Are you a maniac using a drone boat or something like some kind of a fucking monster? It also returns a 0.
-	
-	
+		
+		if ${Ship.ModuleList_Turret.Count} == 0
+			return 0
+		
+		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Tracking%' AND EntityID=${EntityID};"]}]
+		if ${GetCurrentData.NumRows} > 0
+		{
+			; Going to just consider the distance of the tracking disruptor user itself for now. This isn't going to work quite right at the moment.
+			if ${Entity[${EntityID}].Distance} > ${Math.Calc[${Ship.ModuleList_Turret.Range} * 0.75]}
+				FinalValue:Inc[100]
+			else
+				FinalValue:Inc[50]
+			GetCurrentData:Finalize
+		}
+		return ${FinalValue}	
 	}
 	; This member will return an integer representing the threat value presented by Guidance Disruption
-	member:int64 NPCThreatLevelGuideDis()
+	member:int64 NPCThreatLevelGuideDis(int64 EntityID)
 	{
 		variable int64 FinalValue
 		
@@ -513,51 +616,117 @@ objectdef obj_CombatComputer
 		; Are we a turret ship? If yes this returns 0.
 		; Are you a maniac using a drone boat or something like some kind of a fucking monster? It also returns a 0.
 		
-	
+		if ${Ship.ModuleList_MissileLauncher.Count} == 0
+			return 0
+		
+		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Guidance%' AND EntityID=${EntityID};"]}]
+		if ${GetCurrentData.NumRows} > 0
+		{
+			if ${Entity[${EntityID}].Distance} > ${Math.Calc[${Ship.ModuleList_MissileLauncher.Range} * 0.75]}
+				FinalValue:Inc[100]
+			else
+				FinalValue:Inc[50]
+			GetCurrentData:Finalize
+		}
+		return ${FinalValue}	
 	}
 	; This member will return an integer representing the threat value presented by Energy Neutralizers
-	member:int64 NPCThreatLevelNeuts()
+	member:int64 NPCThreatLevelNeuts(int64 EntityID)
 	{
 		variable int64 FinalValue
+		variable float64 NeutRng
+		variable float64 NeutStr
 		
 		; Is this enemy capable of neuting? Are they in range to neut? Are the neuts of a significant strength? Are we in a ship that even cares about neuting?
 		; That last one is going to be kinda hard to rectify, tbh. Maybe we will leave that off for now. 
-	
+		
+		; We are using missiles, or projectiles (no cap use), and no active reps. If you are using a remote repping rattlesnake or something you can go to hell.
+		if (${Ship.ModuleList_MissileLauncher.Count} > 0 || ${Ship.ModuleList_Weapon.GroupID} == GROUP_PROJECTILEWEAPON) && ( ${Ship.ModuleList_Regen_Armor.Count} == 0 && ${Ship.ModuleList_Regen_Shield.Count} == 0)
+			return 0
+		
+		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE NeutRng>0 AND EntityID=${EntityID};"]}]
+		if ${GetCurrentData.NumRows} > 0
+		{
+			NeutRng:Set[${GetCurrentData.GetFieldValue["NeutRng"]}]
+			NeutStr:Set[${GetCurrentData.GetFieldValue["NeutStr"]}]
+			; Is this thing actually in range to neut?
+			if ${Entity[${EntityID}].Distance} < ${NeutRng}
+				FinalValue:Inc[50]
+			; If we lose more than 4% of our capacitor per second, that is a significant threat.
+			if ${Math.Calc[${NeutStr}/${MyShip.MaxCapacitor}]} > 0.04
+				FinalValue:Inc[250]
+			else
+				FinalValue:Inc[50]
+			GetCurrentData:Finalize
+		}
+		return ${FinalValue}	
 	
 	}
+	;;;;;;;;;;;;;;;;;; These will be done in the future, perhaps ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	; This member will return an integer representing the threat value presented by Proximity and its relation to enemy DPS output.
-	member:int64 NPCThreatLevelProximityDPS()
-	{
-		variable int64 FinalValue
+	;member:int64 NPCThreatLevelProximityDPS(int64 EntityID)
+	;{
+	;	variable int64 FinalValue
 		
 		; Is this enemy in the optimal range zone required for them to do their maximum dps to you? Then they get a higher number.
 		; If this enemy is not at that range yet, they get a lower number.
 		; Might get fancier with this, some day.
 	
 	
-	}
+	;}
+
 	; This member will return an integer representing the threat value presented by Proximity and its relation to our ability to actually hit an enemy.
-	member:int64 NPCThreatLevelProximityHitChance()
-	{
-		variable int64 FinalValue
+	;member:int64 NPCThreatLevelProximityHitChance(int64 EntityID)
+	;{
+	;	variable int64 FinalValue
+	;	variable float64 ChanceToHitFuture
+	;	variable float64 ChanceToHitCurrent
+	;	variable float64 TurretTrack
+	;	variable float64 TurretOpt
+	;	variable float64 TurretFall
 		
 		; Alright so the basic premise here is, if we are in a missile ship this always returns 0. Close or far (but not too far) makes 0 difference.
 		; Otherwise, we will assign a larger value for enemies that WILL at some point in the future arrive at an orbit where we literally can not hit them.
 		; I think I can pipe the ultimate orbit/speed/sig numbers into our turret hitchance stuff below and arrive at an accurate number, probably. 
 		; If an enemy can be hit (adquately) at any range then this number is 0.
-	
-	
-	}
+		
+	;	if ${Ship.ModuleList_MissileLauncher.Count} > 0 || (${Ship.ModuleList_MissileLauncher.Count} == 0 && ${Ship.ModuleList_Turret.Count} == 0)
+	;		return  0
+	;	GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EntityID=${EntityID};"]}
+	;	if ${GetCurrentData.NumRows} > 0
+	;	{			
+	;		ChanceToHitFuture:Set[${This.TurretChanceToHit[${EntityID},${TurretTrack},${TurretOpt},${TurretFall},TRUE]}]
+	;		GetCurrentData:Finalize
+	;	}
+	;	GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM AmmoTable WHERE EntityID=${EntityID} AND OurDamageEff = (SELECT MAX(OurDamageEff) FROM AmmoTable);"]}
+	;	if ${GetCurrentData.NumRows} > 0
+	;	{
+	;		ChanceToHitCurrent:Set[${GetCurrentData.GetFieldValue["OurDamageEff"]}]
+	;		GetCurrentData:Finalize
+	;	}
+	;}
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
 	; This member will return an integer representing the threat value presented by all enemies, as a baseline.
-	member:int64 NPCThreatLevelBaseline()
+	member:int64 NPCThreatLevelBaseline(int64 EntityID)
 	{
 		variable int64 FinalValue
+		variable float64 EffNPCDPS
 		
 		; The baseline threat level will primarily be based upon damage output. These numbers probably won't be particularly large.
 		; The threat level increases from other sources will generally greatly outweigh these.
 		; There will be minor increases included for existing NPC damage.
 	
-	
+		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EffNPCDPS>0 AND EntityID=${EntityID};"]}]
+		if ${GetCurrentData.NumRows} > 0
+		{
+			; If you are curious, we pull these values back out as strings and I don't feel like dealing with Lavishscript nonsense so we will make it a float then use it as such. This is probably pointless.
+			EffNPCDPS:Set[${GetCurrentData.GetFieldValue["EffNPCDPS"]}]
+			FinalValue:Set[${EffNPCDPS}]
+			GetCurrentData:Finalize
+		}
+		else
+			FinalValue:Set[1]
+		return ${FinalValue}
 	}
 
 	;;; These members will end up in the AmmoTable.
@@ -1071,6 +1240,68 @@ objectdef obj_CombatComputer
 
 		variable float64 rangeFactor
 		rangeFactor:Set[${This._turretRangeDecayFactor[${targetID},${NPCOpt},${NPCFall}]}]
+
+		variable float64 chanceToHit
+		chanceToHit:Set[${Math.Calc[0.5 ^^ (${trackingFactor} + ${rangeFactor})]}]
+
+		;This:LogDebug["chanceToHit: \ao ${rangeFactor} ${trackingFactor} -> ${chanceToHit}"]
+
+		return ${chanceToHit}
+	}
+	;;; Modified for Prognostication. Thats reading the future, for the simple folk.
+	member:float64 _turretRangeDecayFactorFuture(int64 targetID, float64 NPCOpt, float64 NPCFall, float64 OrbitDist)
+	{
+
+		variable float64 targetDistance
+		targetDistance:Set[${OrbitDist}]
+
+		variable float64 turretOptimalRange
+		turretOptimalRange:Set[${NPCOpt}]
+
+		variable float64 turretFalloff
+		turretFalloff:Set[${NPCFall}]
+
+		variable float64 decay
+		decay:Set[${Math.Calc[${targetDistance} - ${turretOptimalRange}]}]
+		decay:Set[${Utility.Max[0, ${decay}]}]
+
+		variable float64 rangeFactor
+		rangeFactor:Set[${Math.Calc[(${decay} / ${turretFalloff}) ^^ 2]}]
+		;This:LogDebug["rangeFactor: \ao ${turretOptimalRange} ${turretFalloff} ${decay} -> ${rangeFactor}"]
+
+		return ${rangeFactor}
+	}
+
+	member:float64 _turretTrackingDecayFactorFuture(int64 targetID, float64 NPCTrack, bool Player, float64 OrbitSpd, float64 OrbitDist)
+	{
+
+		variable float64 angularVelocity
+		angularVelocity:Set[${Math.Calc[${Vt} / ${targetDistance}]}]
+		This:LogDebug["Target angular velocity: \ao ${projectionvX} ${projectionvY} ${projectionvZ} -> ${angularVelocity}"]
+
+		variable float64 trackingSpeed
+		trackingSpeed:Set[${NPCTrack}]
+
+		variable float64 targetSignatureRadius
+		if !${Player}
+			targetSignatureRadius:Set[${Entity[${targetID}].Radius}]
+		else
+			targetSignatureRadius:Set[${MyShip.SignatureRadius}]
+
+		variable float64 trackingFactor
+		trackingFactor:Set[${Math.Calc[(${angularVelocity} * 40000 / ${trackingSpeed} / ${targetSignatureRadius}) ^^ 2]}]
+		;This:LogDebug["trackingFactor: \ao ${trackingSpeed} ${targetSignatureRadius} -> ${trackingFactor}"]
+
+		return ${trackingFactor}
+	}
+
+	member:float64 TurretChanceToHit(int64 targetID, float64 NPCTrack, float64 NPCOpt, float64 NPCFall, bool Player, float64 OrbitDist, float64 OrbitSpd)
+	{
+		variable float64 trackingFactor
+		trackingFactor:Set[${This._turretTrackingDecayFactorFuture[${targetID},${NPCTrack},${Player},${OrbitSpd}]}]
+
+		variable float64 rangeFactor
+		rangeFactor:Set[${This._turretRangeDecayFactorFuture[${targetID},${NPCOpt},${NPCFall},${OrbitSpd},${OrbitDist}]}]
 
 		variable float64 chanceToHit
 		chanceToHit:Set[${Math.Calc[0.5 ^^ (${trackingFactor} + ${rangeFactor})]}]

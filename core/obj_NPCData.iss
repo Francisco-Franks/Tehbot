@@ -613,7 +613,7 @@ objectdef obj_NPCData
 		}
 	}
 	; This member will return a float64, this float64 will be the amount of capacitor the NPC eats with neuts PER SECOND. Attribute 97 (amount), attribute 942 (duration), and attribute 931 (chance)
-	member:float64 EnemyEnergyNeutAmount(int64 TypeID)
+	member:float64 EnemyEnergyNeutPerSecond(int64 TypeID)
 	{
 		variable float64 NeutSec
 		variable float64 NeutAmount
@@ -650,8 +650,8 @@ objectdef obj_NPCData
 		}
 		else
 		{
-			; TypeID not found.
-			return 0
+			; This means it has a 100% chance of using its neut, I guess.
+			return 1
 		}
 		NeutSec:Set[${Math.Calc[(${NeutAmount}/${NeutDuration})*${NeutChance}]}]
 		return ${NeutSec}
