@@ -580,7 +580,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			return FALSE
 		}
 		
-		if ${Mission.CurrentAgentMissionName.Find["Minesweeper"]})
+		if ${Mission.CurrentAgentMissionName.Find["Minesweeper"]}
 		{
 			return FALSE
 		}
