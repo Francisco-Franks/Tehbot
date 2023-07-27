@@ -174,10 +174,10 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			This:LockManagement
 		}
-		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${PrimaryWeap.TargetList.Used} == 0
+		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${ActiveNPCs.TargetList.Used} < 1
 		{
+			echo DEBUG MTM TARGET DEAD DEACTIVATE SIEGE
 			AllowSiegeModule:Set[FALSE]
-			Ship.ModuleList_Siege:DeactivateAll
 			Ship.ModuleList_CommandBurst:DeactivateAll
 		}
 		if ${PrimaryWeap.TargetList.Used} > 0
@@ -190,6 +190,10 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		!${Ship.RegisteredModule.Element[${Ship.ModuleList_Siege.ModuleID.Get[1]}].IsActive}
 		{
 			Ship.ModuleList_Siege:ActivateOne
+		}
+		if !${AllowSiegeModule}
+		{
+			Ship.ModuleList_Siege:DeactivateAll
 		}
 		; For when I inevitably make this for all modes not just mission, it will need to control its own siege allowance.
 		if !${CommonConfig.Tehbot_Mode.Find["Mission"]} && ${CurrentOffenseTarget} > 0
@@ -206,8 +210,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Ignore%';"]}]
 		IgnoreTargets:Set[${GetMTMInfo.NumRows}]
 		GetMTMInfo:Finalize
-		if (${IgnoreTargets} > 0 && ${PrimaryWeap.TargetList.Used} == 0) && !${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${DistantNPCs.TargetList.Get[1]}]}
+		if (${IgnoreTargets} > 0 && ${PrimaryWeap.TargetList.Used} < 1) && !${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${DistantNPCs.TargetList.Get[1]}]}
 		{
+			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
 			This:LogInfo["Approaching out of range target: \ar${Entity[${DistantNPCs.TargetList.Get[1]}].Name}"]
 			if ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
