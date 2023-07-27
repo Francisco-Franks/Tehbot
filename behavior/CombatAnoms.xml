@@ -3901,14 +3901,134 @@
 								</OnSelect>
 								</combobox>
 								
-							<Text name='SanshaForsakenHubComboboxLabel'>
-									<X>4%</X>
-									<Y>64%</Y>
-									<Width>50%</Width>
-									<Height>5%</Height>
-									<Alignment>Left</Alignment>
-									<Text>SanshaForsakenHub</Text>
-								</Text>
+					<Text name='SanshaForsakenHubComboboxLabel'>
+							<X>4%</X>
+							<Y>64%</Y>
+							<Width>50%</Width>
+							<Height>5%</Height>
+							<Alignment>Left</Alignment>
+							<Text>SanshaForsakenHub</Text>
+						</Text>
+						<combobox name='SanshaForsakenHubCombobox'>
+							<X>1%</X>
+							<Y>64%</Y>
+							<Width>40</Width> 
+							<Height>20</Height> 
+							<FullHeight>80</FullHeight>
+							<ButtonWidth>20</ButtonWidth>
+							<Items>
+								<Item Value='0'>0</Item>
+								<Item Value='1'>1</Item>
+								<Item Value='2'>2</Item>
+								<Item Value='3'>3</Item>
+							</Items>
+						<OnLoad>
+							if ${Script[Tehbot].VariableScope.CombatAnoms.Config.SanshaForsakenHubPriority} > -1
+								This.ItemByText[${Script[Tehbot].VariableScope.CombatAnoms.Config.SanshaForsakenHubPriority}]:Select
+
+						</OnLoad>
+						<OnSelect>
+							Script[Tehbot].VariableScope.CombatAnoms.Config:SetSanshaForsakenHubPriority[${This.SelectedItem.Value}]
+							Script[Tehbot].VariableScope.CombatAnoms.PriorityCollection:Set["Sansha Forsaken Hub",${This.SelectedItem.Value}]
+						</OnSelect>
+						</combobox>
+
+					<Text name='SanshaForlornHubComboboxLabel'>
+							<X>4%</X>
+							<Y>67%</Y>
+							<Width>50%</Width>
+							<Height>5%</Height>
+							<Alignment>Left</Alignment>
+							<Text>SanshaForlornHub</Text>
+						</Text>
+						<combobox name='SanshaForlornHubCombobox'>
+							<X>1%</X>
+							<Y>67%</Y>
+							<Width>40</Width> 
+							<Height>20</Height> 
+							<FullHeight>80</FullHeight>
+							<ButtonWidth>20</ButtonWidth>
+							<Items>
+								<Item Value='0'>0</Item>
+								<Item Value='1'>1</Item>
+								<Item Value='2'>2</Item>
+								<Item Value='3'>3</Item>
+							</Items>
+						<OnLoad>
+							if ${Script[Tehbot].VariableScope.CombatAnoms.Config.SanshaForlornHubPriority} > -1
+								This.ItemByText[${Script[Tehbot].VariableScope.CombatAnoms.Config.SanshaForlornHubPriority}]:Select
+
+						</OnLoad>
+						<OnSelect>
+							Script[Tehbot].VariableScope.CombatAnoms.Config:SetSanshaForlornHubPriority[${This.SelectedItem.Value}]
+							Script[Tehbot].VariableScope.CombatAnoms.PriorityCollection:Set["Sansha Forlorn Hub",${This.SelectedItem.Value}]
+						</OnSelect>
+						</combobox>
+
+					<Text name='SanshaHavenComboboxLabel'>
+							<X>4%</X>
+							<Y>71%</Y>
+							<Width>50%</Width>
+							<Height>5%</Height>
+							<Alignment>Left</Alignment>
+							<Text>SanshaHaven</Text>
+						</Text>
+						<combobox name='SanshaHavenCombobox'>
+							<X>1%</X>
+							<Y>71%</Y>
+							<Width>40</Width> 
+							<Height>20</Height> 
+							<FullHeight>80</FullHeight>
+							<ButtonWidth>20</ButtonWidth>
+							<Items>
+								<Item Value='0'>0</Item>
+								<Item Value='1'>1</Item>
+								<Item Value='2'>2</Item>
+								<Item Value='3'>3</Item>
+							</Items>
+						<OnLoad>
+							if ${Script[Tehbot].VariableScope.CombatAnoms.Config.SanshaHavenPriority} > -1
+								This.ItemByText[${Script[Tehbot].VariableScope.CombatAnoms.Config.SanshaHavenPriority}]:Select
+
+						</OnLoad>
+						<OnSelect>
+							Script[Tehbot].VariableScope.CombatAnoms.Config:SetSanshaHavenPriority[${This.SelectedItem.Value}]
+							Script[Tehbot].VariableScope.CombatAnoms.PriorityCollection:Set["Sansha Haven",${This.SelectedItem.Value}]
+						</OnSelect>
+						</combobox>
+
+					<Text name='SanshaSanctumComboboxLabel'>
+							<X>4%</X>
+							<Y>75%</Y>
+							<Width>50%</Width>
+							<Height>5%</Height>
+							<Alignment>Left</Alignment>
+							<Text>SanshaSanctum</Text>
+						</Text>
+						<combobox name='SanshaSanctumCombobox'>
+							<X>1%</X>
+							<Y>75%</Y>
+							<Width>40</Width> 
+							<Height>20</Height> 
+							<FullHeight>80</FullHeight>
+							<ButtonWidth>20</ButtonWidth>
+							<Items>
+								<Item Value='0'>0</Item>
+								<Item Value='1'>1</Item>
+								<Item Value='2'>2</Item>
+								<Item Value='3'>3</Item>
+							</Items>
+						<OnLoad>
+							if ${Script[Tehbot].VariableScope.CombatAnoms.Config.SanshaSanctumPriority} > -1
+								This.ItemByText[${Script[Tehbot].VariableScope.CombatAnoms.Config.SanshaSanctumPriority}]:Select
+
+						</OnLoad>
+						<OnSelect>
+							Script[Tehbot].VariableScope.CombatAnoms.Config:SetSanshaSanctumPriority[${This.SelectedItem.Value}]
+							Script[Tehbot].VariableScope.CombatAnoms.PriorityCollection:Set["Sansha Sanctum",${This.SelectedItem.Value}]
+						</OnSelect>
+						</combobox>
+								
 								</Tab>
 					<Tab Name='SerpentisAnoms'>
 						<frame name='SerpentisAnoms'>

@@ -698,7 +698,7 @@ objectdef obj_CombatComputer
 	;		ChanceToHitFuture:Set[${This.TurretChanceToHit[${EntityID},${TurretTrack},${TurretOpt},${TurretFall},TRUE]}]
 	;		GetCurrentData:Finalize
 	;	}
-	;	GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM AmmoTable WHERE EntityID=${EntityID} AND OurDamageEff = (SELECT MAX(OurDamageEff) FROM AmmoTable);"]}
+	;	GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM AmmoTable WHERE EntityID=${EntityID} AND OurDamageEff = (SELECT MAX(OurDamageEff) FROM AmmoTable WHERE EntityID=${EntityID});"]}]
 	;	if ${GetCurrentData.NumRows} > 0
 	;	{
 	;		ChanceToHitCurrent:Set[${GetCurrentData.GetFieldValue["OurDamageEff"]}]
@@ -805,7 +805,7 @@ objectdef obj_CombatComputer
 		variable float64 TurretDmgMod
 		if !${Missl}
 		{
-			ChanceToHit:Set[${This.TurretChanceToHit[${EntityID},${TurretTrack},${TurretOpt},${TurretFall},TRUE]}]
+			ChanceToHit:Set[${This.TurretChanceToHit[${EntityID},${TurretTrack},${TurretOpt},${TurretFall},FALSE]}]
 			echo ${ChanceToHit} CHANCETOHIT
 			TurretDmgMod:Set[${Math.Calc[0.5 * (${Utility.MinFloat[${Math.Calc[(${ChanceToHit}^^2) + (0.98 * ${ChanceToHit}) + 0.0501]}, ${Math.Calc[${ChanceToHit}*6]}]})]}]
 			echo ${TurretDmgMod} TURRETDMGMOD
@@ -960,22 +960,25 @@ objectdef obj_CombatComputer
 			LowestDmgNmbr:Set[50]
 		}
 		; Our decrement number will be made larger so that ExpectedShotDmg will take fewer loops. We maintain the proportionality, we just apply a larger slice of our damage per iteration now.
-		variable float64 EMDec
-		EMDec:Set[${Math.Calc[${AmmoDmgEMPM}/(${LowestDmgNmbr}/10)]}]
-		variable float64 EMDecTurbo
-		EMDecTurbo:Set[${AmmoDmgEMPM}]
-		variable float64 ExpDec 
-		ExpDec:Set[${Math.Calc[${AmmoDmgExpPM}/(${LowestDmgNmbr}/10)]}]
-		variable float64 ExpDecTurbo
-		ExpDecTurbo:Set[${AmmoDmgExpPM}]
-		variable float64 KinDec 
-		KinDec:Set[${Math.Calc[${AmmoDmgKinPM}/(${LowestDmgNmbr}/10)]}]
-		variable float64 KinDecTurbo
-		KinDecTurbo:Set[${AmmoDmgKinPM}]
-		variable float64 ThermDec 
-		ThermDec:Set[${Math.Calc[${AmmoDmgThermPM}/(${LowestDmgNmbr}/10)]}]
-		variable float64 ThermDecTurbo
-		ThermDecTurbo:Set[${AmmoDmgThermPM}]
+		if ${Missl} || ${TurretDmgMod} > 0.01
+		{
+			variable float64 EMDec
+			EMDec:Set[${Math.Calc[${AmmoDmgEMPM}/(${LowestDmgNmbr}/10)]}]
+			variable float64 EMDecTurbo
+			EMDecTurbo:Set[${AmmoDmgEMPM}]
+			variable float64 ExpDec 
+			ExpDec:Set[${Math.Calc[${AmmoDmgExpPM}/(${LowestDmgNmbr}/10)]}]
+			variable float64 ExpDecTurbo
+			ExpDecTurbo:Set[${AmmoDmgExpPM}]
+			variable float64 KinDec 
+			KinDec:Set[${Math.Calc[${AmmoDmgKinPM}/(${LowestDmgNmbr}/10)]}]
+			variable float64 KinDecTurbo
+			KinDecTurbo:Set[${AmmoDmgKinPM}]
+			variable float64 ThermDec 
+			ThermDec:Set[${Math.Calc[${AmmoDmgThermPM}/(${LowestDmgNmbr}/10)]}]
+			variable float64 ThermDecTurbo
+			ThermDecTurbo:Set[${AmmoDmgThermPM}]
+		}
 		variable float64 ShotPctDmgShld
 		variable float64 ShotPctDmgArm
 		variable float64 ShotPctDmgHull
@@ -989,6 +992,10 @@ objectdef obj_CombatComputer
 		; Going to forgo that for the moment.
 		if ${ReqInfo.Equals[ExpectedShotDmg]} || ${ReqInfo.Equals[ShotsToKill]} || ${ReqInfo.Equals[TimeToKill]}
 		{
+			if ${TurretDmgMod} <= 0.01
+			{
+				return 0
+			}
 			while ${NPCShieldHP} > 0 && (${AmmoDmgEMPM} > 0 || ${AmmoDmgExpPM} > 0 || ${AmmoDmgKinPM} > 0 || ${AmmoDmgThermPM} > 0)
 			{
 				NPCShieldHP:Set[${Math.Calc[${NPCShieldHP} - ((${EMDec} * ${NPCShieldEMRes}) + (${ExpDec} * ${NPCShieldExpRes}) + (${KinDec} * ${NPCShieldKinRes}) + (${ThermDec} * ${NPCShieldThermRes}))]}]
@@ -1063,6 +1070,10 @@ objectdef obj_CombatComputer
 		}
 		if ${ReqInfo.Equals[ShotsToKill]}
 		{
+			if ${TurretDmgMod} <= 0.01
+			{
+				return 9999999
+			}
 			if ${OneShot}
 			{
 				echo ["Entity ${Entity[${EntityID}].Name} will be destroyed with 1 Shot"]
@@ -1108,6 +1119,10 @@ objectdef obj_CombatComputer
 		}
 		if ${ReqInfo.Equals[TimeToKill]}
 		{
+			if ${TurretDmgMod} <= 0.01
+			{
+				return 9999999
+			}
 			if ${OneShot}
 			{
 				echo ["Entity ${Entity[${EntityID}].Name} will be destroyed in ${Math.Calc[1*${TimeBetweenShots}]} Seconds"]
@@ -1155,6 +1170,8 @@ objectdef obj_CombatComputer
 
 		variable float64 targetDistance
 		targetDistance:Set[${Math.Distance[${X}, ${Y}, ${Z}, 0, 0, 0]}]
+		if ${targetDistance} == 0
+		targetDistance:Set[${Entity[${targetID}].Distance}]
 
 		variable float64 turretOptimalRange
 		turretOptimalRange:Set[${NPCOpt}]
@@ -1188,11 +1205,14 @@ objectdef obj_CombatComputer
 		vY:Set[${Math.Calc[${Entity[${targetID}].vY} - ${MyShip.ToEntity.vY}]}]
 		vZ:Set[${Math.Calc[${Entity[${targetID}].vZ} - ${MyShip.ToEntity.vZ}]}]
 
+		
 		variable float64 dotProduct
 		dotProduct:Set[${Math.Calc[${vX} * ${X} + ${vY} * ${Y} + ${vZ} * ${Z}]}]
 
 		variable float64 targetDistance
 		targetDistance:Set[${Math.Distance[${X}, ${Y}, ${Z}, 0, 0, 0]}]
+		if ${targetDistance} == 0
+		targetDistance:Set[${Entity[${targetID}].Distance}]
 
 		variable float64 norm
 		norm:Set[${Math.Calc[${targetDistance} * ${targetDistance}]}]
@@ -1240,68 +1260,6 @@ objectdef obj_CombatComputer
 
 		variable float64 rangeFactor
 		rangeFactor:Set[${This._turretRangeDecayFactor[${targetID},${NPCOpt},${NPCFall}]}]
-
-		variable float64 chanceToHit
-		chanceToHit:Set[${Math.Calc[0.5 ^^ (${trackingFactor} + ${rangeFactor})]}]
-
-		;This:LogDebug["chanceToHit: \ao ${rangeFactor} ${trackingFactor} -> ${chanceToHit}"]
-
-		return ${chanceToHit}
-	}
-	;;; Modified for Prognostication. Thats reading the future, for the simple folk.
-	member:float64 _turretRangeDecayFactorFuture(int64 targetID, float64 NPCOpt, float64 NPCFall, float64 OrbitDist)
-	{
-
-		variable float64 targetDistance
-		targetDistance:Set[${OrbitDist}]
-
-		variable float64 turretOptimalRange
-		turretOptimalRange:Set[${NPCOpt}]
-
-		variable float64 turretFalloff
-		turretFalloff:Set[${NPCFall}]
-
-		variable float64 decay
-		decay:Set[${Math.Calc[${targetDistance} - ${turretOptimalRange}]}]
-		decay:Set[${Utility.Max[0, ${decay}]}]
-
-		variable float64 rangeFactor
-		rangeFactor:Set[${Math.Calc[(${decay} / ${turretFalloff}) ^^ 2]}]
-		;This:LogDebug["rangeFactor: \ao ${turretOptimalRange} ${turretFalloff} ${decay} -> ${rangeFactor}"]
-
-		return ${rangeFactor}
-	}
-
-	member:float64 _turretTrackingDecayFactorFuture(int64 targetID, float64 NPCTrack, bool Player, float64 OrbitSpd, float64 OrbitDist)
-	{
-
-		variable float64 angularVelocity
-		angularVelocity:Set[${Math.Calc[${Vt} / ${targetDistance}]}]
-		This:LogDebug["Target angular velocity: \ao ${projectionvX} ${projectionvY} ${projectionvZ} -> ${angularVelocity}"]
-
-		variable float64 trackingSpeed
-		trackingSpeed:Set[${NPCTrack}]
-
-		variable float64 targetSignatureRadius
-		if !${Player}
-			targetSignatureRadius:Set[${Entity[${targetID}].Radius}]
-		else
-			targetSignatureRadius:Set[${MyShip.SignatureRadius}]
-
-		variable float64 trackingFactor
-		trackingFactor:Set[${Math.Calc[(${angularVelocity} * 40000 / ${trackingSpeed} / ${targetSignatureRadius}) ^^ 2]}]
-		;This:LogDebug["trackingFactor: \ao ${trackingSpeed} ${targetSignatureRadius} -> ${trackingFactor}"]
-
-		return ${trackingFactor}
-	}
-
-	member:float64 TurretChanceToHit(int64 targetID, float64 NPCTrack, float64 NPCOpt, float64 NPCFall, bool Player, float64 OrbitDist, float64 OrbitSpd)
-	{
-		variable float64 trackingFactor
-		trackingFactor:Set[${This._turretTrackingDecayFactorFuture[${targetID},${NPCTrack},${Player},${OrbitSpd}]}]
-
-		variable float64 rangeFactor
-		rangeFactor:Set[${This._turretRangeDecayFactorFuture[${targetID},${NPCOpt},${NPCFall},${OrbitSpd},${OrbitDist}]}]
 
 		variable float64 chanceToHit
 		chanceToHit:Set[${Math.Calc[0.5 ^^ (${trackingFactor} + ${rangeFactor})]}]

@@ -286,8 +286,16 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				MaxTarget:Set[${Me.MaxLockedTargets}]
 			MaxTarget:Dec[2]
 
-			ActiveNPCs.MinLockCount:Set[${MaxTarget}]
-			ActiveNPCs.AutoLock:Set[TRUE]
+			if !${CommonConfig.Tehbot_Mode.Equal["Mission"]}
+			{
+				ActiveNPCs.MinLockCount:Set[${MaxTarget}]
+				ActiveNPCs.AutoLock:Set[TRUE]
+			}
+			else
+			{
+				ActiveNPCs.MinLockCount:Set[0]
+				ActiveNPCs.AutoLock:Set[FALSE]			
+			}
 			This:QueueState["DroneControl"]
 		}
 	}
@@ -549,8 +557,19 @@ objectdef obj_DroneControl inherits obj_StateQueue
 		variable float CurrentDroneHealth
 		variable iterator DroneTypesIter
 		variable int MaxDroneCount = ${Config.MaxDroneCount}
+		variable string MainModeSwitch
 
-		This:BuildActiveNPCs
+		if !${CommonConfig.Tehbot_Mode.Equal["Mission"]}
+		{
+			This:BuildActiveNPCs
+			MainModeSwitch:Set[ActiveNPCs]
+			ActiveNPCs.MinLockCount:Set[${Config.LockCount}]
+		}
+		else
+		{
+			MainModeSwitch:Set[MissionTargetManager.DroneTargets]
+		}
+		
 		if ${CommonConfig.Tehbot_Mode.Equal["Abyssal"]}
 		{
 			ActiveNPCs:RequestUpdate
@@ -558,10 +577,12 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			RemoteRepJerkz:RequestUpdate
 			StarvingJerks:RequestUpdate
 		}
-		if ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
-		{
-			ActiveNPCs:RequestUpdate
-		}
+		
+		;if ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
+		;{
+		;	ActiveNPCs:RequestUpdate
+		;}
+		
 		if ${CommonConfig.Tehbot_Mode.Equal["Mining"]}
 		{
 			ActiveNPCs.MaxRange:Set[${droneEngageRange}]
@@ -573,7 +594,6 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			ActiveNPCs.MinLockCount:Set[${MaxTarget}]
 			ActiveNPCs.AutoLock:Set[TRUE]
 		}
-		ActiveNPCs.MinLockCount:Set[${Config.LockCount}]
 
 		if !${Client.InSpace}
 		{
@@ -698,7 +718,10 @@ objectdef obj_DroneControl inherits obj_StateQueue
 
 		variable iterator lockedTargetIterator
 		variable iterator activeJammerIterator
-		Ship:BuildActiveJammerList
+		if !${CommonConfig.Tehbot_Mode.Equal["Mission"]}
+		{
+			Ship:BuildActiveJammerList
+		}
 
 		if ${CurrentTarget} != 0
 		{
@@ -850,11 +873,11 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			}
 			; May switch target more than once so use this flag to avoid log spamming.
 			variable bool switched
-			if !${finalizedDC} && !${Ship.IsHardToDealWithTarget[${CurrentTarget}]} && ${ActiveNPCs.LockedTargetList.Used}
+			if !${finalizedDC} && !${Ship.IsHardToDealWithTarget[${CurrentTarget}]} && ${${MainModeSwitch}.LockedTargetList.Used}
 			{
 				; Switch to difficult target for the ship
 				switched:Set[FALSE]
-				ActiveNPCs.LockedTargetList:GetIterator[lockedTargetIterator]
+				${MainModeSwitch}.LockedTargetList:GetIterator[lockedTargetIterator]
 				do
 				{
 					if ${Entity[${lockedTargetIterator.Value}].Distance} < ${droneEngageRange} && ${Ship.IsHardToDealWithTarget[${lockedTargetIterator.Value}]} && \
@@ -987,7 +1010,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			}
 		}
 
-		elseif ${ActiveNPCs.LockedTargetList.Used} && !${Marshal.TargetList.Used} && !${RemoteRepJerkz.TargetList.Used} && !${StarvingJerks.TargetList.Used} && !${Leshaks.TargetList.Used} && \
+		elseif ${${MainModeSwitch}.LockedTargetList.Used} && !${Marshal.TargetList.Used} && !${RemoteRepJerkz.TargetList.Used} && !${StarvingJerks.TargetList.Used} && !${Leshaks.TargetList.Used} && \
 		!${Kikimoras.TargetList.Used} && !${Damaviks.TargetList.Used} && !${Vedmaks.TargetList.Used} && !${Drekavacs.TargetList.Used} && !${Cynabals.TargetList.Used}
 		{
 			; Need to re-pick from locked target
@@ -1008,7 +1031,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 
 			if ${CurrentTarget} == 0
 			{
-				ActiveNPCs.LockedTargetList:GetIterator[lockedTargetIterator]
+				${MainModeSwitch}.LockedTargetList:GetIterator[lockedTargetIterator]
 				do
 				{
 					if ${Entity[${lockedTargetIterator.Value}].Distance} < ${droneEngageRange} && \

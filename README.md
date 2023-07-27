@@ -135,3 +135,15 @@ This won't be limited to just mission NPCs, I hope. It will never apply to PVP u
 I will eventually make a rudimentary UI, maybe even a non-shitty UI, it will be great. Statistics are on hold for now, reeeeally need to make Missioneer bulletproof before that.
 Also, if you want to look up stats you can just open your DBs in an SQL program, I recommend Beekeeper Community.
 
+_______________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+July 27th, 1:23PM. TargetManager has been vastly improved.
+
+Effective immediately, Mission main mode will require you to use MissionTargetManager + DroneControl instead of TargetManager + DroneControl.
+More improvements are coming along, but for now at least we will stop shooting turrets at things we can't hit. Drones will attack their targets, turrets will attack theirs.
+There are probably lots of funky buggy edge cases but I haven't hit them all yet. Do remember to set your tanking layer's maximum resists in MissionTargetManager's UI, it is used in prioritization to determine
+What the damage output of a given enemy is.
+
+Also, don't mind the stuttering. All this insanity is a little IO heavy, won't bog down your entire computer but the client will freeze for a second or so every 20 seconds and also have microstutters here and there.
+I might be able to make that better, but it doesn't really affect much. This is a bot, you aren't supposed to be trying to get a smooth and creamy experience out of it.
+

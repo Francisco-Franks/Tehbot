@@ -1369,7 +1369,9 @@ objectdef obj_Mission inherits obj_StateQueue
 							Move:Undock
 							Move:AgentBookmark[${bookmarkIterator.Value.ID}]
 							TargetManager.ActiveNPCs.AutoLock:Set[FALSE]
+							MissionTargetManager.ActiveNPCs.AutoLock:Set[FALSE]
 							TargetManager.NPCs.AutoLock:Set[FALSE]
+							MissionTargetManager.NPCs.AutoLock:Set[FALSE]
 							This:InsertState["Traveling", 5000]
 							reload:Set[TRUE]
 							This:QueueState["CombatMission", 4000]
@@ -1533,44 +1535,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		
 		variable iterator CombatIterator
 		TargetManager.ActiveNPCs.TargetList:GetIterator[CombatIterator]
-		echo CMF ${TargetManager.ActiveNPCs.TargetList.Used}
-		;if ${CombatIterator:First(exists)}
-		;{
-		;	do
-		;	{
-				; Need to track if we've killed our Destroy Target while clearing the room.Other than Anire Scarlet who runs through all the rooms.
-				; Addendum - This didn't work as anticipated
-				;if ${CombatIterator.Value.Name.Find["${CurrentAgentDestroy}"]} && !${CurrentAgentDestroy.Equal["Anire Scarlet"]}
-				;{
-				;	CombatMissionDestroyTargetSeen:Set[TRUE]
-				;}
-				; Things that are too far for us
-				;if ${CombatIterator.Value.Distance} > ${CurrentOffenseRange} || ${CombatIterator.Value.Distance} > ${MyShip.MaxTargetRange}
-				;{
-				;	CombatMissionDistantTargets:Set[${CombatIterator.Value.Name},${CombatIterator.Value.ID}]
-				;	CombatMissionMidrangeTargets:Erase[${CombatIterator.Value.Name}]
-				;	CombatMissionCloseTargets:Erase[${CombatIterator.Value.Name}]
-				;}
-				; Things at an acceptable range
-				;if ( ${CombatIterator.Value.Distance} < ${CurrentOffenseRange} && (${CombatIterator.Value.Distance} > 20000) ) || ((${CombatIterator.Value.Distance} < ${CurrentOffenseRange}) && ${Ship.ModuleList_MJD.Count} < 1 )
-				;{
-				;	CombatMissionMidrangeTargets:Set[${CombatIterator.Value.Name},${CombatIterator.Value.ID}]
-				;	CombatMissionDistantTargets:Erase[${CombatIterator.Value.Name}]
-				;	CombatMissionCloseTargets:Erase[${CombatIterator.Value.Name}]
-				;}
-				; Things that are too close (if we are in a turret based ship AND have a MJD). This information might be used for MJD usage, if I code it.
-				;if (${CombatIterator.Value.Distance} < 20000) && ${Ship.ModuleList_Turret.Count} && ${Ship.ModuleList_MJD.Count}
-				;{
-				;	CombatMissionCloseTargets:Set[${CombatIterator.Value.Name},${CombatIterator.Value.ID}]
-				;	CombatMissionDistantTargets:Erase[${CombatIterator.Value.Name}]
-				;	CombatMissionMidrangeTargets:Erase[${CombatIterator.Value.Name}]
-				;}				
-		;	}
-		;	while ${CombatIterator:Next(exists)}
-		;}
-		; Ostensibly, this bot is intended to be used by a Marauder. However, the Blaster Kronos and the AC Vargur can require some
-		; maneuvering. TargetManager has had its movement disabled, and it can also put us in Bastion Mode, so this might be kinda difficult.
-		; I might also want to do something tricky with MJDs at some point.	
+		
 		if ${This.JerksPresent}
 		{
 			; Databasify NPCs on each loop. They will be added to the SQL DB so we can know things about the mission.
@@ -1779,11 +1744,13 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				Move:Approach[${Entity[Name == "${CurrentAgentDestroy.Escape}"]},2500]
 				TargetManager.ActiveNPCs:AddQueryString[Name == "${CurrentAgentDestroy.Escape}"]
+				MissionTargetManager.ActiveNPCs:AddQueryString[Name == "${CurrentAgentDestroy.Escape}"]
 				CurrentOffenseTarget:Set[${Entity[Name == "${CurrentAgentDestroy.Escape}"]}]
 			}
 			elseif ${Entity[Name == "${CurrentAgentDestroy.Escape}"].Distance} < ${CurrentOffenseRange}
 			{
 				TargetManager.ActiveNPCs:AddQueryString[Name == "${CurrentAgentDestroy.Escape}"]
+				MissionTargetManager.ActiveNPCs:AddQueryString[Name == "${CurrentAgentDestroy.Escape}"]
 				CurrentOffenseTarget:Set[${Entity[Name == "${CurrentAgentDestroy.Escape}"]}]
 				echo DEBUG ALLOW SIEGE
 				AllowSiegeModule:Set[TRUE]
@@ -4605,7 +4572,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	; This member will be used by Combat Missioneer to tell if there are bad guys around.
 	member:bool JerksPresent()
 	{
-		if ${Script[Tehbot].VariableScope.TargetManager.ActiveNPCs.TargetList.Used} > 0
+		if (${Script[Tehbot].VariableScope.TargetManager.ActiveNPCs.TargetList.Used} > 0) || (${Script[Tehbot].VariableScope.MissionTargetManager.ActiveNPCs.TargetList.Used} > 0)
 		{
 			return TRUE
 		}

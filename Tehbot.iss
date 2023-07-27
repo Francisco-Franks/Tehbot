@@ -63,6 +63,7 @@
 #include minimode/FightOrFlight.iss
 #include minimode/RemoteRepManagement.iss
 #include minimode/TargetManager.iss
+#include minimode/MissionTargetManager.iss
 #include minimode/Salvage.iss
 #include minimode/UndockWarp.iss
 ;#include minimode/PanicButtons.iss
@@ -120,6 +121,7 @@ function main(string Character="")
 	declarevariable FightOrFlight obj_FightOrFlight script
 	declarevariable RemoteRepManagement obj_RemoteRepManagement script
 	declarevariable TargetManager	obj_TargetManager script
+	declarevariable MissionTargetManager	obj_MissionTargetManager script
 	declarevariable UndockWarp obj_UndockWarp script
 	declarevariable Salvage obj_Salvage script
 	declarevariable DroneControl obj_DroneControl script

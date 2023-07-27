@@ -362,7 +362,7 @@ objectdef obj_TargetManager inherits obj_StateQueue
 	
 	method PlagiarisedOffense()
 	{
-		variable bool AllowSiegeModule
+		; variable bool AllowSiegeModule
 		; Mission controls this itself.
 		if !${CommonConfig.Tehbot_Mode.Find["Mission"]}
 		{
