@@ -223,6 +223,10 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		; Debug time
 		echo DEBUG MISSION TARGET MANAGER PRIMARY LIST ${PrimaryWeap.TargetList.Used} DRONE LIST ${DroneTargets.TargetList.Used} ACTIVE NPCS ${ActiveNPCs.TargetList.Used} DistantNPCs ${DistantNPCs.TargetList.Used}
 		
+		PrimaryWeap:RequestUpdate
+		DroneTargets:RequestUpdate	
+
+		
 		return FALSE
 	}
 	; This method will handle the management of our TargetLists
