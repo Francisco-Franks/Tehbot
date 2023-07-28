@@ -363,7 +363,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		ActiveNPCs:ClearQueryString
 		
 		ActiveNPCs:AddAllNPCs
-		ActiveNPCs.MaxRange:[${Math.Calc[${MyShip.MaxTargetRange} * .95]}]
+		ActiveNPCs.MaxRange:Set[${Math.Calc[${MyShip.MaxTargetRange} * .95]}]
 		
 		; This specifically can be very much simplified now. 
 		if ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}

@@ -1531,10 +1531,12 @@ objectdef obj_NPCData
 		PlayerExpRadBonus:Set[0.8]
 		; Golem no have bonus for this
 		PlayerShipExpRadBonus:Set[1]
-		; Guidance Computer
-		PlayerGuidanceComputerBonus:Set[${Math.Calc[0.85 ^^ ${PlayerGuidanceComputerCount}]}
 		; Guidance Computer Count
 		PlayerGuidanceComputerCount:Set[${Ship.ModuleList_TrackingComputer.Count}]
+		; Guidance Computer
+		PlayerGuidanceComputerBonus:Set[${Math.Calc[0.85 ^^ ${PlayerGuidanceComputerCount}]}
+		if ${PlayerGuidanceComputerBonus} == 0
+			PlayerGuidanceComputerBonus:Set[1]
 		; If you are in some other kinda ship idgaf, I'll make this use real stats some day whenever Amadeus fixes modulecharge
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${MissileTypeID} AND attributeID=654;"]}]
 		if ${GetNPCInfo.NumRows} > 0
@@ -1563,10 +1565,12 @@ objectdef obj_NPCData
 		PlayerExpVelBonus:Set[1.4]
 		; Going to assume you are in a Golem, with BS 5[obv]
 		PlayerShipExpVelBonus:Set[1.25]
-		; Guidance Computer
-		PlayerGuidanceComputerBonus:Set[${Math.Calc[1.15 ^^ ${PlayerGuidanceComputerCount}]}
 		; Guidance Computer Count
 		PlayerGuidanceComputerCount:Set[${Ship.ModuleList_TrackingComputer.Count}]
+		; Guidance Computer
+		PlayerGuidanceComputerBonus:Set[${Math.Calc[1.15 ^^ ${PlayerGuidanceComputerCount}]}
+		if ${PlayerGuidanceComputerBonus} == 0
+			PlayerGuidanceComputerBonus:Set[1]
 		; If you are in some other kinda ship idgaf, I'll make this use real stats some day whenever Amadeus fixes modulecharge.
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${MissileTypeID} AND attributeID=653;"]}]
 		if ${GetNPCInfo.NumRows} > 0
