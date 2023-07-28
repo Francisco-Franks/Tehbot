@@ -74,11 +74,25 @@ objectdef obj_WatchDog inherits obj_StateQueue
 	; The same but for DroneControl
 	variable int64 DroneControlNoProgressTimestamp
 	
+	
+	;;; Utility crap
+	; For tracking how many salvos of missiles we have launched at a specific entity. Key is EntityID, value is Salvos.
+	variable collection:int64 SalvosLaunchedCollection
+	; What was the count of the ammo in our weapons last time we looked?
+	variable int64 LastAmmoQuantity
+	; For tracking targets we've put exceptions on, and when we did so. Key is the EntityID, Value is the timestamp for when we did it.
+	variable collection:int64 TargetExceptionCollection
+	; If I want this to be useful more than once, I will need another collection. This one correlates EntityIDs with what targetlist they were excluded from
+	; Key is the Entity ID, Value is the TargetList
+	variable collection:string TargetExceptionSourceCollection
+	; I like to use queues when we need to remove things mid iteration.
+	variable queue:int64 TargetExceptionClearQueue
+	
 	method Initialize()
 	{
 		This[parent]:Initialize
 		This.NonGameTiedPulse:Set[TRUE]
-		This.PulseFrequency:Set[5000]
+		This.PulseFrequency:Set[1000]
 		DynamicAddMiniMode("WatchDog", "WatchDog")
 
 		This.LogLevelBar:Set[${CommonConfig.LogLevelBar}]
@@ -86,7 +100,7 @@ objectdef obj_WatchDog inherits obj_StateQueue
 
 	method Start()
 	{
-		This:QueueState["WatchDog", 5000]
+		This:QueueState["WatchDog", 1000]
 	}
 
 	method Stop()
@@ -141,6 +155,51 @@ objectdef obj_WatchDog inherits obj_StateQueue
 		;	echo DEBUG - WATCHDOG CLEAR TARGET EXCEPTIONS
 		;}
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		;;; Going to do some Utility stuff in here for our TargetManagers when it comes to missile usage.
+		if ${Ship.ModuleList_MissileLauncher.Count} > 0
+		{
+			if ${This.SalvosLaunchedAtCurrentTarget} > ${Math.Calc[${CurrentOffenseTargetExpectedShots} + 1]}
+			{
+				; We've fired more missiles at this target than it SHOULD take to destroy. Lets deactivate the weapons, put the current offense target in a targeting exclusion thing, and zero out the current offense target.
+				Ship.ModuleList_MissileLauncher:DeactivateAll
+				MissionTargetManager.PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
+				This:InstantiateTargetException[${CurrentOffenseTarget}, "MissionTargetManager.PrimaryWeap",20000]
+				CurrentOffenseTarget:Set[0]
+			}
+		}
+		; This is where we will check if we have target exceptions, and if we do have they expired, and if they have then we remove them.
+		if ${TargetExceptionCollection.Used} > 0
+		{
+			if ${TargetExceptionCollection.FirstKey(exists)}
+			{
+				do
+				{
+					; Has the time for the exception Expired?
+					if ${TargetExceptionCollection.CurrentValue} > ${LavishScript.RunningTime}
+					{
+						; Clear the exception from the appropriate list.
+						${TargetExceptionSourceCollection.Element[${TargetExceptionCollection.CurrentKey}]}:ClearSpecificExclusion[${TargetExceptionCollection.CurrentKey}]
+						; Queue it up for collection removal after we're done.
+						TargetExceptionClearQueue:Queue[${TargetExceptionCollection.CurrentKey}]
+					}
+				
+				}
+				while ${TargetExceptionCollection.NextKey(exists)}
+			}
+			if ${TargetExceptionClearQueue.Used} > 0
+			{
+				do
+				{
+					if ${TargetExceptionCollection.Element[${TargetExceptionClearQueue.Peek}](exists)}
+						TargetExceptionCollection:Erase[${TargetExceptionClearQueue.Peek}]
+					if ${TargetExceptionSourceCollection.Element[${TargetExceptionClearQueue.Peek}](exists)}
+						TargetExceptionSourceCollection:Erase[${TargetExceptionClearQueue.Peek}]		
+					
+					TargetExceptionClearQueue:Dequeue
+				}
+				while ${TargetExceptionClearQueue.Peek} > 0
+			}
+		}
 		
 		; I need the inventory window kept open at all goddamn times.
 		; Something keeps closing it and I have no idea what, and its pissing me off.
@@ -154,6 +213,63 @@ objectdef obj_WatchDog inherits obj_StateQueue
 		return FALSE
 	}
 
+	;;; This member will be for our salvo management thing for targetmanager
+	;;; Basically we are going to keep track of how many missile salvos we have launched at a target, and use information from CombatComputer to determine
+	;;; If we have launched enough missiles to destroy a target, and if we have we will deactivate the weapons and zero out the CurrentOffenseTarget.
+	member:int64 SalvosLaunchedAtCurrentTarget()
+	{
+		variable int64 AmmoQuantityDelta
+		; Going to need to store our ammo quantity, won't have a number to compare to for the first shot dontchaknow.
+		if ${Ship.ModuleList_MissileLauncher.InactiveCount} > 0
+		{
+			LastAmmoQuantity:Set[${Ship.ModuleList_MissileLauncher.ChargeQuantity}]
+			return 0			
+		
+		}
+		if ${CurrentOffenseTarget} == 0 || !${Entity[${CurrentOffenseTarget}](exists)}
+			return 0
+		else
+		{
+			; Currently reloading, make no changes to the collection for now
+			if ${Ship.ModuleList_MissileLauncher.ChargeQuantity} == 0 || ${Ship.ModuleList_MissileLauncher.IsReloading}
+				return 0
+			else 
+			{
+				; Conventionally speaking, ammo doesn't typically go up when it is being fired. Set Last Ammo Quantity to whatever it is currently.
+				if ${Ship.ModuleList_MissileLauncher.ChargeQuantity} > ${LastAmmoQuantity}
+				{
+					LastAmmoQuantity:Set[${Ship.ModuleList_MissileLauncher.ChargeQuantity}]
+					return 0
+				}
+				else
+				{
+					; Get the difference then update the persistent stored quantity.
+					AmmoQuantityDelta:Set[${Math.Calc[${LastAmmoQuantity}-${Ship.ModuleList_MissileLauncher.ChargeQuantity}]}]
+					LastAmmoQuantity:Set[${Ship.ModuleList_MissileLauncher.ChargeQuantity}]
+				}
+				; Check in the collection to see if this entity is already in it.
+				if !${SalvosLaunchedCollection.Element[${CurrentOffenseTarget}](exists)}
+				{
+					SalvosLaunchedCollection:Set[${CurrentOffenseTarget},${AmmoQuantityDelta}]
+					return ${SalvosLaunchedCollection.Element[${CurrentOffenseTarget}]}
+				}
+				else
+				{
+					SalvosLaunchedCollection:Set[${CurrentOffenseTarget},${Math.Calc[${SalvosLaunchedCollection.Element[${CurrentOffenseTarget}]}+${AmmoQuantityDelta}]}]
+					return ${SalvosLaunchedCollection.Element[${CurrentOffenseTarget}]}
+				}
+			}
+		}
+	}
+
+	;;; This method will be used for adding things to our TargetExceptionCollection so that WatchDog can maintain it. Making this a method in case I want to use this elsewhere.
+	method InstantiateTargetException(int64 EntityID, string FromTargetList, int64 HowManyMilliseconds)
+	{
+		${FromTargetList}:AddTargetExceptionByID[${EntityID}]
+		
+		TargetExceptionCollection:Set[${EntityID},${Math.Calc[${LavishScript.RunningTime} + ${HowManyMilliseconds}]
+		TargetExceptionSourceCollection:Set[${EntityID},${FromTargetList}]
+	}
 
 	;;;; These members will all be for easier stats returns for our UI;;;;
 	; This will return an int64, the int64 will be how many enemies this particular character has destroyed since the previous downtime.

@@ -337,6 +337,16 @@ objectdef obj_ModuleList inherits obj_Logger
 	{
 		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}]._turretTrackingDecayFactor[${targetID}]}
 	}
+	
+	member:int64 ChargeTypeID()
+	{
+		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].Charge.TypeID}
+	}
+	
+	member:int64 ChargeQuantity()
+	{
+		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].Charge.Quantity}
+	}
 
 	member:string FallbackAmmo()
 	{
@@ -361,6 +371,11 @@ objectdef obj_ModuleList inherits obj_Logger
 	member:bool IsUsingLongRangeAmmo()
 	{
 		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].IsUsingLongRangeAmmo}
+	}
+
+	member:bool IsReloadingAmmo()
+	{
+		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].IsReloadingAmmo}
 	}
 
 	member:string GetFallthroughObject()

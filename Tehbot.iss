@@ -166,6 +166,7 @@ function main(string Character="")
 	declarevariable CurrentOffenseTarget int64 global
 	declarevariable CurrentRepTarget int64 global
 	declarevariable AllowSiegeModule bool global
+	declarevariable CurrentOffenseTargetExpectedShots int64 global
 	
 	;More global variables, this is for keeping track of when we last attempted (successfully or not) to use a drug
 	declarevariable BluePillTime int64 global

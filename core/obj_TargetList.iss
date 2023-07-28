@@ -280,6 +280,11 @@ objectdef obj_TargetList inherits obj_StateQueue
 		ExcludeTargetID:Clear
 	}
 
+	method ClearSpecificExclusion(int64 EntityID)
+	{
+		if ${ExcludeTargetID.Contains[${EntityID}]}
+			ExcludeTargetID:Remove[${EntityID}]
+	}
 	member:bool UpdateList()
 	{
 		if !${NeedUpdate} || !${Client.InSpace} || ${Me.ToEntity.Mode} == MOVE_WARPING

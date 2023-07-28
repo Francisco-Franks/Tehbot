@@ -440,12 +440,12 @@ objectdef obj_CombatComputer
 		FinalValue:Inc[${This.NPCThreatLevelGuideDis[${EntityID}]}]
 		FinalValue:Inc[${This.NPCThreatLevelNeuts[${EntityID}]}]
 		FinalValue:Inc[${This.NPCThreatLevelBaseline[${EntityID}]}]
+		FinalValue:Inc[${This.NPCThreatLevelProximityHitChance[${EntityID}]}]
 		
 		return ${FinalValue}
 		
 	}
 	;FinalValue:Inc[${This.NPCThreatLevelProximityDPS[${EntityID}]}]
-	;FinalValue:Inc[${This.NPCThreatLevelProximityHitChance[${EntityID}]}]
 	
 	;;; The following members will be involved in formulating the actual ThreatLevel of the enemy.
 	; This member will return an integer representing the threat value presented by webs.
@@ -676,35 +676,64 @@ objectdef obj_CombatComputer
 	;}
 
 	; This member will return an integer representing the threat value presented by Proximity and its relation to our ability to actually hit an enemy.
-	;member:int64 NPCThreatLevelProximityHitChance(int64 EntityID)
-	;{
-	;	variable int64 FinalValue
-	;	variable float64 ChanceToHitFuture
-	;	variable float64 ChanceToHitCurrent
-	;	variable float64 TurretTrack
-	;	variable float64 TurretOpt
-	;	variable float64 TurretFall
+	member:int64 NPCThreatLevelProximityHitChance(int64 EntityID)
+	{
+		variable int64 FinalValue
 		
 		; Alright so the basic premise here is, if we are in a missile ship this always returns 0. Close or far (but not too far) makes 0 difference.
 		; Otherwise, we will assign a larger value for enemies that WILL at some point in the future arrive at an orbit where we literally can not hit them.
 		; I think I can pipe the ultimate orbit/speed/sig numbers into our turret hitchance stuff below and arrive at an accurate number, probably. 
 		; If an enemy can be hit (adquately) at any range then this number is 0.
+		; ADDENDUM - Too complicated, we are just going to throw some numbers at the wall and see what sticks.
 		
-	;	if ${Ship.ModuleList_MissileLauncher.Count} > 0 || (${Ship.ModuleList_MissileLauncher.Count} == 0 && ${Ship.ModuleList_Turret.Count} == 0)
-	;		return  0
-	;	GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EntityID=${EntityID};"]}
-	;	if ${GetCurrentData.NumRows} > 0
-	;	{			
-	;		ChanceToHitFuture:Set[${This.TurretChanceToHit[${EntityID},${TurretTrack},${TurretOpt},${TurretFall},TRUE]}]
-	;		GetCurrentData:Finalize
-	;	}
-	;	GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM AmmoTable WHERE EntityID=${EntityID} AND OurDamageEff = (SELECT MAX(OurDamageEff) FROM AmmoTable WHERE EntityID=${EntityID});"]}]
-	;	if ${GetCurrentData.NumRows} > 0
-	;	{
-	;		ChanceToHitCurrent:Set[${GetCurrentData.GetFieldValue["OurDamageEff"]}]
-	;		GetCurrentData:Finalize
-	;	}
-	;}
+		if ${Ship.ModuleList_MissileLauncher.Count} > 0 || (${Ship.ModuleList_MissileLauncher.Count} == 0 && ${Ship.ModuleList_Turret.Count} == 0)
+			return  0
+		if ${Entity[${EntityID}].Group.Find["Frigate"]}
+		{
+			if ${Entity[${EntityID}].Distance} < 14000
+			{
+				return 0
+			}
+			if ${Entity[${EntityID}].Distance} > 14000 && ${Entity[${EntityID}].Velocity} < 50
+			{
+				return 1500
+			}
+			if ${Entity[${EntityID}].Distance} > 14000
+			{
+				return 1000
+			}			
+		}
+		if ${Entity[${EntityID}].Group.Find["Destroyer"]}
+		{
+			if ${Entity[${EntityID}].Distance} < 14000
+			{
+				return 0
+			}
+			if ${Entity[${EntityID}].Distance} > 14000 && ${Entity[${EntityID}].Velocity} < 100
+			{
+				return 1500
+			}
+			if ${Entity[${EntityID}].Distance} > 14000
+			{
+				return 1000
+			}			
+		}
+		if ${Entity[${EntityID}].Group.Find["Cruiser"]}
+		{
+			if ${Entity[${EntityID}].Distance} < 14000
+			{
+				return 0
+			}
+			if ${Entity[${EntityID}].Distance} > 14000 && ${Entity[${EntityID}].Velocity} < 150
+			{
+				return 1500
+			}
+			if ${Entity[${EntityID}].Distance} > 14000
+			{
+				return 1000
+			}			
+		}
+	}
 
 	; This member will return an integer representing the threat value presented by all enemies, as a baseline.
 	member:int64 NPCThreatLevelBaseline(int64 EntityID)
