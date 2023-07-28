@@ -210,7 +210,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Ignore%';"]}]
 		IgnoreTargets:Set[${GetMTMInfo.NumRows}]
 		GetMTMInfo:Finalize
-		if (${IgnoreTargets} > 0 && ${PrimaryWeap.TargetList.Used} < 1) && !${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${DistantNPCs.TargetList.Get[1]}]}
+		if (${IgnoreTargets} > 0 && ${PrimaryWeap.LockedTargetList.Used} < 1) && !${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${DistantNPCs.TargetList.Get[1]}]}
 		{
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
@@ -363,6 +363,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		ActiveNPCs:ClearQueryString
 		
 		ActiveNPCs:AddAllNPCs
+		ActiveNPCs.MaxRange:[${Math.Calc[${MyShip.MaxTargetRange} * .95]}]
 		
 		; This specifically can be very much simplified now. 
 		if ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
