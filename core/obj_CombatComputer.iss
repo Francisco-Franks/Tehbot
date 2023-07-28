@@ -384,17 +384,17 @@ objectdef obj_CombatComputer
 		; Our Ship's tanking layer resists.
 		; Going to have to manually config these, we can't actually read the resists of our ship? Ugh.
 		variable float64 TankLayerEMRes 
-		TankLayerEMRes:Set[${Math.Calc[1 - ${MissionTargetManager.Config.TankLayerEMResist}]}]
-		TankLayerEMRes:Set[0.28]
+		TankLayerEMRes:Set[${Math.Calc[(100 - ${MissionTargetManager.Config.TankLayerEMResist})/100]}]
+		;TankLayerEMRes:Set[0.28]
 		variable float64 TankLayerExpRes 
-		TankLayerExpRes:Set[${Math.Calc[1 - ${MissionTargetManager.Config.TankLayerExpResist}]}]
-		TankLayerExpRes:Set[0.3]
+		TankLayerExpRes:Set[${Math.Calc[(100 - ${MissionTargetManager.Config.TankLayerExpResist})/100]}]
+		;TankLayerExpRes:Set[0.3]
 		variable float64 TankLayerKinRes 
-		TankLayerKinRes:Set[${Math.Calc[1 - ${MissionTargetManager.Config.TankLayerKinResist}]}]
-		TankLayerKinRes:Set[0.3]
+		TankLayerKinRes:Set[${Math.Calc[(100 - ${MissionTargetManager.Config.TankLayerKinResist})/100]}]
+		;TankLayerKinRes:Set[0.3]
 		variable float64 TankLayerThermRes 
-		TankLayerThermRes:Set[${Math.Calc[1 - ${MissionTargetManager.Config.TankLayerThermResist}]}]
-		TankLayerThermRes:Set[0.28]
+		TankLayerThermRes:Set[${Math.Calc[(100 - ${MissionTargetManager.Config.TankLayerThermResist})/100]}]
+		;TankLayerThermRes:Set[0.28]
 		echo NPCDPSOUTPUT ${TankLayerEMRes} ${TankLayerExpRes} ${TankLayerKinRes} ${TankLayerThermRes}
 		
 		; And now to get the Turret DPS Post Resistance and Damage Modification
