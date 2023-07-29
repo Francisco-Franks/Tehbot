@@ -834,7 +834,7 @@ objectdef obj_CombatComputer
 			}
 			else
 				SigRadMod2:Set[1]
-			NPCSigRad:Set[${Math.Calc[${NPCSigRad}*(${SigRadMod1})*(${SigRadMod2})
+			NPCSigRad:Set[${Math.Calc[${NPCSigRad}*(${SigRadMod1})*(${SigRadMod2})]}]
 		}
 		variable float64 NPCVel
 		NPCVel:Set[${Entity[${EntityID}].Velocity}]
