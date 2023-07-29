@@ -597,7 +597,7 @@ objectdef obj_Module inherits obj_StateQueue
 		{
 			if ${MyShip.Cargo[${AmmoOverride}].Quantity} > 0
 			{
-				This:LogIngo["Selectiong ${AmmoOverride} as our Ammo Override"]
+				;This:LogInfo["Selection ${AmmoOverride} as our Ammo Override"]
 				return ${AmmoOverride}
 			}
 		}
@@ -731,7 +731,7 @@ objectdef obj_Module inherits obj_StateQueue
 		{
 			if ${MyShip.Cargo[${AmmoOverride}].Quantity} > 0
 			{
-				This:LogIngo["Selectiong ${AmmoOverride} as our Ammo Override"]
+				;This:LogInfo["Selecting ${AmmoOverride} as our Ammo Override"]
 				return ${AmmoOverride}
 			}
 		}
