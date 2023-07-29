@@ -160,14 +160,15 @@ objectdef obj_WatchDog inherits obj_StateQueue
 		{
 			if ${Ship.ModuleList_MissileLauncher.Count} > 0
 			{
-				if ${This.SalvosLaunchedAtCurrentTarget} > ${Math.Calc[${CurrentOffenseTargetExpectedShots} + 1]}
+				if ${This.SalvosLaunchedAtCurrentTarget} > ${CurrentOffenseTargetExpectedShots}
 				{
 					; We've fired more missiles at this target than it SHOULD take to destroy. Lets deactivate the weapons, put the current offense target in a targeting exclusion thing, and zero out the current offense target.
 					; ADDENDUM - We should set its salvo tracking to 0 because next time we get back to the target we need to start from 0.
+					; ADDENDUM 2 - Did you know missiles won't apply damage to a target that isn't locked? Fucked up. Well I guess auto-targeting missiles do.
+					; As such, we will need a Weapon Activation Exclusion to prevent our launchers from being reactivated on a target we've stopped firing at.
 					Ship.ModuleList_MissileLauncher:DeactivateAll
 					MissionTargetManager.PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
 					;This:InstantiateTargetException[${CurrentOffenseTarget}, "MissionTargetManager.PrimaryWeap",10000]
-					MissionTargetManager.PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
 					SalvosLaunchedCollection:Set[${CurrentOffenseTarget},0]
 					CurrentOffenseTarget:Set[0]
 				}
