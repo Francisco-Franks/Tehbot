@@ -600,10 +600,8 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			if ${Ship.ModuleList_Weapon.InactiveCount} > 0
 			{
 				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE EntityID=${CurrentOffenseTarget};"]}]
-				{
-					AmmoOveride:Set[${GetMTMInfo.GetFieldValue["OurNeededAmmo"]}]
-					This:LogInfo["Setting AmmoOverride to ${AmmoOverride} for ${Entity[${CurrentOffenseTarget}].Name}"]
-				}
+				AmmoOveride:Set[${GetMTMInfo.GetFieldValue["OurNeededAmmo"]}]
+				This:LogInfo["Setting AmmoOverride to ${AmmoOverride} for ${Entity[${CurrentOffenseTarget}].Name}"]
 				
 				if ${AmmoOverride.NotNULLOrEmpty}
 					Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget},${AmmoOverride}]	
