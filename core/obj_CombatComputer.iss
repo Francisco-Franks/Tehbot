@@ -944,7 +944,7 @@ objectdef obj_CombatComputer
 		NPCHullThermRes:Set[${NPCData.EnemyHullThermRes[${This.NPCTypeID[${EntityID}]}]}]
 		variable float64 NPCHullHP 
 		NPCHullHP:Set[${NPCData.EnemyHullHP[${This.NPCTypeID[${EntityID}]}]}]
-		NPCHullHP:Set[${Math.Calc[${NPCHullHP}*${Entity[${EntityID}].StructurePct}]}
+		NPCHullHP:Set[${Math.Calc[${NPCHullHP}*${Entity[${EntityID}].StructurePct}]}]
 		; Enemy Armor Resists + HP
 		variable float64 NPCArmorEMRes	
 		NPCArmorEMRes:Set[${NPCData.EnemyArmorEMRes[${This.NPCTypeID[${EntityID}]}]}]
@@ -956,7 +956,7 @@ objectdef obj_CombatComputer
 		NPCArmorThermRes:Set[${NPCData.EnemyArmorThermRes[${This.NPCTypeID[${EntityID}]}]}]
 		variable float64 NPCArmorHP 
 		NPCArmorHP:Set[${NPCData.EnemyArmorHP[${This.NPCTypeID[${EntityID}]}]}]
-		NPCArmorHP:Set[${Math.Calc[${NPCArmorHP}*${Entity[${EntityID}].ArmorPct}]}
+		NPCArmorHP:Set[${Math.Calc[${NPCArmorHP}*${Entity[${EntityID}].ArmorPct}]}]
 		; Enemy Shield Resists + HP
 		variable float64 NPCShieldEMRes	
 		NPCShieldEMRes:Set[${NPCData.EnemyShieldEMRes[${This.NPCTypeID[${EntityID}]}]}]
@@ -968,7 +968,7 @@ objectdef obj_CombatComputer
 		NPCShieldThermRes:Set[${NPCData.EnemyShieldThermRes[${This.NPCTypeID[${EntityID}]}]}]
 		variable float64 NPCShieldHP 
 		NPCShieldHP:Set[${NPCData.EnemyShieldHP[${This.NPCTypeID[${EntityID}]}]}]
-		NPCShieldHP:Set[${Math.Calc[${NPCShieldHP}*${Entity[${EntityID}].ShieldPct}]}
+		NPCShieldHP:Set[${Math.Calc[${NPCShieldHP}*${Entity[${EntityID}].ShieldPct}]}]
 		; Need to store those HP values twice.
 		variable float64 NPCShieldHPStart 
 		NPCShieldHPStart:Set[${NPCShieldHP}]
