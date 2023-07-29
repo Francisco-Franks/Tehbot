@@ -225,12 +225,22 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			DroneTargets:AddQueryString["ID == ${PrimaryWeap.LockedTargetList.Get[1]}"]
 		}
 		; Need a way to deal with enemies that are just too far away.
-		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.LockedTargetList.Used} < 1) && !${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${DistantNPCs.TargetList.Get[1]}]}
+		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.LockedTargetList.Used} < 1 && ${DroneTargets.LockedTargetList.Used} < 1) && !${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1]}]} 
 		{
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
-			This:LogInfo["Approaching out of range target: \ar${Entity[${DistantNPCs.TargetList.Get[1]}].Name}"]
+			This:LogInfo["Approaching out of range target: \ar${Entity[${ActiveNPCs.TargetList.Get[1]}].Name}"]
 			Entity[${ActiveNPCs.TargetList.Get[1]}]:Approach		
+		}
+		; Well, if all that is left are drone targets, may as well approach our mission objective or orbit the next gate or something.
+		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.LockedTargetList.Used} < 1 && ${DroneTargets.LockedTargetList.Used} > 1) && !${Move.Traveling} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING
+		{
+			if ${Mission.CurrentAgentLoot.NotNULLOrEmpty} && ${Entity[Name =- ${Mission.CurrentAgentLoot}](exists)}
+				Move:Orbit[${Entity[Name =- ${Mission.CurrentAgentLoot}]}, 2500]
+			elseif ${Mission.CurrentAgentDestroy.NotNULLOrEmpty} && ${Entity[Name =- ${Mission.CurrentAgentDestroy}](exists)}
+				Move:Orbit[${Entity[Name =- ${Mission.CurrentAgentDestroy}]}, 2500]
+			elseif ${Entity[Type = "Acceleration Gate"](exists)}
+				Move:Orbit[${Entity[Type = "Acceleration Gate"]}]
 		}
 		; Debug time
 		echo DEBUG MISSION TARGET MANAGER PRIMARY LIST ${PrimaryWeap.TargetList.Used} DRONE LIST ${DroneTargets.TargetList.Used} ACTIVE NPCS ${ActiveNPCs.TargetList.Used} DistantNPCs ${DistantNPCs.TargetList.Used}
