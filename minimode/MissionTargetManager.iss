@@ -556,7 +556,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE EntityID=${CurrentOffenseTarget};"]}]
 				if ${GetMTMInfo.NumRows} > 0
 				{
-						AmmoOveride:Set["${GetMTMInfo.GetFieldValue["OurNeededAmmo"]}"]
+						AmmoOverride:Set[${GetMTMInfo.GetFieldValue["OurNeededAmmo"]}]
 						This:LogInfo["Setting AmmoOverride to ${AmmoOverride} for ${Entity[${CurrentOffenseTarget}].Name}"]
 				}				
 				GetATInfo:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM AmmoTable WHERE EntityID=${CurrentOffenseTarget} AND AmmoTypeID=${Ship.ModuleList_Weapon.ChargeTypeID};"]}]
