@@ -593,6 +593,15 @@ objectdef obj_Module inherits obj_StateQueue
 			return ""
 		}
 
+		if ${AmmoOverride.NotNULLOrEmpty}
+		{
+			if ${MyShip.Cargo[${AmmoOverride}].Quantity} > 0
+			{
+				This:LogIngo["Selectiong ${AmmoOverride} as our Ammo Override"]
+				return ${AmmoOverride}
+			}
+		}
+
         ; No time to switch ammo when PVP.
 	    ; But energy weapons can switch ammo immediately so it should always simply pick the optimal ammo for the current target.
 		if ${This.ToItem.GroupID.Equal[GROUP_PROJECTILEWEAPON]} && \
@@ -717,7 +726,16 @@ objectdef obj_Module inherits obj_StateQueue
 			This:LogCritical["Picking turret ammo for invalid target."]
 			return ""
 		}
-
+		
+		if ${AmmoOverride.NotNULLOrEmpty}
+		{
+			if ${MyShip.Cargo[${AmmoOverride}].Quantity} > 0
+			{
+				This:LogIngo["Selectiong ${AmmoOverride} as our Ammo Override"]
+				return ${AmmoOverride}
+			}
+		}
+		
 		; No time to switch ammo when PVP.
 		if ${This.Charge(exists)} && ${Entity[${targetID}].IsPC}
 		{

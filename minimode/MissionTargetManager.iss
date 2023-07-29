@@ -55,7 +55,6 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	; Queue for removal from DB of things that don't exist anymore
 	variable queue:int64 CleanupQueue
 
-	variable string AmmoOverride
 	method Initialize()
 	{
 		This[parent]:Initialize
