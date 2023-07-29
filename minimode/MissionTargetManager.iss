@@ -162,7 +162,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				}
 				while ${ActiveNPCIterator:Next(exists)}
 			}
-			if ${CombatComputer.ActiveNPCIndex.Size} > 0
+			if ${CombatComputer.ActiveNPCIndex.Used} > 0
 			{
 				CombatComputer:UpsertCurrentData
 				CombatComputerTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 20000]}]
@@ -180,7 +180,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_CommandBurst:DeactivateAll
 		}
-		if ${PrimaryWeap.TargetList.Used} > 0
+		if ${PrimaryWeap.LockedTargetList.Used} > 0
 		{
 			AllowSiegeModule:Set[TRUE]
 		}
@@ -205,20 +205,32 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			This:PrimaryWeapons
 		}
+		if ${PrimaryWeap.LockedTargetList.Used} == 0 && ${DroneTargets.LockedTargetList.Used} > 0
+		{
+			if ${Ship.ModuleList_StasisGrap.InactiveCount} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}].Distance} < 19500
+			{
+				Ship.ModuleList_StasisGrap:ActivateAll[${DroneTargets.LockedTargetList.Get[1]}]
+			}
+			if ${Ship.ModuleList_StasisWeb.InactiveCount} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}].Distance} <= ${Ship.ModuleList_StasisWeb.Range}
+			{
+				Ship.ModuleList_StasisWeb:ActivateAll[${DroneTargets.LockedTargetList.Get[1]}]
+			}
+			if ${Entity[${CurrentOffenseTarget}].Distance} <= 140000
+			{
+				Ship.ModuleList_TargetPainter:ActivateAll[${DroneTargets.LockedTargetList.Get[1]}]
+			}		
+		}
+		if ${PrimaryWeap.LockedTargetList.Used} > 0 && ${DroneTargets.LockedTargetList.Used} == 0
+		{
+			DroneTargets:AddQueryString["ID == ${PrimaryWeap.LockedTargetList.Get[1]}"]
+		}
 		; Need a way to deal with enemies that are just too far away.
-		variable int IgnoreTargets
-		GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Ignore%';"]}]
-		IgnoreTargets:Set[${GetMTMInfo.NumRows}]
-		GetMTMInfo:Finalize
-		if (${IgnoreTargets} > 0 && ${PrimaryWeap.LockedTargetList.Used} < 1) && !${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${DistantNPCs.TargetList.Get[1]}]}
+		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.LockedTargetList.Used} < 1) && !${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${DistantNPCs.TargetList.Get[1]}]}
 		{
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
 			This:LogInfo["Approaching out of range target: \ar${Entity[${DistantNPCs.TargetList.Get[1]}].Name}"]
-			if ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
-			{
-				Entity[${DistantNPCs.TargetList.Get[1]}]:Approach
-			}			
+			Entity[${ActiveNPCs.TargetList.Get[1]}]:Approach		
 		}
 		; Debug time
 		echo DEBUG MISSION TARGET MANAGER PRIMARY LIST ${PrimaryWeap.TargetList.Used} DRONE LIST ${DroneTargets.TargetList.Used} ACTIVE NPCS ${ActiveNPCs.TargetList.Used} DistantNPCs ${DistantNPCs.TargetList.Used}
