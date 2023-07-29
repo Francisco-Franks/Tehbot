@@ -166,7 +166,8 @@ objectdef obj_WatchDog inherits obj_StateQueue
 					; ADDENDUM - We should set its salvo tracking to 0 because next time we get back to the target we need to start from 0.
 					Ship.ModuleList_MissileLauncher:DeactivateAll
 					MissionTargetManager.PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
-					This:InstantiateTargetException[${CurrentOffenseTarget}, "MissionTargetManager.PrimaryWeap",10000]
+					;This:InstantiateTargetException[${CurrentOffenseTarget}, "MissionTargetManager.PrimaryWeap",10000]
+					MissionTargetManager.PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
 					SalvosLaunchedCollection:Set[${CurrentOffenseTarget},0]
 					CurrentOffenseTarget:Set[0]
 				}
