@@ -595,7 +595,7 @@ objectdef obj_Module inherits obj_StateQueue
 
 		if ${AmmoOverride.NotNULLOrEmpty}
 		{
-			if ${MyShip.Cargo[${AmmoOverride}].Quantity} > 0
+			if ${MyShip.Cargo[${AmmoOverride}].Quantity} > 0 || (${This.Charge.Type.Equal[${AmmoOverride}]} && ${This.Charge.Quantity} > 0)
 			{
 				;This:LogInfo["Selection ${AmmoOverride} as our Ammo Override"]
 				return ${AmmoOverride}
@@ -729,7 +729,7 @@ objectdef obj_Module inherits obj_StateQueue
 		
 		if ${AmmoOverride.NotNULLOrEmpty}
 		{
-			if ${MyShip.Cargo[${AmmoOverride}].Quantity} > 0
+			if ${MyShip.Cargo[${AmmoOverride}].Quantity} > 0 || (${This.Charge.Type.Equal[${AmmoOverride}]} && ${This.Charge.Quantity} > 0)
 			{
 				;This:LogInfo["Selecting ${AmmoOverride} as our Ammo Override"]
 				return ${AmmoOverride}
@@ -900,6 +900,10 @@ objectdef obj_Module inherits obj_StateQueue
 
 	member:string _getDefaultAmmo()
 	{
+		if ${AmmoOverride.NotNULLOrEmpty} && (${MyShip.Cargo[${AmmoOverride}].Quantity} > 4 || (${This.Charge.Type.Equal[${AmmoOverride}]} && ${This.Charge.Quantity} > 0))
+		{
+			return ${AmmoOverride}
+		}
 		if !${Ammo.NotNULLOrEmpty} || (!${MyShip.Cargo[${Ammo}].Quantity} && !${This.Charge.Type.Equal[${Ammo}]})
 		{
 			return ${This.FallbackAmmo}
@@ -912,6 +916,10 @@ objectdef obj_Module inherits obj_StateQueue
 
 	member:string _getDefaultLongRangeAmmo()
 	{
+		if ${AmmoOverride.NotNULLOrEmpty} && (${MyShip.Cargo[${AmmoOverride}].Quantity} > 4 || (${This.Charge.Type.Equal[${AmmoOverride}]} && ${This.Charge.Quantity} > 0))
+		{
+			return ${AmmoOverride}
+		}
 		if !${LongRangeAmmo.NotNULLOrEmpty} || (!${MyShip.Cargo[${LongRangeAmmo}].Quantity} && !${This.Charge.Type.Equal[${LongRangeAmmo}]})
 		{
 			return ${This.FallbackLongRangeAmmo}
@@ -924,6 +932,10 @@ objectdef obj_Module inherits obj_StateQueue
 	
 	member:string _getDefaultXtraLongRangeAmmo()
 	{
+		if ${AmmoOverride.NotNULLOrEmpty} && (${MyShip.Cargo[${AmmoOverride}].Quantity} > 4 || (${This.Charge.Type.Equal[${AmmoOverride}]} && ${This.Charge.Quantity} > 0))
+		{
+			return ${AmmoOverride}
+		}
 		if !${xtraLongRangeAmmo.NotNULLOrEmpty} || (!${MyShip.Cargo[${xtraLongRangeAmmo}].Quantity} && !${This.Charge.Type.Equal[${xtraLongRangeAmmo}]})
 		{
 			return ${This.FallbackXtraLongRangeAmmo}
