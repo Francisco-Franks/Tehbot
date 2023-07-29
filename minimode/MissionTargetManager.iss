@@ -15,12 +15,14 @@ objectdef obj_Configuration_MissionTargetManager inherits obj_Configuration_Base
 		This.ConfigRef:AddSetting[TankLayerExpResist, 50]
 		This.ConfigRef:AddSetting[TankLayerKinResist, 50]
 		This.ConfigRef:AddSetting[TankLayerThermResist, 50]
+		This.ConfigRef:AddSetting[WeaponCount, 4]
 	}
 	
 	Setting(float, TankLayerEMResist, SetTankLayerEMResist)
 	Setting(float, TankLayerExpResist, SetTankLayerExpResist)
 	Setting(float, TankLayerKinResist, SetTankLayerKinResist)
 	Setting(float, TankLayerThermResist, SetTankLayerThermResist)
+	Setting(int,	WeaponCount,	SetWeaponCount)
 }
 
 objectdef obj_MissionTargetManager inherits obj_StateQueue
@@ -519,6 +521,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	; This method will handle distribution of Primary Weapons Systems (guns/launchers)
 	method PrimaryWeapons()
 	{
+		
 		; First up, do we have a weapon active on something it shouldn't be active on? May happen if an enemy changes category in the middle of us shooting it.
 		GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory='DroneTarget' OR TargetingCategory='IgnoreTarget';"]}]
 		if ${GetMTMInfo.NumRows} > 0
@@ -540,7 +543,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			{
 				CurrentOffenseTarget:Set[${PrimaryWeap.LockedTargetList.Get[1]}]
 				GetATInfo:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM AmmoTable WHERE EntityID=${CurrentOffenseTarget} AND AmmoTypeID=${Ship.ModuleList_Weapon.ChargeTypeID};"]}]
-				CurrentOffenseTargetExpectedShots:Set[${Math.Calc[${GetATInfo.GetFieldValue["ShotsToKill",int64]}/${Ship.ModuleList_Weapon.Count}]}]
+				CurrentOffenseTargetExpectedShots:Set[${Math.Calc[${GetATInfo.GetFieldValue["ShotsToKill",int64]}/${Config.WeaponCount}]}]
 				This:LogInfo["${Entity[${CurrentOffenseTarget}].Name} is expected to require ${CurrentOffenseTargetExpectedShots} Salvos to kill with current ammo"]
 			}
 		
