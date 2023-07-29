@@ -283,6 +283,8 @@ objectdef obj_TargetList inherits obj_StateQueue
 	method ClearSpecificExclusion(int64 EntityID)
 	{
 		if ${ExcludeTargetID.Contains[${EntityID}]}
+		{
+			echo Cleaing Specific Exclusion
 			ExcludeTargetID:Remove[${EntityID}]
 	}
 	member:bool UpdateList()

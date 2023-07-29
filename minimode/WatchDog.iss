@@ -161,9 +161,11 @@ objectdef obj_WatchDog inherits obj_StateQueue
 			if ${This.SalvosLaunchedAtCurrentTarget} > ${Math.Calc[${CurrentOffenseTargetExpectedShots} + 1]}
 			{
 				; We've fired more missiles at this target than it SHOULD take to destroy. Lets deactivate the weapons, put the current offense target in a targeting exclusion thing, and zero out the current offense target.
+				; ADDENDUM - We should set its salvo tracking to 0 because next time we get back to the target we need to start from 0.
 				Ship.ModuleList_MissileLauncher:DeactivateAll
 				MissionTargetManager.PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
 				This:InstantiateTargetException[${CurrentOffenseTarget}, "MissionTargetManager.PrimaryWeap",10000]
+				SalvosLaunchedCollection:Set[${CurrentOffenseTarget},0]
 				CurrentOffenseTarget:Set[0]
 			}
 		}
@@ -179,6 +181,7 @@ objectdef obj_WatchDog inherits obj_StateQueue
 					{
 						; Clear the exception from the appropriate list.
 						${TargetExceptionSourceCollection.Element[${TargetExceptionCollection.CurrentKey}]}:ClearSpecificExclusion[${TargetExceptionCollection.CurrentKey}]
+						This:LogInfo["Removing ${Entity[${TargetExceptionCollection.CurrentKey}].Name} from ${TargetExceptionSourceCollection.Element[${TargetExceptionCollection.CurrentKey}]} Exclusion"]
 						; Queue it up for collection removal after we're done.
 						TargetExceptionClearQueue:Queue[${TargetExceptionCollection.CurrentKey}]
 					}
