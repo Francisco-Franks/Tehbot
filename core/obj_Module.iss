@@ -3,7 +3,6 @@ objectdef obj_Module inherits obj_StateQueue
 	variable int Instruction = INSTRUCTION_NONE
 	variable int64 InstructionTargetID = TARGET_NA
 	variable int64 ModuleID
-	variable string AmmoOverrideInit
 
 	variable string Ammo
 	variable string LongRangeAmmo
@@ -93,10 +92,10 @@ objectdef obj_Module inherits obj_StateQueue
 		switch ${Instruction}
 		{
 			case INSTRUCTION_ACTIVATE_ON
-				This:OperateActivateOn[${InstructionTargetID},${AmmoOverrideInit}]
+				This:OperateActivateOn[${InstructionTargetID}]
 				break
 			case INSTRUCTION_ACTIVATE_FOR
-				This:OperateActivateFor[${InstructionTargetID},${AmmoOverrideInit}]
+				This:OperateActivateFor[${InstructionTargetID}]
 				break
 			case INSTRUCTION_DEACTIVATE
 				This:OperateDeactivate
@@ -127,20 +126,17 @@ objectdef obj_Module inherits obj_StateQueue
 	}
 
 	; "Soon gonna do" status
-	member:bool IsInstructionMatch(int newInstruction, int64 targetID = TARGET_NA, string AmmoOverride)
+	member:bool IsInstructionMatch(int newInstruction, int64 targetID = TARGET_NA)
 	{
 		if ${newInstruction} != ${Instruction}
 		{
 			return FALSE
 		}
-		if !${AmmoOverrideInit.Equals[${AmmoOverride}]}
-		{
-			return FALSE
-		}
+
 		return ${This._targetMatch[${InstructionTargetID}, ${targetID}]}
 	}
 
-	method GiveInstruction(int instruction, int64 targetID = TARGET_NA, string AmmoOverride)
+	method GiveInstruction(int instruction, int64 targetID = TARGET_NA)
 	{
 		if !${This.IsActivatable} || \
 			!${This.IsOnline} || \
@@ -149,7 +145,7 @@ objectdef obj_Module inherits obj_StateQueue
 			return
 		}
 
-		if ${This.IsInstructionMatch[${instruction}, ${targetID}], ${AmmoOverrideInit}}
+		if ${This.IsInstructionMatch[${instruction}, ${targetID}]}
 		{
 			return
 		}
@@ -157,7 +153,6 @@ objectdef obj_Module inherits obj_StateQueue
 		; Update instruction
 		Instruction:Set[${instruction}]
 		InstructionTargetID:Set[${targetID}]
-		AmmoOverrideInit:Set[${AmmoOverride}]
 
 		if ${This._tooSoon}
 		{
@@ -181,7 +176,7 @@ objectdef obj_Module inherits obj_StateQueue
 
 	; Deactivate module when target doesn't match or need to change ammo, then activate it on specified target.
 	; Instruction is erased when the target is destroyed.
-	method OperateActivateOn(int64 targetID, string AmmoOverride)
+	method OperateActivateOn(int64 targetID)
 	{
 		if !${This._isTargetValid[${targetID}]}
 		{
@@ -202,12 +197,6 @@ objectdef obj_Module inherits obj_StateQueue
 
 			if ${targetID} != TARGET_NA
 			{
-				if ${AmmoOverride.NotNULLOrEmpty} && !${This.Charge.Type.Equal[${AmmoOverride}]}
-				{
-					This:LogDebug["Deactivating ${This.Name} to change ammo to ${AmmoOverride}."]
-					This:_deactivate
-					return					
-				}
 				optimalAmmo:Set[${This._pickOptimalAmmo[${targetID}]}]
 				if ${optimalAmmo.NotNULLOrEmpty} && !${This.Charge.Type.Equal[${optimalAmmo}]}
 				{
@@ -232,19 +221,12 @@ objectdef obj_Module inherits obj_StateQueue
 		else
 		{
 			_lastDeactivationTimestamp:Set[0]
-			if ${AmmoOverride.NotNULLOrEmpty} && !${AmmoOverride.Equal[${This.Charge.Type}]}
+
+			optimalAmmo:Set[${This._pickOptimalAmmo[${targetID}]}]
+			if ${optimalAmmo.NotNULLOrEmpty} && !${optimalAmmo.Equal[${This.Charge.Type}]}
 			{
-				This:_findAndChangeAmmo[${AmmoOverride}]
-				return			
-			}
-			elseif !${AmmoOverride.NotNULLOrEmpty}
-			{
-				optimalAmmo:Set[${This._pickOptimalAmmo[${targetID}]}]
-				if ${optimalAmmo.NotNULLOrEmpty} && !${optimalAmmo.Equal[${This.Charge.Type}]}
-				{
-					This:_findAndChangeAmmo[${optimalAmmo}]
-					return
-				}
+				This:_findAndChangeAmmo[${optimalAmmo}]
+				return
 			}
 			else
 			{
@@ -275,7 +257,7 @@ objectdef obj_Module inherits obj_StateQueue
 	; Used with tracking computers, guidance computers, etc.
 	; The difference from OperateActivateOn is that it won't deactivate the module just because target changed.
 	; TODO: Add unload script path when the ISXEVE api is fixed.
-	method OperateActivateFor(int64 targetID, string AmmoOverride)
+	method OperateActivateFor(int64 targetID)
 	{
 		variable string optimalAmmo
 		if ${This.IsActive}

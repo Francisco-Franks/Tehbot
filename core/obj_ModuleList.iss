@@ -13,7 +13,7 @@ objectdef obj_ModuleList inherits obj_Logger
 		ModuleID:Insert[${ID}]
 	}
 
-	method ActivateOne(int64 targetID = TARGET_NA, string AmmoOverride)
+	method ActivateOne(int64 targetID = TARGET_NA)
 	{
 		if !${Allowed}
 		{
@@ -29,7 +29,7 @@ objectdef obj_ModuleList inherits obj_Logger
 			{
 				if ${Ship.RegisteredModule.Element[${moduleIDIterator.Value}].IsInstructionMatch[INSTRUCTION_NONE]}
 				{
-					Ship.RegisteredModule.Element[${moduleIDIterator.Value}]:GiveInstruction[INSTRUCTION_ACTIVATE_ON, ${targetID}, ${AmmoOverride}]
+					Ship.RegisteredModule.Element[${moduleIDIterator.Value}]:GiveInstruction[INSTRUCTION_ACTIVATE_ON, ${targetID}]
 					return
 				}
 			}
@@ -38,7 +38,7 @@ objectdef obj_ModuleList inherits obj_Logger
 	}
 
 	; When all tractor beams are already assigned, force re-assign one tractor beam to the prioritized target.
-	method ForceActivateOne(int64 targetID = TARGET_NA, string AmmoOverride)
+	method ForceActivateOne(int64 targetID = TARGET_NA)
 	{
 		if !${Allowed}
 		{
@@ -50,11 +50,11 @@ objectdef obj_ModuleList inherits obj_Logger
 		ModuleID:GetIterator[moduleIDIterator]
 		if ${moduleIDIterator:First(exists)}
 		{
-			Ship.RegisteredModule.Element[${moduleIDIterator.Value}]:GiveInstruction[INSTRUCTION_ACTIVATE_ON, ${targetID}, ${AmmoOverride}]
+			Ship.RegisteredModule.Element[${moduleIDIterator.Value}]:GiveInstruction[INSTRUCTION_ACTIVATE_ON, ${targetID}]
 		}
 	}
 
-	method ActivateAll(int64 targetID = TARGET_NA, string AmmoOverride)
+	method ActivateAll(int64 targetID = TARGET_NA)
 	{
 		if !${Allowed}
 		{
@@ -68,7 +68,7 @@ objectdef obj_ModuleList inherits obj_Logger
 		{
 			do
 			{
-				Ship.RegisteredModule.Element[${moduleIDIterator.Value}]:GiveInstruction[INSTRUCTION_ACTIVATE_ON, ${targetID}, ${AmmoOverride}]
+				Ship.RegisteredModule.Element[${moduleIDIterator.Value}]:GiveInstruction[INSTRUCTION_ACTIVATE_ON, ${targetID}]
 			}
 			while ${moduleIDIterator:Next(exists)}
 		}
@@ -88,7 +88,7 @@ objectdef obj_ModuleList inherits obj_Logger
 		}
 	}
 
-	method ActivateFor(int64 targetID = TARGET_NA, string AmmoOverride)
+	method ActivateFor(int64 targetID = TARGET_NA)
 	{
 		if !${Allowed}
 		{
@@ -102,7 +102,7 @@ objectdef obj_ModuleList inherits obj_Logger
 		{
 			do
 			{
-				Ship.RegisteredModule.Element[${moduleIDIterator.Value}]:GiveInstruction[INSTRUCTION_ACTIVATE_FOR, ${targetID}, ${AmmoOverride}]
+				Ship.RegisteredModule.Element[${moduleIDIterator.Value}]:GiveInstruction[INSTRUCTION_ACTIVATE_FOR, ${targetID}]
 			}
 			while ${moduleIDIterator:Next(exists)}
 		}

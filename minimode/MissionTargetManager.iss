@@ -55,6 +55,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	; Queue for removal from DB of things that don't exist anymore
 	variable queue:int64 CleanupQueue
 
+	variable string AmmoOverride
 	method Initialize()
 	{
 		This[parent]:Initialize
@@ -521,7 +522,6 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	; This method will handle distribution of Primary Weapons Systems (guns/launchers)
 	method PrimaryWeapons()
 	{
-		variable string AmmoOverride
 		; First up, do we have a weapon active on something it shouldn't be active on? May happen if an enemy changes category in the middle of us shooting it.
 		GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory='DroneTarget' OR TargetingCategory='IgnoreTarget';"]}]
 		if ${GetMTMInfo.NumRows} > 0
@@ -554,6 +554,12 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 					
 				Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]
 				
+				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE EntityID=${CurrentOffenseTarget};"]}]
+				if ${GetMTMInfo.NumRows} > 0
+				{
+						AmmoOveride:Set["${GetMTMInfo.GetFieldValue["OurNeededAmmo"]}"]
+						This:LogInfo["Setting AmmoOverride to ${AmmoOverride} for ${Entity[${CurrentOffenseTarget}].Name}"]
+				}				
 				GetATInfo:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM AmmoTable WHERE EntityID=${CurrentOffenseTarget} AND AmmoTypeID=${Ship.ModuleList_Weapon.ChargeTypeID};"]}]
 				CurrentOffenseTargetExpectedShots:Set[${Math.Calc[${GetATInfo.GetFieldValue["ShotsToKill",int64]}/${Config.WeaponCount}].Ceil}]
 				GetATInfo:Finalize
@@ -599,14 +605,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			; Fourthly, do we have any inactive weapons?
 			if ${Ship.ModuleList_Weapon.InactiveCount} > 0
 			{
-				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE EntityID=${CurrentOffenseTarget};"]}]
-				AmmoOveride:Set[${GetMTMInfo.GetFieldValue["OurNeededAmmo"]}]
-				This:LogInfo["Setting AmmoOverride to ${AmmoOverride} for ${Entity[${CurrentOffenseTarget}].Name}"]
-				
-				if ${AmmoOverride.NotNULLOrEmpty}
-					Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget},${AmmoOverride}]	
-				else
-					Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget}]		
+				Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget}]		
 			}
 		}
 	
