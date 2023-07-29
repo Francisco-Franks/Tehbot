@@ -163,7 +163,7 @@ objectdef obj_WatchDog inherits obj_StateQueue
 				; We've fired more missiles at this target than it SHOULD take to destroy. Lets deactivate the weapons, put the current offense target in a targeting exclusion thing, and zero out the current offense target.
 				Ship.ModuleList_MissileLauncher:DeactivateAll
 				MissionTargetManager.PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
-				This:InstantiateTargetException[${CurrentOffenseTarget}, "MissionTargetManager.PrimaryWeap",20000]
+				This:InstantiateTargetException[${CurrentOffenseTarget}, "MissionTargetManager.PrimaryWeap",10000]
 				CurrentOffenseTarget:Set[0]
 			}
 		}
