@@ -286,6 +286,7 @@ objectdef obj_TargetList inherits obj_StateQueue
 		{
 			echo Cleaing Specific Exclusion
 			ExcludeTargetID:Remove[${EntityID}]
+		}
 	}
 	member:bool UpdateList()
 	{

@@ -156,54 +156,56 @@ objectdef obj_WatchDog inherits obj_StateQueue
 		;}
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 		;;; Going to do some Utility stuff in here for our TargetManagers when it comes to missile usage.
-		if ${Ship.ModuleList_MissileLauncher.Count} > 0
+		if ${Client.InSpace}
 		{
-			if ${This.SalvosLaunchedAtCurrentTarget} > ${Math.Calc[${CurrentOffenseTargetExpectedShots} + 1]}
+			if ${Ship.ModuleList_MissileLauncher.Count} > 0
 			{
-				; We've fired more missiles at this target than it SHOULD take to destroy. Lets deactivate the weapons, put the current offense target in a targeting exclusion thing, and zero out the current offense target.
-				; ADDENDUM - We should set its salvo tracking to 0 because next time we get back to the target we need to start from 0.
-				Ship.ModuleList_MissileLauncher:DeactivateAll
-				MissionTargetManager.PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
-				This:InstantiateTargetException[${CurrentOffenseTarget}, "MissionTargetManager.PrimaryWeap",10000]
-				SalvosLaunchedCollection:Set[${CurrentOffenseTarget},0]
-				CurrentOffenseTarget:Set[0]
-			}
-		}
-		; This is where we will check if we have target exceptions, and if we do have they expired, and if they have then we remove them.
-		if ${TargetExceptionCollection.Used} > 0
-		{
-			if ${TargetExceptionCollection.FirstKey(exists)}
-			{
-				do
+				if ${This.SalvosLaunchedAtCurrentTarget} > ${Math.Calc[${CurrentOffenseTargetExpectedShots} + 1]}
 				{
-					; Has the time for the exception Expired?
-					if ${TargetExceptionCollection.CurrentValue} > ${LavishScript.RunningTime}
+					; We've fired more missiles at this target than it SHOULD take to destroy. Lets deactivate the weapons, put the current offense target in a targeting exclusion thing, and zero out the current offense target.
+					; ADDENDUM - We should set its salvo tracking to 0 because next time we get back to the target we need to start from 0.
+					Ship.ModuleList_MissileLauncher:DeactivateAll
+					MissionTargetManager.PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
+					This:InstantiateTargetException[${CurrentOffenseTarget}, "MissionTargetManager.PrimaryWeap",10000]
+					SalvosLaunchedCollection:Set[${CurrentOffenseTarget},0]
+					CurrentOffenseTarget:Set[0]
+				}
+			}
+			; This is where we will check if we have target exceptions, and if we do have they expired, and if they have then we remove them.
+			if ${TargetExceptionCollection.Used} > 0
+			{
+				if ${TargetExceptionCollection.FirstKey(exists)}
+				{
+					do
 					{
-						; Clear the exception from the appropriate list.
-						${TargetExceptionSourceCollection.Element[${TargetExceptionCollection.CurrentKey}]}:ClearSpecificExclusion[${TargetExceptionCollection.CurrentKey}]
-						This:LogInfo["Removing ${Entity[${TargetExceptionCollection.CurrentKey}].Name} from ${TargetExceptionSourceCollection.Element[${TargetExceptionCollection.CurrentKey}]} Exclusion"]
-						; Queue it up for collection removal after we're done.
-						TargetExceptionClearQueue:Queue[${TargetExceptionCollection.CurrentKey}]
-					}
-				
-				}
-				while ${TargetExceptionCollection.NextKey(exists)}
-			}
-			if ${TargetExceptionClearQueue.Peek} > 0
-			{
-				do
-				{
-					if ${TargetExceptionCollection.Element[${TargetExceptionClearQueue.Peek}](exists)}
-						TargetExceptionCollection:Erase[${TargetExceptionClearQueue.Peek}]
-					if ${TargetExceptionSourceCollection.Element[${TargetExceptionClearQueue.Peek}](exists)}
-						TargetExceptionSourceCollection:Erase[${TargetExceptionClearQueue.Peek}]		
+						; Has the time for the exception Expired?
+						if ${TargetExceptionCollection.CurrentValue} > ${LavishScript.RunningTime}
+						{
+							; Clear the exception from the appropriate list.
+							${TargetExceptionSourceCollection.Element[${TargetExceptionCollection.CurrentKey}]}:ClearSpecificExclusion[${TargetExceptionCollection.CurrentKey}]
+							This:LogInfo["Removing ${Entity[${TargetExceptionCollection.CurrentKey}].Name} from ${TargetExceptionSourceCollection.Element[${TargetExceptionCollection.CurrentKey}]} Exclusion"]
+							; Queue it up for collection removal after we're done.
+							TargetExceptionClearQueue:Queue[${TargetExceptionCollection.CurrentKey}]
+						}
 					
-					TargetExceptionClearQueue:Dequeue
+					}
+					while ${TargetExceptionCollection.NextKey(exists)}
 				}
-				while ${TargetExceptionClearQueue.Peek} > 0
+				if ${TargetExceptionClearQueue.Peek} > 0
+				{
+					do
+					{
+						if ${TargetExceptionCollection.Element[${TargetExceptionClearQueue.Peek}](exists)}
+							TargetExceptionCollection:Erase[${TargetExceptionClearQueue.Peek}]
+						if ${TargetExceptionSourceCollection.Element[${TargetExceptionClearQueue.Peek}](exists)}
+							TargetExceptionSourceCollection:Erase[${TargetExceptionClearQueue.Peek}]		
+						
+						TargetExceptionClearQueue:Dequeue
+					}
+					while ${TargetExceptionClearQueue.Peek} > 0
+				}
 			}
 		}
-		
 		; I need the inventory window kept open at all goddamn times.
 		; Something keeps closing it and I have no idea what, and its pissing me off.
 		; Open the inventory, stop closing the inventory, never close your inventory.
