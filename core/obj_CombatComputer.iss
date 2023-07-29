@@ -989,7 +989,7 @@ objectdef obj_CombatComputer
 			LowestDmgNmbr:Set[50]
 		}
 		; Our decrement number will be made larger so that ExpectedShotDmg will take fewer loops. We maintain the proportionality, we just apply a larger slice of our damage per iteration now.
-		if ${Missl} || ${TurretDmgMod} > 0.01
+		if ${Missl} || (${TurretDmgMod} > 0.01)
 		{
 			variable float64 EMDec
 			EMDec:Set[${Math.Calc[${AmmoDmgEMPM}/(${LowestDmgNmbr}/10)]}]
@@ -1021,7 +1021,7 @@ objectdef obj_CombatComputer
 		; Going to forgo that for the moment.
 		if ${ReqInfo.Equals[ExpectedShotDmg]} || ${ReqInfo.Equals[ShotsToKill]} || ${ReqInfo.Equals[TimeToKill]}
 		{
-			if ${TurretDmgMod} <= 0.01
+			if (${TurretDmgMod} <= 0.01) && !${Missl}
 			{
 				return 0
 			}
@@ -1099,7 +1099,7 @@ objectdef obj_CombatComputer
 		}
 		if ${ReqInfo.Equals[ShotsToKill]}
 		{
-			if ${TurretDmgMod} <= 0.01
+			if (${TurretDmgMod} <= 0.01) && !${Missl}
 			{
 				return 9999999
 			}
@@ -1148,7 +1148,7 @@ objectdef obj_CombatComputer
 		}
 		if ${ReqInfo.Equals[TimeToKill]}
 		{
-			if ${TurretDmgMod} <= 0.01
+			if (${TurretDmgMod} <= 0.01) && !${Missl}
 			{
 				return 9999999
 			}
