@@ -822,7 +822,8 @@ objectdef obj_CombatComputer
 		GetShipInfo:Finalize
 		; Enemy velocity, sig radius, distance.
 		variable float64 NPCSigRad
-		variable float64 SigRadMod
+		variable float64 SigRadMod1
+		variable float64 SigRadMod2
 		NPCSigRad:Set[${Entity[${EntityID}].Radius}]
 		if ${Ship.ModuleList_TargetPainter.Count} > 0
 		{
@@ -834,7 +835,7 @@ objectdef obj_CombatComputer
 			}
 			else
 				SigRadMod2:Set[1]
-			NPCSigRad:Set[${Math.Calc[${NPCSigRad}*(${SigRadMod1})*(${SigRadMod2})]}]
+			NPCSigRad:Set[${Math.Calc[${NPCSigRad}*${SigRadMod1}*${SigRadMod2}]}]
 		}
 		variable float64 NPCVel
 		NPCVel:Set[${Entity[${EntityID}].Velocity}]
