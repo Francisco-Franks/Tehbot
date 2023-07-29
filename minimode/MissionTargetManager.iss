@@ -544,7 +544,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				CurrentOffenseTarget:Set[${PrimaryWeap.LockedTargetList.Get[1]}]
 				GetATInfo:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM AmmoTable WHERE EntityID=${CurrentOffenseTarget} AND AmmoTypeID=${Ship.ModuleList_Weapon.ChargeTypeID};"]}]
 				CurrentOffenseTargetExpectedShots:Set[${Math.Calc[${GetATInfo.GetFieldValue["ShotsToKill",int64]}/${Config.WeaponCount}]}]
-				if ${Entity[${CurrentOffenseTarget}].Name.Find[${Mission.CurrentAgentDestroy}]}
+				if ${Entity[${CurrentOffenseTarget}].Name.Find[${Mission.CurrentAgentDestroy}]} && ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
 					CurrentOffenseTargetExpectedShots:Set[9999999]
 				This:LogInfo["${Entity[${CurrentOffenseTarget}].Name} is expected to require ${CurrentOffenseTargetExpectedShots} Salvos to kill with current ammo"]
 			}
