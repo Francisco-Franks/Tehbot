@@ -558,7 +558,8 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				{
 						AmmoOverride:Set[${GetMTMInfo.GetFieldValue["OurNeededAmmo"]}]
 						This:LogInfo["Setting AmmoOverride to ${AmmoOverride} for ${Entity[${CurrentOffenseTarget}].Name}"]
-				}				
+				}
+				GetMTMInfo:Finalize
 				GetATInfo:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM AmmoTable WHERE EntityID=${CurrentOffenseTarget} AND AmmoTypeID=${Ship.ModuleList_Weapon.ChargeTypeID};"]}]
 				CurrentOffenseTargetExpectedShots:Set[${Math.Calc[${GetATInfo.GetFieldValue["ShotsToKill",int64]}/${Config.WeaponCount}].Ceil}]
 				GetATInfo:Finalize
@@ -587,6 +588,14 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		}
 		if ${CurrentOffenseTarget} > 0 && ${Entity[${CurrentOffenseTarget}].IsLockedTarget}
 		{
+			; Periodic Ammo Override re-evaluation
+			GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE EntityID=${CurrentOffenseTarget};"]}]
+			if ${GetMTMInfo.NumRows} > 0
+			{
+					AmmoOverride:Set[${GetMTMInfo.GetFieldValue["OurNeededAmmo"]}]
+					This:LogInfo["Setting AmmoOverride to ${AmmoOverride} for ${Entity[${CurrentOffenseTarget}].Name}"]
+			}
+			GetMTMInfo:Finalize
 			Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]
 			; Thirdly, do we have any inactive combat utility modules? Target painter, web, grapple.
 			if ${Ship.ModuleList_StasisGrap.InactiveCount} > 0 && ${Entity[${CurrentOffenseTarget}].Distance} < 19500
