@@ -186,7 +186,7 @@ objectdef obj_WatchDog inherits obj_StateQueue
 				}
 				while ${TargetExceptionCollection.NextKey(exists)}
 			}
-			if ${TargetExceptionClearQueue.Used} > 0
+			if ${TargetExceptionClearQueue.Peek} > 0
 			{
 				do
 				{
@@ -267,7 +267,7 @@ objectdef obj_WatchDog inherits obj_StateQueue
 	{
 		${FromTargetList}:AddTargetExceptionByID[${EntityID}]
 		
-		TargetExceptionCollection:Set[${EntityID},${Math.Calc[${LavishScript.RunningTime} + ${HowManyMilliseconds}]
+		TargetExceptionCollection:Set[${EntityID},${Math.Calc[${LavishScript.RunningTime} + ${HowManyMilliseconds}]}]
 		TargetExceptionSourceCollection:Set[${EntityID},${FromTargetList}]
 	}
 
