@@ -521,7 +521,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	; This method will handle distribution of Primary Weapons Systems (guns/launchers)
 	method PrimaryWeapons()
 	{
-		
+		variable string AmmoOverride
 		; First up, do we have a weapon active on something it shouldn't be active on? May happen if an enemy changes category in the middle of us shooting it.
 		GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory='DroneTarget' OR TargetingCategory='IgnoreTarget';"]}]
 		if ${GetMTMInfo.NumRows} > 0
@@ -541,9 +541,22 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			; Well, I mean, the stuff placed in here was already pre-sorted and whatnot. Do I need to do anything more complex than just pick the first thing in the index?
 			if ${PrimaryWeap.LockedTargetList.Get[1]} > 0 && ${Entity[${PrimaryWeap.LockedTargetList.Get[1]}](exists)}
 			{
-				CurrentOffenseTarget:Set[${PrimaryWeap.LockedTargetList.Get[1]}]
+				if ${WatchDog.WaitAndSee}
+				{
+					if ${PrimaryWeap.LockedTargetList.Get[2](exists)} && ${Entity[${PrimaryWeap.LockedTargetList.Get[2]}](exists)}
+						CurrentOffenseTarget:Set[${PrimaryWeap.LockedTargetList.Get[2]}]
+					else
+						CurrentOffenseTarget:Set[0]
+					WatchDog.WaitAndSee:Set[FALSE]
+				}
+				else
+					CurrentOffenseTarget:Set[${PrimaryWeap.LockedTargetList.Get[1]}]
+					
+				Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]
+				
 				GetATInfo:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM AmmoTable WHERE EntityID=${CurrentOffenseTarget} AND AmmoTypeID=${Ship.ModuleList_Weapon.ChargeTypeID};"]}]
 				CurrentOffenseTargetExpectedShots:Set[${Math.Calc[${GetATInfo.GetFieldValue["ShotsToKill",int64]}/${Config.WeaponCount}].Ceil}]
+				GetATInfo:Finalize
 				if ${Entity[${CurrentOffenseTarget}].Name.Find[${Mission.CurrentAgentDestroy}]} && ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
 					CurrentOffenseTargetExpectedShots:Set[9999999]
 				This:LogInfo["${Entity[${CurrentOffenseTarget}].Name} is expected to require ${CurrentOffenseTargetExpectedShots} Salvos to kill with current ammo"]
@@ -569,6 +582,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		}
 		if ${CurrentOffenseTarget} > 0 && ${Entity[${CurrentOffenseTarget}].IsLockedTarget}
 		{
+			Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]
 			; Thirdly, do we have any inactive combat utility modules? Target painter, web, grapple.
 			if ${Ship.ModuleList_StasisGrap.InactiveCount} > 0 && ${Entity[${CurrentOffenseTarget}].Distance} < 19500
 			{
@@ -585,8 +599,16 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			; Fourthly, do we have any inactive weapons?
 			if ${Ship.ModuleList_Weapon.InactiveCount} > 0
 			{
-				Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget}]
-				Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]			
+				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE EntityID=${CurrentOffenseTarget};"]}]
+				{
+					AmmoOveride:Set[${GetMTMInfo.GetFieldValue["OurNeededAmmo"]}]
+					This:LogInfo["Setting AmmoOverride to ${AmmoOverride} for ${Entity[${CurrentOffenseTarget}].Name}"]
+				}
+				
+				if ${AmmoOverride.NotNULLOrEmpty}
+					Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget},${AmmoOverride}]	
+				else
+					Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget}]		
 			}
 		}
 	

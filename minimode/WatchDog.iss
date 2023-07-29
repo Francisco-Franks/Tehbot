@@ -87,6 +87,8 @@ objectdef obj_WatchDog inherits obj_StateQueue
 	variable collection:string TargetExceptionSourceCollection
 	; I like to use queues when we need to remove things mid iteration.
 	variable queue:int64 TargetExceptionClearQueue
+	; Need a bool we can use to prevent MissionTargetManager from immediately resuming fire on a target we stopped due to Salvo Threshold.
+	variable bool WaitAndSee
 	
 	method Initialize()
 	{
@@ -171,6 +173,7 @@ objectdef obj_WatchDog inherits obj_StateQueue
 					;This:InstantiateTargetException[${CurrentOffenseTarget}, "MissionTargetManager.PrimaryWeap",10000]
 					SalvosLaunchedCollection:Set[${CurrentOffenseTarget},0]
 					CurrentOffenseTarget:Set[0]
+					WaitAndSee:Set[TRUE]
 				}
 			}
 			; This is where we will check if we have target exceptions, and if we do have they expired, and if they have then we remove them.
