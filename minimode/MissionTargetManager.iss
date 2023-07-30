@@ -64,7 +64,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		This[parent]:Initialize
 
 		DynamicAddMiniMode("MissionTargetManager", "MissionTargetManager")
-		This.PulseFrequency:Set[1500]
+		This.PulseFrequency:Set[725]
 
 		This.NonGameTiedPulse:Set[TRUE]
 
@@ -84,7 +84,8 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		PrimaryWeap.MinLockCount:Set[4]
 		DroneTargets.MinLockCount:Set[2]
 		
-		MTMDB:Set[${SQLite.OpenDB["${Me.Name}MTMDB","${Script.CurrentDirectory}/Data/${Me.Name}MTMDB.sqlite3"]}]
+		MTMDB:Set[${SQLite.OpenDB["${Me.Name}MTMDB",":memory:"]}]
+		;MTMDB:Set[${SQLite.OpenDB["${Me.Name}MTMDB","${Script.CurrentDirectory}/Data/${Me.Name}MTMDB.sqlite3"]}]
 		MTMDB:ExecDML["PRAGMA journal_mode=WAL;"]
 		if !${MTMDB.TableExists["Targeting"]}
 		{
