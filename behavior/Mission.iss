@@ -1579,13 +1579,13 @@ objectdef obj_Mission inherits obj_StateQueue
 						echo DEBUG ALLOW SIEGE
 						AllowSiegeModule:Set[TRUE]
 					}
-					;if (${Entity[${CurrentOffenseTarget}].Distance} > ${CurrentOffenseRange}) || (${Entity[${CurrentOffenseTarget}].Distance} > ${MyShip.MaxTargetRange})
-					;{
-					;	; Out of target or offense range. Orbit Target
-					;	echo DEBUG DISALLOW SIEGE
-					;	AllowSiegeModule:Set[FALSE]
-					;	Move:Orbit[${CurrentOffenseTarget},5000]
-					;}
+					if (${Entity[${CurrentOffenseTarget}].Distance} > ${MyShip.MaxTargetRange})
+					{
+						; Out of target or offense range. Orbit Target
+						echo DEBUG DISALLOW SIEGE
+						AllowSiegeModule:Set[FALSE]
+						Move:Orbit[${CurrentOffenseTarget},5000]
+					}
 				}
 			}
 			else

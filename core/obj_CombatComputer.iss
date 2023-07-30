@@ -600,9 +600,9 @@ objectdef obj_CombatComputer
 		{
 			; Going to just consider the distance of the tracking disruptor user itself for now. This isn't going to work quite right at the moment.
 			if ${Entity[${EntityID}].Distance} > ${Math.Calc[${Ship.ModuleList_Turret.Range} * 0.75]}
-				FinalValue:Inc[100]
+				FinalValue:Inc[2500]
 			else
-				FinalValue:Inc[50]
+				FinalValue:Inc[2000]
 			GetCurrentData:Finalize
 		}
 		return ${FinalValue}	
