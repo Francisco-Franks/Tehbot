@@ -36,6 +36,8 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	variable obj_TargetList ActiveNPCs
 	variable obj_TargetList PrimaryWeap
 	variable obj_TargetList DroneTargets
+	; I'm very tired of fighting this problem so lets do it a stupid way.
+	variable obj_TargetList ActiveNPCsWithinWeaponRange
 	
 
 	; Query for our combat computer DB
@@ -55,6 +57,11 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	; Queue for removal from DB of things that don't exist anymore
 	variable queue:int64 CleanupQueue
 
+	variable int ValidPrimaryWeapTargets
+	variable int ValidDroneTargets
+	variable int ValidMissionTargets
+		
+		
 	method Initialize()
 	{
 		This[parent]:Initialize
@@ -103,6 +110,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			This:LogInfo["Starting"]
 			This:QueueState["MissionTargetManager"]
 		}
+		ActiveNPCs:ClearQueryString
 	}
 	
 	method Stop()
@@ -176,7 +184,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			This:LockManagement
 		}
-		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${ActiveNPCs.TargetList.Used} < 1
+		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${ActiveNPCs.TargetList.Used} < 1 && ${ValidPrimaryWeapTargets} < 2
 		{
 			echo DEBUG MTM TARGET DEAD DEACTIVATE SIEGE
 			AllowSiegeModule:Set[FALSE]
@@ -384,8 +392,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	; This method gets us our initial, and only TargetList, to make the DBs with.
 	method TargetListPreManagement()
 	{
-		ActiveNPCs:ClearQueryString
-		
+
 		ActiveNPCs:AddAllNPCs
 		ActiveNPCs.MaxRange:Set[${Math.Calc[${MyShip.MaxTargetRange} * .95]}]
 		
@@ -407,7 +414,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		
 		
 		ActiveNPCs:RequestUpdate
-		DistantNPCs:AddAllNPCs
+		DistantNPCs:AddAllNPCs	
 		DistantNPCs:RequestUpdate
 	
 	}
@@ -415,9 +422,6 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	; We are going to use 2 additional TargetLists because the lock management is just too handy to leave behind.
 	method LockManagement()
 	{
-		variable int ValidPrimaryWeapTargets
-		variable int ValidDroneTargets
-		variable int ValidMissionTargets
 		variable int64 TargetEntityID
 		
 		; Time to determine how many Primary Weapon Targets we have
@@ -433,8 +437,8 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		ValidMissionTargets:Set[${GetMTMInfo.NumRows}]
 		GetMTMInfo:Finalize
 		
-		PrimaryWeap:ClearQueryString
-		DroneTargets:ClearQueryString	
+		
+		;DroneTargets:ClearQueryString	
 		
 		echo DEBUG MISSION TARGET MANAGER Valid Primary Targets ${ValidPrimaryWeapTargets} Valid Drone Targets ${ValidDroneTargets} Valid Mission Ojective Targets ${ValidMissionTargets}
 		if (${ValidPrimaryWeapTargets} > ${PrimaryWeap.TargetList.Used}) && (${PrimaryWeap.TargetList.Used} < 4)
@@ -583,6 +587,10 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				; No row, probably means this entity is now in a different category. Kick it out of the TargetList and reset CurrentOffenseTarget to 0
 				This:LogInfo["Wrong Category removing ${Entity[${CurrentOffenseTarget}].Name} from PrimaryWeap TargetList."]
 				PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
+				PrimaryWeap.LockedTargetList:Remove[${CurrentOffenseTarget}]
+				PrimaryWeap.TargetList:Collapse
+				PrimaryWeap.LockedTargetList:Collapse
+				PrimaryWeap:ClearQueryString
 				CurrentOffenseTarget:Set[0]
 			}
 		}

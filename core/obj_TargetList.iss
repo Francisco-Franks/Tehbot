@@ -54,6 +54,15 @@ objectdef obj_TargetList inherits obj_StateQueue
 		QueryStringList:Insert["${QueryString.Escape}"]
 		NeedUpdate:Set[TRUE]
 	}
+	
+	method RemoveQueryString(string QueryString)
+	{
+
+		QueryStringList:RemoveByQuery[${LavishScript.CreateQuery["String = "${QueryString.Escape}""]}, TRUE]
+		QueryStringList:Collapse
+		
+		NeedUpdate:Set[TRUE]	
+	}
 
 	method AddTargetingMe()
 	{
@@ -284,7 +293,7 @@ objectdef obj_TargetList inherits obj_StateQueue
 	{
 		if ${ExcludeTargetID.Contains[${EntityID}]}
 		{
-			echo Cleaing Specific Exclusion
+			echo Clearing Specific Exclusion
 			ExcludeTargetID:Remove[${EntityID}]
 		}
 	}

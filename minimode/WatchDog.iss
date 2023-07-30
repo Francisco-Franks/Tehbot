@@ -88,7 +88,7 @@ objectdef obj_WatchDog inherits obj_StateQueue
 	; I like to use queues when we need to remove things mid iteration.
 	variable queue:int64 TargetExceptionClearQueue
 	; Need a bool we can use to prevent MissionTargetManager from immediately resuming fire on a target we stopped due to Salvo Threshold.
-	variable bool WaitAndSee
+	variable bool WaitAndSee = FALSE
 	
 	method Initialize()
 	{
