@@ -1572,20 +1572,20 @@ objectdef obj_Mission inherits obj_StateQueue
 				;}
 				if ${Entity[${CurrentOffenseTarget}](exists)}
 				{
-					TargetManager:RegisterCurrentPrimaryWeaponRange
+					;TargetManager:RegisterCurrentPrimaryWeaponRange
 					if ${Entity[${CurrentOffenseTarget}].Distance} < ${CurrentOffenseRange} 
 					{
 						; In range, Bastion.
 						echo DEBUG ALLOW SIEGE
 						AllowSiegeModule:Set[TRUE]
 					}
-					if (${Entity[${CurrentOffenseTarget}].Distance} > ${CurrentOffenseRange}) || (${Entity[${CurrentOffenseTarget}].Distance} > ${MyShip.MaxTargetRange})
-					{
-						; Out of target or offense range. Orbit Target
-						echo DEBUG DISALLOW SIEGE
-						AllowSiegeModule:Set[FALSE]
-						Move:Orbit[${CurrentOffenseTarget},5000]
-					}
+					;if (${Entity[${CurrentOffenseTarget}].Distance} > ${CurrentOffenseRange}) || (${Entity[${CurrentOffenseTarget}].Distance} > ${MyShip.MaxTargetRange})
+					;{
+					;	; Out of target or offense range. Orbit Target
+					;	echo DEBUG DISALLOW SIEGE
+					;	AllowSiegeModule:Set[FALSE]
+					;	Move:Orbit[${CurrentOffenseTarget},5000]
+					;}
 				}
 			}
 			else
