@@ -32,6 +32,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	
 	variable int MaxTarget = ${MyShip.MaxLockedTargets}
 
+	variable obj_TargetList DistantNPCs
 	variable obj_TargetList ActiveNPCs
 	variable obj_TargetList PrimaryWeap
 	variable obj_TargetList DroneTargets
@@ -54,23 +55,21 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	; Queue for removal from DB of things that don't exist anymore
 	variable queue:int64 CleanupQueue
 
-	variable int ValidPrimaryWeapTargets
-	variable int ValidDroneTargets
-	variable int ValidMissionTargets
-		
-		
 	method Initialize()
 	{
 		This[parent]:Initialize
 
 		DynamicAddMiniMode("MissionTargetManager", "MissionTargetManager")
-		This.PulseFrequency:Set[725]
+		This.PulseFrequency:Set[750]
 
 		This.NonGameTiedPulse:Set[TRUE]
 
 
 		This.LogLevelBar:Set[${Config.LogLevelBar}]
 		
+		DistantNPCs.NeedUpdate:Set[FALSE]
+		DistantNPCs.AutoLock:Set[FALSE]
+		DistantNPCs.MaxRange:Set[200000]
 		ActiveNPCs.NeedUpdate:Set[FALSE]
 		PrimaryWeap.NeedUpdate:Set[FALSE]
 		DroneTargets.NeedUpdate:Set[FALSE]
@@ -78,8 +77,8 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		DroneTargets.MaxRange:Set[${Me.DroneControlDistance}]
 		PrimaryWeap.AutoLock:Set[TRUE]
 		DroneTargets.AutoLock:Set[TRUE]
-		PrimaryWeap.MaxLockCount:Set[5]
-		DroneTargets.MaxLockCount:Set[3]
+		PrimaryWeap.MaxLockCount:Set[4]
+		DroneTargets.MaxLockCount:Set[2]
 		
 		PrimaryWeap.MinLockCount:Set[4]
 		DroneTargets.MinLockCount:Set[2]
@@ -111,6 +110,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	{
 		This:Clear
 		
+		DistantNPCs.NeedUpdate:Set[FALSE]
 		ActiveNPCs.NeedUpdate:Set[FALSE]
 		PrimaryWeap.NeedUpdate:Set[FALSE]
 		DroneTargets.NeedUpdate:Set[FALSE]
@@ -144,13 +144,10 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		; Don't need to be doing this while in warp.
 		if ${MyShip.ToEntity.Mode} == MOVE_WARPING
 			return FALSE
-		
-		if !${Entity[${CurrentOffenseTarget}](exists)}
-			CurrentOffenseTarget:Set[0]
-		ActiveNPCs.AutoLock:Set[FALSE]	
+			
 		; This will kick off a targelist query for ActiveNPCs which will basically cover absolutely everything we would ever want to target in a mission.
 		This:TargetListPreManagement
-		
+		ActiveNPCs.AutoLock:Set[FALSE]	
 		; Combat Computer will take those entities returned (if any) and databasify them. 
 		if ${LavishScript.RunningTime} >= ${CombatComputerTimer}
 		{
@@ -180,8 +177,6 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			This:LockManagement
 		}
-		PrimaryWeap:RequestUpdate
-		DroneTargets:RequestUpdate	
 		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${ActiveNPCs.TargetList.Used} < 1
 		{
 			echo DEBUG MTM TARGET DEAD DEACTIVATE SIEGE
@@ -213,17 +208,17 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			This:PrimaryWeapons
 		}
-		if ${PrimaryWeap.LockedTargetList.Used} == 0 && ${DroneTargets.LockedTargetList.Used} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}](exists)}
+		if ${PrimaryWeap.LockedTargetList.Used} == 0 && ${DroneTargets.LockedTargetList.Used} > 0
 		{
-			if ${Ship.ModuleList_StasisGrap.InactiveCount} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}].Distance} < 19500 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}](exists)}
+			if ${Ship.ModuleList_StasisGrap.InactiveCount} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}].Distance} < 19500
 			{
 				Ship.ModuleList_StasisGrap:ActivateAll[${DroneTargets.LockedTargetList.Get[1]}]
 			}
-			if ${Ship.ModuleList_StasisWeb.InactiveCount} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}].Distance} <= ${Ship.ModuleList_StasisWeb.Range} && ${Entity[${DroneTargets.LockedTargetList.Get[1]}](exists)}
+			if ${Ship.ModuleList_StasisWeb.InactiveCount} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}].Distance} <= ${Ship.ModuleList_StasisWeb.Range}
 			{
 				Ship.ModuleList_StasisWeb:ActivateAll[${DroneTargets.LockedTargetList.Get[1]}]
 			}
-			if ${Entity[${CurrentOffenseTarget}].Distance} <= 140000 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}](exists)}
+			if ${Entity[${CurrentOffenseTarget}].Distance} <= 140000
 			{
 				Ship.ModuleList_TargetPainter:ActivateAll[${DroneTargets.LockedTargetList.Get[1]}]
 			}		
@@ -233,7 +228,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			DroneTargets:AddQueryString["ID == ${PrimaryWeap.LockedTargetList.Get[1]}"]
 		}
 		; Need a way to deal with enemies that are just too far away.
-		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.LockedTargetList.Used} < 1 && ${DroneTargets.TargetList.Used} < 1) && !${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1]}]} 
+		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.TargetList.Used} < 1 && ${DroneTargets.TargetList.Used} < 1) && !${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1]}]} 
 		{
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
@@ -241,10 +236,10 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			Entity[${ActiveNPCs.TargetList.Get[1]}]:Approach		
 		}
 		; Well, if all that is left are drone targets, may as well approach our mission objective or orbit the next gate or something.
-		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.TargetList.Used} < 1 && ${DroneTargets.LockedTargetList.Used} > 1) && !${Move.Traveling} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING
+		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.LockedTargetList.Used} < 1 && ${DroneTargets.LockedTargetList.Used} > 1) && !${Move.Traveling} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING
 		{
 			AllowSiegeModule:Set[FALSE]
-			Ship.ModuleList_Siege:DeactivateAll			
+			Ship.ModuleList_Siege:DeactivateAll
 			if ${Mission.CurrentAgentLoot.NotNULLOrEmpty} && ${Entity[Name =- ${Mission.CurrentAgentLoot}](exists)}
 				Move:Orbit[${Entity[Name =- ${Mission.CurrentAgentLoot}]}, 2500]
 			elseif ${Mission.CurrentAgentDestroy.NotNULLOrEmpty} && ${Entity[Name =- ${Mission.CurrentAgentDestroy}](exists)}
@@ -253,7 +248,10 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				Move:Orbit[${Entity[Type = "Acceleration Gate"]}]
 		}
 		; Debug time
-		echo DEBUG MISSION TARGET MANAGER PRIMARY LIST ${PrimaryWeap.TargetList.Used} DRONE LIST ${DroneTargets.TargetList.Used} ACTIVE NPCS ${ActiveNPCs.TargetList.Used}
+		echo DEBUG MISSION TARGET MANAGER PRIMARY LIST ${PrimaryWeap.TargetList.Used} DRONE LIST ${DroneTargets.TargetList.Used} ACTIVE NPCS ${ActiveNPCs.TargetList.Used} DistantNPCs ${DistantNPCs.TargetList.Used}
+		
+		PrimaryWeap:RequestUpdate
+		DroneTargets:RequestUpdate	
 
 		
 		return FALSE
@@ -317,12 +315,12 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				{
 					TargetingCategory:Set[PrimaryWeapon]
 				}
-				if ${OurDamageEff} < .2 && ${OurDamageEff} > .03
+				if ${OurDamageEff} < .2 && ${OurDamageEff} > .02
 				{
 					TargetingCategory:Set[PrimaryWeaponLow]
 				}
 				; This would be things we can not apply damage to (less than 5% efficiency), depending on range we will employ a different category. Things within drone control range can be drone targets, things outside that are treated out of range.
-				if ${OurDamageEff} <= .03
+				if ${OurDamageEff} < .02
 				{
 					if ${Entity[${ActiveNPCIterator.Value}].Distance} < ${Me.DroneControlDistance}
 					{
@@ -356,6 +354,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		}
 		; We have our basic categorization down, let us cleanup things that do not exist.
 		This:TargetListCleanup
+		
 	}
 	
 	; This method will be used to cleanup non-existent entities from the DB
@@ -389,8 +388,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	method TargetListPreManagement()
 	{
 		ActiveNPCs:ClearQueryString
-		ActiveNPCs.MaxRange:Set[${Math.Calc[${MyShip.MaxTargetRange} * .95]}]
+		
 		ActiveNPCs:AddAllNPCs
+		ActiveNPCs.MaxRange:Set[${Math.Calc[${MyShip.MaxTargetRange} * .95]}]
 		
 		; This specifically can be very much simplified now. 
 		if ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
@@ -410,7 +410,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		
 		
 		ActiveNPCs:RequestUpdate
-		DistantNPCs:AddAllNPCs	
+		DistantNPCs:AddAllNPCs
 		DistantNPCs:RequestUpdate
 	
 	}
@@ -418,6 +418,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	; We are going to use 2 additional TargetLists because the lock management is just too handy to leave behind.
 	method LockManagement()
 	{
+		variable int ValidPrimaryWeapTargets
+		variable int ValidDroneTargets
+		variable int ValidMissionTargets
 		variable int64 TargetEntityID
 		
 		; Time to determine how many Primary Weapon Targets we have
@@ -433,15 +436,15 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		ValidMissionTargets:Set[${GetMTMInfo.NumRows}]
 		GetMTMInfo:Finalize
 		
-		
+		PrimaryWeap:ClearQueryString
 		;DroneTargets:ClearQueryString	
 		
 		echo DEBUG MISSION TARGET MANAGER Valid Primary Targets ${ValidPrimaryWeapTargets} Valid Drone Targets ${ValidDroneTargets} Valid Mission Ojective Targets ${ValidMissionTargets}
-		if (${ValidPrimaryWeapTargets} > ${PrimaryWeap.LockedTargetList.Used}) && (${PrimaryWeap.LockedTargetList.Used} < 5)
+		if (${ValidPrimaryWeapTargets} > ${PrimaryWeap.TargetList.Used}) && (${PrimaryWeap.TargetList.Used} < 4)
 		{
 			if ${Ship.ModuleList_Weapon.Type.Find["Laser"]}
 			{
-				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%' ORDER BY ThreatLevel DESC;"]}]
+				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%' ORDER BY TargetingCategory ASC, ThreatLevel DESC;"]}]
 				if ${GetMTMInfo.NumRows} > 0
 				{
 					do
@@ -450,13 +453,13 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 						PrimaryWeap:AddQueryString["ID == ${TargetEntityID}"]
 						GetMTMInfo:NextRow
 					}
-					while !${GetMTMInfo.LastRow} && (${PrimaryWeap.TargetList.Used} < 5)
+					while !${GetMTMInfo.LastRow} && (${PrimaryWeap.TargetList.Used} < 4)
 					GetMTMInfo:Finalize
 				}
 			}
 			else
 			{
-				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE OurNeededAmmo='${Ship.ModuleList_Weapon.ChargeName}' AND TargetingCategory LIKE '%Primary%' ORDER BY ThreatLevel DESC;"]}]
+				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE OurNeededAmmo='${Ship.ModuleList_Weapon.ChargeName}' AND TargetingCategory LIKE '%Primary%' ORDER BY TargetingCategory ASC, ThreatLevel DESC;"]}]
 				if ${GetMTMInfo.NumRows} > 0
 				{
 					do
@@ -465,12 +468,12 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 						PrimaryWeap:AddQueryString["ID == ${TargetEntityID}"]
 						GetMTMInfo:NextRow
 					}
-					while !${GetMTMInfo.LastRow} && (${PrimaryWeap.TargetList.Used} < 5)
+					while !${GetMTMInfo.LastRow} && (${PrimaryWeap.TargetList.Used} < 4)
 					GetMTMInfo:Finalize
 				}
 				else
 				{
-					GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%' ORDER BY ThreatLevel DESC;"]}]
+					GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%' ORDER BY TargetingCategory ASC, ThreatLevel DESC;"]}]
 					if ${GetMTMInfo.NumRows} > 0
 					{
 						do
@@ -479,13 +482,13 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 							PrimaryWeap:AddQueryString["ID == ${TargetEntityID}"]
 							GetMTMInfo:NextRow
 						}
-						while !${GetMTMInfo.LastRow} && (${PrimaryWeap.TargetList.Used} < 5)
+						while !${GetMTMInfo.LastRow} && (${PrimaryWeap.TargetList.Used} < 4)
 						GetMTMInfo:Finalize
 					}				
 				}
 			}			
 		}
-		if (${ValidDroneTargets} > ${DroneTargets.LockedTargetList.Used}) && (${DroneTargets.LockedTargetList.Used} < 3)
+		if (${ValidDroneTargets} > ${DroneTargets.TargetList.Used}) && (${DroneTargets.TargetList.Used} < 2)
 		{
 			GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Drone%' ORDER BY ThreatLevel DESC;"]}]
 			if ${GetMTMInfo.NumRows} > 0
@@ -496,7 +499,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 					DroneTargets:AddQueryString["ID == ${TargetEntityID}"]
 					GetMTMInfo:NextRow
 				}
-				while !${GetMTMInfo.LastRow} && (${DroneTargets.TargetList.Used} < 3)
+				while !${GetMTMInfo.LastRow} && (${DroneTargets.TargetList.Used} < 2)
 			}
 			GetMTMInfo:Finalize			
 		}
@@ -511,7 +514,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 					PrimaryWeap:AddQueryString["ID == ${TargetEntityID}"]
 					GetMTMInfo:NextRow
 				}
-				while !${GetMTMInfo.LastRow} && (${PrimaryWeap.TargetList.Used} < 5)
+				while !${GetMTMInfo.LastRow} && (${PrimaryWeap.TargetList.Used} < 4)
 				GetMTMInfo:Finalize
 			}		
 		}
@@ -540,18 +543,17 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			; Well, I mean, the stuff placed in here was already pre-sorted and whatnot. Do I need to do anything more complex than just pick the first thing in the index?
 			if ${PrimaryWeap.LockedTargetList.Get[1]} > 0 && ${Entity[${PrimaryWeap.LockedTargetList.Get[1]}](exists)}
 			{
-				;if ${WatchDog.WaitAndSee}
-				;{
-				;	if ${PrimaryWeap.LockedTargetList.Get[2](exists)} && ${Entity[${PrimaryWeap.LockedTargetList.Get[2]}](exists)}
-				;		CurrentOffenseTarget:Set[${PrimaryWeap.LockedTargetList.Get[2]}]
-				;	else
-				;		CurrentOffenseTarget:Set[0]
-				;	WatchDog.WaitAndSee:Set[FALSE]
-				;}
-				;else
-				;	CurrentOffenseTarget:Set[${PrimaryWeap.LockedTargetList.Get[1]}]
-				
-				CurrentOffenseTarget:Set[${PrimaryWeap.LockedTargetList.Get[1]}]
+				if ${WatchDog.WaitAndSee}
+				{
+					if ${PrimaryWeap.LockedTargetList.Get[2](exists)} && ${Entity[${PrimaryWeap.LockedTargetList.Get[2]}](exists)}
+						CurrentOffenseTarget:Set[${PrimaryWeap.LockedTargetList.Get[2]}]
+					else
+						CurrentOffenseTarget:Set[0]
+					WatchDog.WaitAndSee:Set[FALSE]
+				}
+				else
+					CurrentOffenseTarget:Set[${PrimaryWeap.LockedTargetList.Get[1]}]
+					
 				Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]
 				
 				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE EntityID=${CurrentOffenseTarget};"]}]
@@ -583,15 +585,10 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			{
 				; No row, probably means this entity is now in a different category. Kick it out of the TargetList and reset CurrentOffenseTarget to 0
 				This:LogInfo["Wrong Category removing ${Entity[${CurrentOffenseTarget}].Name} from PrimaryWeap TargetList."]
-				Entity[${CurrentOffenseTarget}]:UnlockTarget
-				;PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
-				;PrimaryWeap.LockedTargetList:Remove[${CurrentOffenseTarget}]
-				;PrimaryWeap.TargetList:Collapse
-				;PrimaryWeap.LockedTargetList:Collapse
-				PrimaryWeap:ClearQueryString
-				CurrentOffenseTarget:Set[0]
+				PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
 				This:TargetListManagement
 				This:LockManagement
+				CurrentOffenseTarget:Set[0]
 			}
 		}
 		if ${CurrentOffenseTarget} > 0 && ${Entity[${CurrentOffenseTarget}].IsLockedTarget}
