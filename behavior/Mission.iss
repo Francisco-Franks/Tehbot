@@ -1480,7 +1480,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					This:InsertState["CombatMissionObjectives",5000,"Destroy, ${Entity[Name == \"${CurrentAgentDestroy.Escape}\"]}"}]
 					return TRUE
 				}
-				else
+				elseif !${Entity[Type = "Acceleration Gate"](exists)}
 				{
 					This:LogInfo["Didn't find ${CurrentAgentDestroy} to Destroy. Check for Completion."]
 					This:InsertState["CombatMission", 4000]
