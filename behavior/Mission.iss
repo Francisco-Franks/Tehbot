@@ -4081,9 +4081,9 @@ objectdef obj_Mission inherits obj_StateQueue
 		ExtraAmmo3Amount:Dec[${This.InventoryItemQuantity[${ExtraAmmo3}, ${Me.ShipID}, "ShipCargo"]}]
 		ExtraAmmo4Amount:Dec[${This.InventoryItemQuantity[${ExtraAmmo4}, ${Me.ShipID}, "ShipCargo"]}]
 		if ${Config.UseMissileHighDamageVariant}
-			HighDamageAmmoAmount:Dec[${This.InventoryItemQuantity[${HighDamageAmmo}, ${Me.ShipID}, "ShipCargo"]}]
+			HighDamageAmmoAmount:Dec[${This.InventoryItemQuantityFind[${HighDamageAmmo}, ${Me.ShipID}, "ShipCargo"]}]
 		if ${Config.UseMissilePrecisionVariant}
-			PrecisionAmmoAmount:Dec[${This.InventoryItemQuantity[${PrecisionAmmo}, ${Me.ShipID}, "ShipCargo"]}]
+			PrecisionAmmoAmount:Dec[${This.InventoryItemQuantityFind[${PrecisionAmmo}, ${Me.ShipID}, "ShipCargo"]}]
 		defaultAmmoAmountToLoad:Dec[${This.InventoryItemQuantity[${ammo}, ${Me.ShipID}, "ShipCargo"]}]
 		secondaryAmmoAmountToLoad:Dec[${This.InventoryItemQuantity[${secondaryAmmo}, ${Me.ShipID}, "ShipCargo"]}]
 		batteryToLoad:Dec[${This.InventoryItemQuantity[${batteryType}, ${Me.ShipID}, "ShipCargo"]}]
@@ -4549,6 +4549,37 @@ objectdef obj_Mission inherits obj_StateQueue
 
 		return ${itemQuantity}
 	}
+	; Different spin on this one, Find rather than Equal.
+	member:int InventoryItemQuantityFind(string itemName, string inventoryID, string subFolderName = "")
+	{
+		variable index:item items
+		variable iterator itemIterator
+
+		if !${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}](exists)} || ${EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}].Capacity} < 0
+		{
+			echo must open inventory window before calling this function
+			; I really like how tehtsuo decided that if you did this wrong it should just crash the fuckin bot.
+			echo ${Math.Calc[1 / 0]}
+		}
+
+		EVEWindow[Inventory].ChildWindow[${inventoryID}, ${subFolderName}]:GetItems[items]
+		items:GetIterator[itemIterator]
+
+		variable int itemQuantity = 0
+		if ${itemIterator:First(exists)}
+		{
+			do
+			{
+				if ${itemIterator.Value.Name.Find[${itemName}]}
+				{
+					itemQuantity:Inc[${itemIterator.Value.Quantity}]
+				}
+			}
+			while ${itemIterator:Next(exists)}
+		}
+
+		return ${itemQuantity}
+	}	
 
 
 	; I have absolutely no idea what this is or does. I'm 98% sure it is never called by anything, so let's leave it here
