@@ -1329,7 +1329,7 @@
 						<Height>5%</Height>
 						<Text>Use HighDamage Missile Variant</Text>
 						<OnLoad>
-							if ${Script[Tehbot].VariableScope.Mission.Config.UseMissilePrecisonVariant}
+							if ${Script[Tehbot].VariableScope.Mission.Config.UseMissileHighDamageVariant}
 							{
 								This:SetChecked
 							}
