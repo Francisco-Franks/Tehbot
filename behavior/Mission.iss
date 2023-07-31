@@ -87,6 +87,25 @@ objectdef obj_Configuration_Mission inherits obj_Configuration_Base
 	Setting(string, ExplosiveAmmoSecondary, SetExplosiveAmmoSecondary)
 	Setting(int, AmmoAmountToLoad, SetAmmoAmountToLoad)
 	
+	; With a new target manager we have new possibilities. We can handle, in actuality, any number of different ammunition types. Let us leverage that.
+	; If you are using a Scourge Cruise Missile, it will look ALSO for a Precision Scourge Cruise Missile.
+	Setting(bool, UseMissileHighDamageVariant, SetUseMissileHighDamageVariant)
+	Setting(bool, UseMissilePrecisionVariant, SetUseMissilePrecisionVariant)
+	; Separate amounts for these, you don't want to carry 3000 of every missile that would be dumb as hell.
+	Setting(int64, MissileHighDamageVariantAmount, SetMissileHighDamageVariantAmount)
+	Setting(int64, MissilePrecisionVariantAmount, SetMissilePrecisionVariantAmount)
+	
+	;These will be for Turret Ammo Extras, and their amounts. 
+	Setting(string, TurretExtraAmmo1, SetTurretExtraAmmo1)
+	Setting(int64, TurretExtraAmmo1Amount, SetTurretExtraAmmo1Amount)
+	Setting(string, TurretExtraAmmo2, SetTurretExtraAmmo2)
+	Setting(int64, TurretExtraAmmo2Amount, SetTurretExtraAmmo2Amount)
+	Setting(string, TurretExtraAmmo3, SetTurretExtraAmmo3)
+	Setting(int64, TurretExtraAmmo3Amount, SetTurretExtraAmmo3Amount)
+	Setting(string, TurretExtraAmmo4, SetTurretExtraAmmo4)
+	Setting(int64, TurretExtraAmmo4Amount, SetTurretExtraAmmo4Amount)	
+	
+	
 	; Page 3 of the UI begins
 	; Storage and Misc
 	
@@ -289,6 +308,10 @@ objectdef obj_Mission inherits obj_StateQueue
 	
 	; Have we done our ammunition asssessment?
 	variable bool AmmoInfoAcquired
+	
+	; Need a place to store our string for our Precision/High Damage ammo
+	variable string PrecisionAmmo
+	variable string HighDamageAmmo
 
 	
 	method Initialize()
@@ -1455,6 +1478,13 @@ objectdef obj_Mission inherits obj_StateQueue
 				{
 					This:LogInfo["${CurrentAgentDestroy} detected. Destroy."]
 					This:InsertState["CombatMissionObjectives",5000,"Destroy, ${Entity[Name == \"${CurrentAgentDestroy.Escape}\"]}"}]
+					return TRUE
+				}
+				else
+				{
+					This:LogInfo["Didn't find ${CurrentAgentDestroy} to Destroy. Check for Completion."]
+					This:InsertState["CombatMission", 4000]
+					This:InsertState["CheckForCompletion",5000]
 					return TRUE
 				}
 			}
@@ -3176,6 +3206,16 @@ objectdef obj_Mission inherits obj_StateQueue
 					secondaryAmmo:Set[${Config.KineticAmmoSecondary}]
 				else
 					secondaryAmmo:Set[""]
+				if ${Config.UseMissileHighDamageVariant} && (${ammo.Find["Missile"]} && !${ammo.Find["Assault"]})
+					HighDamageAmmo:Set["Scourge Fury"]
+				elseif ${Config.UseMissileHighDamageVariant} && (${ammo.Find["Torpedo"]} || ${ammo.Find["Assault"]} || ${ammo.Find["Rocket"]})
+					HighDamageAmmo:Set["Scourge Rage"]
+				else
+					HighDamageAmmo:Set[""]
+				if ${Config.UseMissilePrecisionVariant} && (!${ammo.Find["Torpedo"]} || !${ammo.Find["Assault"]} || !${ammo.Find["Rocket"]})
+					PrecisionAmmo:Set["Scourge Precision"]
+				else
+					PrecisionAmmo:Set[""]
 				useDroneRace:Set[DRONE_RACE_CALDARI]
 				break
 			case em
@@ -3184,6 +3224,16 @@ objectdef obj_Mission inherits obj_StateQueue
 					secondaryAmmo:Set[${Config.EMAmmoSecondary}]
 				else
 					secondaryAmmo:Set[""]
+				if ${Config.UseMissileHighDamageVariant} && (${ammo.Find["Missile"]} && !${ammo.Find["Assault"]})
+					HighDamageAmmo:Set["Mjolnir Fury"]
+				elseif ${Config.UseMissileHighDamageVariant} && (${ammo.Find["Torpedo"]} || ${ammo.Find["Assault"]} || ${ammo.Find["Rocket"]})
+					HighDamageAmmo:Set["Mjolnir Rage"]
+				else
+					HighDamageAmmo:Set[""]
+				if ${Config.UseMissilePrecisionVariant} && (!${ammo.Find["Torpedo"]} || !${ammo.Find["Assault"]} || !${ammo.Find["Rocket"]})
+					PrecisionAmmo:Set["Mjolnir Precision"]
+				else
+					PrecisionAmmo:Set[""]
 				useDroneRace:Set[DRONE_RACE_AMARR]
 				break
 			case thermal
@@ -3192,6 +3242,16 @@ objectdef obj_Mission inherits obj_StateQueue
 					secondaryAmmo:Set[${Config.ThermalAmmoSecondary}]
 				else
 					secondaryAmmo:Set[""]
+				if ${Config.UseMissileHighDamageVariant} && (${ammo.Find["Missile"]} && !${ammo.Find["Assault"]})
+					HighDamageAmmo:Set["Inferno Fury"]
+				elseif ${Config.UseMissileHighDamageVariant} && (${ammo.Find["Torpedo"]} || ${ammo.Find["Assault"]} || ${ammo.Find["Rocket"]})
+					HighDamageAmmo:Set["Inferno Rage"]
+				else
+					HighDamageAmmo:Set[""]
+				if ${Config.UseMissilePrecisionVariant} && (!${ammo.Find["Torpedo"]} || !${ammo.Find["Assault"]} || !${ammo.Find["Rocket"]})
+					PrecisionAmmo:Set["Inferno Precision"]
+				else
+					PrecisionAmmo:Set[""]
 				useDroneRace:Set[DRONE_RACE_GALLENTE]
 				break
 			case explosive
@@ -3200,6 +3260,16 @@ objectdef obj_Mission inherits obj_StateQueue
 					secondaryAmmo:Set[${Config.ExplosiveAmmoSecondary}]
 				else
 					secondaryAmmo:Set[""]
+				if ${Config.UseMissileHighDamageVariant} && (${ammo.Find["Missile"]} && !${ammo.Find["Assault"]})
+					HighDamageAmmo:Set["Nova Fury"]
+				elseif ${Config.UseMissileHighDamageVariant} && (${ammo.Find["Torpedo"]} || ${ammo.Find["Assault"]} || ${ammo.Find["Rocket"]})
+					HighDamageAmmo:Set["Nova Rage"]
+				else
+					HighDamageAmmo:Set[""]
+				if ${Config.UseMissilePrecisionVariant} && (!${ammo.Find["Torpedo"]} || !${ammo.Find["Assault"]} || !${ammo.Find["Rocket"]})
+					PrecisionAmmo:Set["Nova Precision"]
+				else
+					PrecisionAmmo:Set[""]
 				useDroneRace:Set[DRONE_RACE_MINMATAR]
 				break
 			default
@@ -3827,6 +3897,12 @@ objectdef obj_Mission inherits obj_StateQueue
 				   !${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackAmmo}]} && \
 				   !${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackLongRangeAmmo}]} && \
 				   !${itemIterator.Value.Name.Equal[${Config.BatteryToBring}]} && \
+				   (!${itemIterator.Value.Name.Find[${PrecisionAmmo}]} && ${PrecisionAmmo.NotNULLOrEmpty}) && \
+				   (!${itemIterator.Value.Name.Find[${HighDamageAmmo}]} && ${HighDamageAmmo.NotNULLOrEmpty}) && \
+				   !${itemIterator.Value.Name.Equal[${Config.TurretExtraAmmo1}]} && \
+				   !${itemIterator.Value.Name.Equal[${Config.TurretExtraAmmo2}]} && \
+				   !${itemIterator.Value.Name.Equal[${Config.TurretExtraAmmo3}]} && \
+				   !${itemIterator.Value.Name.Equal[${Config.TurretExtraAmmo4}]} && \
 				   ; Anomaly gate key
 				   !${itemIterator.Value.Name.Equal["Oura Madusaari"]} && \
 				   !${itemIterator.Value.Group.Equal["Acceleration Gate Keys"]} && \
@@ -3894,6 +3970,18 @@ objectdef obj_Mission inherits obj_StateQueue
 		variable int loadingDroneNumber = 0
 		variable string preferredDroneType
 		variable string fallbackDroneType
+		; These are for our extra configured ammos.
+		variable string ExtraAmmo1 = ${Config.TurretExtraAmmo1}
+		variable string ExtraAmmo2 = ${Config.TurretExtraAmmo2}
+		variable string ExtraAmmo3 = ${Config.TurretExtraAmmo3}
+		variable string ExtraAmmo4 = ${Config.TurretExtraAmmo4}
+		variable int ExtraAmmo1Amount = ${Config.TurretExtraAmmo1Amount}
+		variable int ExtraAmmo2Amount = ${Config.TurretExtraAmmo2Amount}
+		variable int ExtraAmmo3Amount = ${Config.TurretExtraAmmo3Amount}
+		variable int ExtraAmmo4Amount = ${Config.TurretExtraAmmo4Amount}
+		; These are for missiles.
+		variable int PrecisionAmmoAmount = ${Config.MissilePrecisionVariantAmount}
+		variable int HighDamageAmmoAmount = ${Config.MissileHighDamageVariantAmount}
 
 		variable string batteryType
 		batteryType:Set[${Config.BatteryToBring}]
@@ -3988,7 +4076,14 @@ objectdef obj_Mission inherits obj_StateQueue
 			Client:Wait[500]
 			return FALSE
 		}
-
+		ExtraAmmo1Amount:Dec[${This.InventoryItemQuantity[${ExtraAmmo1}, ${Me.ShipID}, "ShipCargo"]}]
+		ExtraAmmo2Amount:Dec[${This.InventoryItemQuantity[${ExtraAmmo2}, ${Me.ShipID}, "ShipCargo"]}]
+		ExtraAmmo3Amount:Dec[${This.InventoryItemQuantity[${ExtraAmmo3}, ${Me.ShipID}, "ShipCargo"]}]
+		ExtraAmmo4Amount:Dec[${This.InventoryItemQuantity[${ExtraAmmo4}, ${Me.ShipID}, "ShipCargo"]}]
+		if ${Config.UseMissileHighDamageVariant}
+			HighDamageAmmoAmount:Dec[${This.InventoryItemQuantity[${HighDamageAmmo}, ${Me.ShipID}, "ShipCargo"]}]
+		if ${Config.UseMissilePrecisionVariant}
+			PrecisionAmmoAmount:Dec[${This.InventoryItemQuantity[${PrecisionAmmo}, ${Me.ShipID}, "ShipCargo"]}]
 		defaultAmmoAmountToLoad:Dec[${This.InventoryItemQuantity[${ammo}, ${Me.ShipID}, "ShipCargo"]}]
 		secondaryAmmoAmountToLoad:Dec[${This.InventoryItemQuantity[${secondaryAmmo}, ${Me.ShipID}, "ShipCargo"]}]
 		batteryToLoad:Dec[${This.InventoryItemQuantity[${batteryType}, ${Me.ShipID}, "ShipCargo"]}]
@@ -4030,6 +4125,12 @@ objectdef obj_Mission inherits obj_StateQueue
 					!${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackLongRangeAmmo}]} && \
 					!${itemIterator.Value.Name.Equal[${ammo}]} && \
 					!${itemIterator.Value.Name.Equal[${secondaryAmmo}]}) && \
+				   (!${itemIterator.Value.Name.Find[${PrecisionAmmo}]} && ${PrecisionAmmo.NotNULLOrEmpty}) && \
+				   (!${itemIterator.Value.Name.Find[${HighDamageAmmo}]} && ${HighDamageAmmo.NotNULLOrEmpty}) && \
+				   !${itemIterator.Value.Name.Equal[${Config.TurretExtraAmmo1}]} && \
+				   !${itemIterator.Value.Name.Equal[${Config.TurretExtraAmmo2}]} && \
+				   !${itemIterator.Value.Name.Equal[${Config.TurretExtraAmmo3}]} && \
+				   !${itemIterator.Value.Name.Equal[${Config.TurretExtraAmmo4}]} && \
 					(${itemIterator.Value.Name.Equal[${Config.KineticAmmo}]} || \
 					${itemIterator.Value.Name.Equal[${Config.ThermalAmmo}]} || \
 					${itemIterator.Value.Name.Equal[${Config.EMAmmo}]} || \
@@ -4160,6 +4261,103 @@ objectdef obj_Mission inherits obj_StateQueue
 						batteryToLoad:Dec[${itemIterator.Value.Quantity}]
 						return FALSE
 					}
+				}
+				
+				if ${ExtraAmmo1Amount} > 0 && ${itemIterator.Value.Name.Equal[${ExtraAmmo1}]}
+				{
+					if ${itemIterator.Value.Quantity} >= ${ExtraAmmo1Amount}
+					{
+						itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, ${ExtraAmmo1Amount}]
+						ExtraAmmo1Amount:Set[0]
+						return FALSE
+					}
+					else
+					{
+						itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, ${itemIterator.Value.Quantity}]
+						ExtraAmmo1Amount:Dec[${itemIterator.Value.Quantity}]
+						return FALSE
+					}
+				}
+				if ${ExtraAmmo2Amount} > 0 && ${itemIterator.Value.Name.Equal[${ExtraAmmo2}]}
+				{
+					if ${itemIterator.Value.Quantity} >= ${ExtraAmmo2Amount}
+					{
+						itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, ${ExtraAmmo2Amount}]
+						ExtraAmmo2Amount:Set[0]
+						return FALSE
+					}
+					else
+					{
+						itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, ${itemIterator.Value.Quantity}]
+						ExtraAmmo2Amount:Dec[${itemIterator.Value.Quantity}]
+						return FALSE
+					}
+				}
+				if ${ExtraAmmo3Amount} > 0 && ${itemIterator.Value.Name.Equal[${ExtraAmmo3}]}
+				{
+					if ${itemIterator.Value.Quantity} >= ${ExtraAmmo3Amount}
+					{
+						itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, ${ExtraAmmo3Amount}]
+						ExtraAmmo3Amount:Set[0]
+						return FALSE
+					}
+					else
+					{
+						itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, ${itemIterator.Value.Quantity}]
+						ExtraAmmo3Amount:Dec[${itemIterator.Value.Quantity}]
+						return FALSE
+					}
+				}
+				if ${ExtraAmmo4Amount} > 0 && ${itemIterator.Value.Name.Equal[${ExtraAmmo4}]}
+				{
+					if ${itemIterator.Value.Quantity} >= ${ExtraAmmo4Amount}
+					{
+						itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, ${ExtraAmmo4Amount}]
+						ExtraAmmo4Amount:Set[0]
+						return FALSE
+					}
+					else
+					{
+						itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, ${itemIterator.Value.Quantity}]
+						ExtraAmmo4Amount:Dec[${itemIterator.Value.Quantity}]
+						return FALSE
+					}
+				}
+				if ${Config.UseMissileHighDamageVariant}
+				{
+					if ${HighDamageAmmoAmount} > 0 && ${itemIterator.Value.Name.Find[${HighDamageAmmo}]}
+					{
+						if ${itemIterator.Value.Quantity} >= ${HighDamageAmmoAmount}
+						{
+							itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, ${HighDamageAmmoAmount}]
+							HighDamageAmmoAmount:Set[0]
+							return FALSE
+						}
+						else
+						{
+							itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, ${itemIterator.Value.Quantity}]
+							HighDamageAmmoAmount:Dec[${itemIterator.Value.Quantity}]
+							return FALSE
+						}
+					}				
+				}
+				if ${Config.UseMissilePrecisionVariant}
+				{
+					if ${PrecisionAmmoAmount} > 0 && ${itemIterator.Value.Name.Find[${PrecisionAmmo}]}
+					{
+						if ${itemIterator.Value.Quantity} >= ${PrecisionAmmoAmount}
+						{
+							itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, ${PrecisionAmmoAmount}]
+							PrecisionAmmoAmount:Set[0]
+							return FALSE
+						}
+						else
+						{
+							itemIterator.Value:MoveTo[${MyShip.ID}, CargoHold, ${itemIterator.Value.Quantity}]
+							PrecisionAmmoAmount:Dec[${itemIterator.Value.Quantity}]
+							return FALSE
+						}
+					}				
 				}
 			}
 			while ${itemIterator:Next(exists)}

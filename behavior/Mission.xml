@@ -2,7 +2,7 @@
 <ISUI>
 	<template name='Information.Font'>
 		<Name>Segoe</Name>
-		<Size>24</Size>
+		<Size>18</Size>
 		<Color>FFFFFFFF</Color>
 	</template>
 
@@ -13,7 +13,7 @@
 		<X>200</X>
 		<Y>300</Y>
 		<Width>1200</Width>
-		<Height>900</Height>
+		<Height>800</Height>
 		<TitleBar>
 			<Width>100%</Width>
 			<Height>40</Height>
@@ -571,7 +571,7 @@
 						</frame>
 					<Text name='AmmoSupplyTitle'>
 						<X>1%</X>
-						<Y>16%</Y>
+						<Y>1%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<Alignment>Center</Alignment>
@@ -591,7 +591,7 @@
 						<Border>1</Border>
 						<BorderColor>FFFFFFFF</BorderColor>
 						<X>1%</X>
-						<Y>21%</Y>
+						<Y>5%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<OnLoad>
@@ -609,7 +609,7 @@
 					</Textentry>					
 					<Checkbox name='UseDrones'>
 						<X>1%</X>
-						<Y>49%</Y>
+						<Y>12%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<Text>Use Drones</Text>
@@ -642,7 +642,7 @@
 						<Font template='Information.Font' />
 						<BackgroundColor>FF000000</BackgroundColor>
 						<X>1%</X>
-						<Y>53%</Y>
+						<Y>16%</Y>
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<OnLoad>
@@ -1275,12 +1275,345 @@
 						<OnMouseExit>
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
-					</combobox>	
+					</combobox>
+
+					<Checkbox name='UseMissilePrecisionVariant'>
+						<X>1%</X>
+						<Y>20%</Y>
+						<Width>30%</Width>
+						<Height>5%</Height>
+						<Text>Use Precision Missile Variant</Text>
+						<OnLoad>
+							if ${Script[Tehbot].VariableScope.Mission.Config.UseMissilePrecisonVariant}
+							{
+								This:SetChecked
+							}
+						</OnLoad>
+						<OnLeftClick>
+							Script[Tehbot].VariableScope.Mission.Config:SetUseMissilePrecisionVariant[${This.Checked}]
+						</OnLeftClick>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["Check this if you want to load the Precision Variant of your current Missile. Torps this won't do anything."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Checkbox>
+					<Textentry Name="MissilePrecisionVariantAmount">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>1%</X>
+						<Y>24%</Y>
+						<Width>30%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.MissilePrecisionVariantAmount}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetMissilePrecisionVariantAmount[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["We will load this many units of your Precision Missile Variant. Cargo space, remember your cargo space."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>
+					
+					<Checkbox name='UseMissileHighDamageVariant'>
+						<X>1%</X>
+						<Y>28%</Y>
+						<Width>30%</Width>
+						<Height>5%</Height>
+						<Text>Use HighDamage Missile Variant</Text>
+						<OnLoad>
+							if ${Script[Tehbot].VariableScope.Mission.Config.UseMissilePrecisonVariant}
+							{
+								This:SetChecked
+							}
+						</OnLoad>
+						<OnLeftClick>
+							Script[Tehbot].VariableScope.Mission.Config:SetUseMissileHighDamageVariant[${This.Checked}]
+						</OnLeftClick>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["Check this if you want to load the HighDamage Variant of your current Missile. Rage or Fury."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Checkbox>
+					<Textentry Name="MissileHighDamageVariantAmount">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>1%</X>
+						<Y>32%</Y>
+						<Width>30%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.MissileHighDamageVariantAmount}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetMissileHighDamageVariantAmount[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["We will load this many units of your HighDamage Missile Variant. Cargo space, remember your cargo space."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>
+
+					<Text name='TurretExtraAmmo1Title'>
+						<X>1%</X>
+						<Y>52%</Y>
+						<Width>50%</Width>
+						<Height>5%</Height>
+						<Alignment>Center</Alignment>
+						<Text>
+							Turret Extra Ammo 1  Name / Amount
+						</Text>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Text>
+					<Textentry Name="TurretExtraAmmo1String">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>1%</X>
+						<Y>56%</Y>
+						<Width>40%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.TurretExtraAmmo1}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetTurretExtraAmmo1[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["What is the Literal Name of your extra ammo? Ex. Barrage L , Scorch L , Quake M."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>					
+					<Textentry Name="TurretExtraAmmo1Quantity">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>41%</X>
+						<Y>56%</Y>
+						<Width>9%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.TurretExtraAmmo1Amount}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetTurretExtraAmmo1Amount[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["How much of this Extra Ammo will we load? Be reasonable and mindful of cargo space here."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>						
 	
-	
+					<Text name='TurretExtraAmmo2Title'>
+						<X>1%</X>
+						<Y>63%</Y>
+						<Width>50%</Width>
+						<Height>5%</Height>
+						<Alignment>Center</Alignment>
+						<Text>
+							Turret Extra Ammo 2  Name / Amount
+						</Text>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Text>
+					<Textentry Name="TurretExtraAmmo2String">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>1%</X>
+						<Y>66%</Y>
+						<Width>40%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.TurretExtraAmmo2}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetTurretExtraAmmo2[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["What is the Literal Name of your extra ammo? Ex. Barrage L , Scorch L , Quake M."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>					
+					<Textentry Name="TurretExtraAmmo2Quantity">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>41%</X>
+						<Y>66%</Y>
+						<Width>9%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.TurretExtraAmmo2Amount}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetTurretExtraAmmo2Amount[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["How much of this Extra Ammo will we load? Be reasonable and mindful of cargo space here."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>
+
+					<Text name='TurretExtraAmmo3Title'>
+						<X>1%</X>
+						<Y>72%</Y>
+						<Width>50%</Width>
+						<Height>5%</Height>
+						<Alignment>Center</Alignment>
+						<Text>
+							Turret Extra Ammo 3  Name / Amount
+						</Text>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Text>
+					<Textentry Name="TurretExtraAmmo3String">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>1%</X>
+						<Y>76%</Y>
+						<Width>40%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.TurretExtraAmmo3}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetTurretExtraAmmo3[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["What is the Literal Name of your extra ammo? Ex. Barrage L , Scorch L , Quake M."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>					
+					<Textentry Name="TurretExtraAmmo3Quantity">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>41%</X>
+						<Y>76%</Y>
+						<Width>9%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.TurretExtraAmmo3Amount}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetTurretExtraAmmo3Amount[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["How much of this Extra Ammo will we load? Be reasonable and mindful of cargo space here."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>
+
+					<Text name='TurretExtraAmmo4Title'>
+						<X>1%</X>
+						<Y>82%</Y>
+						<Width>50%</Width>
+						<Height>5%</Height>
+						<Alignment>Center</Alignment>
+						<Text>
+							Turret Extra Ammo 4  Name / Amount
+						</Text>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["This configures how many rounds of ammo you will load before a mission."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Text>
+					<Textentry Name="TurretExtraAmmo4String">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>1%</X>
+						<Y>86%</Y>
+						<Width>40%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.TurretExtraAmmo4}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetTurretExtraAmmo4[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["What is the Literal Name of your extra ammo? Ex. Barrage L , Scorch L , Quake M."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>					
+					<Textentry Name="TurretExtraAmmo4Quantity">
+						<Font template='Information.Font' />
+						<BackgroundColor>FF000000</BackgroundColor>
+						<Border>1</Border>
+						<BorderColor>FFFFFFFF</BorderColor>
+						<X>41%</X>
+						<Y>86%</Y>
+						<Width>9%</Width>
+						<Height>5%</Height>
+						<OnLoad>
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.TurretExtraAmmo4Amount}]
+						</OnLoad>
+						<OnChange>
+							Script[Tehbot].VariableScope.Mission.Config:SetTurretExtraAmmo4Amount[${This.Text}]
+						</OnChange>
+						<OnMouseEnter>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["How much of this Extra Ammo will we load? Be reasonable and mindful of cargo space here."]
+						</OnMouseEnter>
+						<OnMouseExit>
+							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
+						</OnMouseExit>
+					</Textentry>
+					
 					<Text name='InformationFrameTitle'>
 						<X>1%</X>
-						<Y>88%</Y>
+						<Y>90%</Y>
 						<Width>32%</Width>
 						<Height>4%</Height>
 						<Text>Information</Text>
@@ -1290,9 +1623,9 @@
 					</Text>
 					<Frame name="InformationFrame">
 						<X>0%</X>
-						<Y>90%</Y>
+						<Y>92%</Y>
 						<Width>100%</Width>
-						<Height>12%</Height>
+						<Height>10%</Height>
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
 						<BorderColor>FFFFFFFF</BorderColor>
