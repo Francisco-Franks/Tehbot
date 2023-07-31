@@ -445,7 +445,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			if ${Ship.ModuleList_Weapon.Type.Find["Laser"]}
 			{
-				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%' ORDER BY TargetingCategory ASC, ThreatLevel DESC;"]}]
+				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%' ORDER BY ThreatLevel DESC;"]}]
 				if ${GetMTMInfo.NumRows} > 0
 				{
 					do
@@ -460,7 +460,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			}
 			else
 			{
-				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE OurNeededAmmo='${Ship.ModuleList_Weapon.ChargeName}' AND TargetingCategory LIKE '%Primary%' ORDER BY TargetingCategory ASC, ThreatLevel DESC;"]}]
+				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE OurNeededAmmo='${Ship.ModuleList_Weapon.ChargeName}' AND TargetingCategory LIKE '%Primary%' ORDER BY ThreatLevel DESC;"]}]
 				if ${GetMTMInfo.NumRows} > 0
 				{
 					do
@@ -474,7 +474,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				}
 				else
 				{
-					GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%' ORDER BY TargetingCategory ASC, ThreatLevel DESC;"]}]
+					GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%' ORDER BY ThreatLevel DESC;"]}]
 					if ${GetMTMInfo.NumRows} > 0
 					{
 						do
