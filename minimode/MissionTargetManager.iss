@@ -147,7 +147,8 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		; Don't need to be doing this while in warp.
 		if ${MyShip.ToEntity.Mode} == MOVE_WARPING
 			return FALSE
-			
+		if !${Entity[${CurrentOffenseTarget}](exists)}
+			CurrentOffenseTarget:Set[0]
 		; This will kick off a targelist query for ActiveNPCs which will basically cover absolutely everything we would ever want to target in a mission.
 		This:TargetListPreManagement
 		ActiveNPCs.AutoLock:Set[FALSE]	
