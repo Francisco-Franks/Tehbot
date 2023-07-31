@@ -54,6 +54,10 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	
 	; Queue for removal from DB of things that don't exist anymore
 	variable queue:int64 CleanupQueue
+	
+	variable int ValidPrimaryWeapTargets
+	variable int ValidDroneTargets
+	variable int ValidMissionTargets
 
 	method Initialize()
 	{
@@ -82,7 +86,6 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		
 		PrimaryWeap.MinLockCount:Set[4]
 		DroneTargets.MinLockCount:Set[2]
-		
 		MTMDB:Set[${SQLite.OpenDB["${Me.Name}MTMDB",":memory:"]}]
 		;MTMDB:Set[${SQLite.OpenDB["${Me.Name}MTMDB","${Script.CurrentDirectory}/Data/${Me.Name}MTMDB.sqlite3"]}]
 		MTMDB:ExecDML["PRAGMA journal_mode=WAL;"]
@@ -177,13 +180,13 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			This:LockManagement
 		}
-		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${ActiveNPCs.TargetList.Used} < 1
+		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${ActiveNPCs.TargetList.Used} < 1 && ${ValidPrimaryWeapTargets} < 3
 		{
 			echo DEBUG MTM TARGET DEAD DEACTIVATE SIEGE
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_CommandBurst:DeactivateAll
 		}
-		if ${PrimaryWeap.LockedTargetList.Used} > 0
+		if ${PrimaryWeap.TargetList.Used} > 0
 		{
 			AllowSiegeModule:Set[TRUE]
 		}
@@ -228,7 +231,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			DroneTargets:AddQueryString["ID == ${PrimaryWeap.LockedTargetList.Get[1]}"]
 		}
 		; Need a way to deal with enemies that are just too far away.
-		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.TargetList.Used} < 1 && ${DroneTargets.TargetList.Used} < 1) && !${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1]}]} 
+		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.TargetList.Used} < 1 && ${DroneTargets.TargetList.Used} < 1) && (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1]}]}) && ${ValidPrimaryWeapTargets} < 3
 		{
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
@@ -236,14 +239,14 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			Entity[${ActiveNPCs.TargetList.Get[1]}]:Approach		
 		}
 		; Well, if all that is left are drone targets, may as well approach our mission objective or orbit the next gate or something.
-		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.LockedTargetList.Used} < 1 && ${DroneTargets.LockedTargetList.Used} > 1) && !${Move.Traveling} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING
+		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.TargetList.Used} < 1 && ${DroneTargets.TargetList.Used} > 1) && !${Move.Traveling} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING
 		{
 			AllowSiegeModule:Set[FALSE]
-			Ship.ModuleList_Siege:DeactivateAll
-			if ${Mission.CurrentAgentLoot.NotNULLOrEmpty} && ${Entity[Name =- ${Mission.CurrentAgentLoot}](exists)}
-				Move:Orbit[${Entity[Name =- ${Mission.CurrentAgentLoot}]}, 2500]
-			elseif ${Mission.CurrentAgentDestroy.NotNULLOrEmpty} && ${Entity[Name =- ${Mission.CurrentAgentDestroy}](exists)}
-				Move:Orbit[${Entity[Name =- ${Mission.CurrentAgentDestroy}]}, 2500]
+			Ship.ModuleList_Siege:DeactivateAll		
+			if ${Mission.CurrentAgentLoot.NotNULLOrEmpty} && ${Entity[Name =- "${Mission.CurrentAgentLoot}"](exists)}
+				Move:Orbit[${Entity[Name =- "${Mission.CurrentAgentLoot}"]}, 2500]
+			elseif ${Mission.CurrentAgentDestroy.NotNULLOrEmpty} && ${Entity[Name =- "${Mission.CurrentAgentDestroy}"](exists)}
+				Move:Orbit[${Entity[Name =- "${Mission.CurrentAgentDestroy}"]}, 2500]
 			elseif ${Entity[Type = "Acceleration Gate"](exists)}
 				Move:Orbit[${Entity[Type = "Acceleration Gate"]}]
 		}
@@ -418,9 +421,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	; We are going to use 2 additional TargetLists because the lock management is just too handy to leave behind.
 	method LockManagement()
 	{
-		variable int ValidPrimaryWeapTargets
-		variable int ValidDroneTargets
-		variable int ValidMissionTargets
+
 		variable int64 TargetEntityID
 		
 		; Time to determine how many Primary Weapon Targets we have
@@ -437,7 +438,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		GetMTMInfo:Finalize
 		
 		PrimaryWeap:ClearQueryString
-		;DroneTargets:ClearQueryString	
+		DroneTargets:ClearQueryString	
 		
 		echo DEBUG MISSION TARGET MANAGER Valid Primary Targets ${ValidPrimaryWeapTargets} Valid Drone Targets ${ValidDroneTargets} Valid Mission Ojective Targets ${ValidMissionTargets}
 		if (${ValidPrimaryWeapTargets} > ${PrimaryWeap.TargetList.Used}) && (${PrimaryWeap.TargetList.Used} < 4)
@@ -586,8 +587,6 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				; No row, probably means this entity is now in a different category. Kick it out of the TargetList and reset CurrentOffenseTarget to 0
 				This:LogInfo["Wrong Category removing ${Entity[${CurrentOffenseTarget}].Name} from PrimaryWeap TargetList."]
 				PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
-				This:TargetListManagement
-				This:LockManagement
 				CurrentOffenseTarget:Set[0]
 			}
 		}
