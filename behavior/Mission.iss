@@ -3897,8 +3897,6 @@ objectdef obj_Mission inherits obj_StateQueue
 				   !${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackAmmo}]} && \
 				   !${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackLongRangeAmmo}]} && \
 				   !${itemIterator.Value.Name.Equal[${Config.BatteryToBring}]} && \
-				   (!${itemIterator.Value.Name.Find[${PrecisionAmmo}]} && ${PrecisionAmmo.NotNULLOrEmpty}) && \
-				   (!${itemIterator.Value.Name.Find[${HighDamageAmmo}]} && ${HighDamageAmmo.NotNULLOrEmpty}) && \
 				   !${itemIterator.Value.Name.Equal[${Config.TurretExtraAmmo1}]} && \
 				   !${itemIterator.Value.Name.Equal[${Config.TurretExtraAmmo2}]} && \
 				   !${itemIterator.Value.Name.Equal[${Config.TurretExtraAmmo3}]} && \
