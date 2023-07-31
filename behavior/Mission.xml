@@ -1284,7 +1284,7 @@
 						<Height>5%</Height>
 						<Text>Use Precision Missile Variant</Text>
 						<OnLoad>
-							if ${Script[Tehbot].VariableScope.Mission.Config.UseMissilePrecisonVariant}
+							if ${Script[Tehbot].VariableScope.Mission.Config.UseMissilePrecisionVariant}
 							{
 								This:SetChecked
 							}
