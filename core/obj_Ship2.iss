@@ -218,12 +218,12 @@ objectdef obj_Ship2
 	; This method will set the minimum amount of ammo to be considered for the previous method.
 	method SetMinimumAmmoAmount()
 	{
-		; 1000 is a good amount of missiles right
+		
 		if ${Ship.ModuleList_MissileLauncher.Count} > 0
-			CombatComputer.MinAmmoAmount:Set[1000]
-		; Turrets in general, 1000
+			CombatComputer.MinAmmoAmount:Set[40]
+
 		if ${Ship.ModuleList_Turret.Count} > 0
-			CombatComputer.MinAmmoAmount:Set[1000]
+			CombatComputer.MinAmmoAmount:Set[40]
 		; Energy Weapons specifically, 4 or more crystals.
 		if ${Ship.ModuleList_Turret.GroupID} == 53
 			CombatComputer.MinAmmoAmount:Set[4]	
