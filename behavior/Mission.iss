@@ -1634,6 +1634,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				}
 			}
 			This:LogInfo["Enemies destroyed in room ${CurrentRunRoomNumber}."]
+			AllowSiegeModule:Set[FALSE]
 			This:InsertState["CombatMission", 4000]
 			return TRUE
 		}
