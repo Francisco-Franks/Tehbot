@@ -181,7 +181,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			This:LockManagement
 		}
-		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${ActiveNPCs.TargetList.Used} < 1 && ${ValidPrimaryWeapTargets} < 3
+		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${ActiveNPCs.TargetList.Used} < 1 && ${ValidPrimaryWeapTargets} < 3 && !${This.CanITargetTheseMooks}
 		{
 			echo DEBUG MTM TARGET DEAD DEACTIVATE SIEGE
 			AllowSiegeModule:Set[FALSE]
@@ -194,6 +194,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		if ${AllowSiegeModule} && \
 		${Ship.ModuleList_Siege.Allowed} && \
 		${Ship.ModuleList_Siege.Count} && \
+		${This.CanITargetTheseMooks} && \
 		!${Ship.RegisteredModule.Element[${Ship.ModuleList_Siege.ModuleID.Get[1]}].IsActive}
 		{
 			Ship.ModuleList_Siege:ActivateOne
@@ -232,7 +233,11 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			DroneTargets:AddQueryString["ID == ${PrimaryWeap.LockedTargetList.Get[1]}"]
 		}
 		; Need a way to deal with enemies that are just too far away.
-		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.TargetList.Used} < 1 && ${DroneTargets.TargetList.Used} < 1) && (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1]}]}) && ${ValidPrimaryWeapTargets} < 3
+		;if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.TargetList.Used} < 1 && ${DroneTargets.TargetList.Used} < 1) && ${ValidPrimaryWeapTargets} < 3
+		;{
+		;
+		;}
+		if (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1]}]}) && !${This.CanITargetTheseMooks} && ${Entity[${ActiveNPCs.TargetList.Get[1]}](exists)}
 		{
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
@@ -628,6 +633,26 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	{
 	
 	
+	}
+	; Need a quick and easy way of telling if everything is beyond my lock range.
+	member:bool CanITargetTheseMooks()
+	{
+		variable iterator ActiveNPCIterator
+		ActiveNPCs.TargetList:GetIterator[ActiveNPCIterator]
+		if ${ActiveNPCIterator:First(exists)}
+		{
+			do
+			{
+				; I just woke up, this should work, I guess.
+				if ${ActiveNPCIterator.Value.Distance} < ${MyShip.MaxTargetRange}
+					return TRUE
+				else
+					continue
+
+			}
+			while ${ActiveNPCIterator:Next(exists)}
+		}
+		return FALSE
 	}
 
 }

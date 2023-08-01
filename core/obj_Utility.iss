@@ -36,7 +36,7 @@ objectdef obj_Utility
 		variable int minute
 		minute:Set[${timeInDay.Token[2, ":"]}]
 
-		if ${hour} == 10 && ${minute} >= 30 && ${minute} <= 59
+		if ${hour} == 9 && ${minute} >= 00 && ${minute} <= 59
 		{
 			return TRUE
 		}
