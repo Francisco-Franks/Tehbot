@@ -575,6 +575,8 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				GetATInfo:Finalize
 				if ${Entity[${CurrentOffenseTarget}].Name.Find[${Mission.CurrentAgentDestroy}]} && ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
 					CurrentOffenseTargetExpectedShots:Set[9999999]
+				if ${NPCData.EnemyArmorRepSecond[${Entity[${CurrentOffenseTarget}].TypeID}]} > 0 || ${NPCData.EnemyShieldRepSecond[${Entity[${CurrentOffenseTarget}].TypeID}]} > 0
+					CurrentOffenseTargetExpectedShots:Set[9999999]
 				This:LogInfo["${Entity[${CurrentOffenseTarget}].Name} is expected to require ${CurrentOffenseTargetExpectedShots} Salvos to kill with current ammo"]
 			}
 		

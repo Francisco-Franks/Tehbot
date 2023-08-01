@@ -1480,6 +1480,28 @@ objectdef obj_Mission inherits obj_StateQueue
 					This:InsertState["CombatMissionObjectives",5000,"Destroy, ${Entity[Name == \"${CurrentAgentDestroy.Escape}\"]}"}]
 					return TRUE
 				}
+				elseif ${CurrentAgentLoot.NotNULLOrEmpty} && !${CurrentRunContainerLooted}
+				{
+					; If we have a target to Loot and it hasn't already been looted. Look for it in this room.
+					This:LogInfo["Checking room for ${CurrentAgentLoot} to Loot."]
+					if ${Entity[Name == \"${CurrentAgentLoot.Escape}\"](exists)}
+					{
+						This:LogInfo["${CurrentAgentLoot} detected. Loot."]
+						if ${CurrentAgentLoot.Find[Wreck]}
+						{
+							echo ${CurrentAgentLoot} ${Entity[Name == "${CurrentAgentLoot}"]}
+							ObjectiveID:Set[${Entity[Name == "${CurrentAgentLoot}" && IsWreckEmpty = FALSE]}]
+							This:InsertState["CombatMissionObjectives",5000,"LootWreck, ${Entity[Name == ${CurrentAgentLoot.Escape} && IsWreckEmpty = FALSE]}"]
+						}
+						if !${CurrentAgentLoot.Find[Wreck]}
+						{
+							echo ${CurrentAgentLoot} ${Entity[Name == "${CurrentAgentLoot}"]}
+							ObjectiveID:Set[${Entity[Name == "${CurrentAgentLoot}"]}]
+							This:InsertState["CombatMissionObjectives",5000,"LootContainer, ${Entity[Name == ${CurrentAgentLoot.Escape}]}"]
+						}
+						return TRUE
+					}				
+				}
 				elseif !${Entity[Type = "Acceleration Gate"](exists)}
 				{
 					This:LogInfo["Didn't find ${CurrentAgentDestroy} to Destroy. Check for Completion."]
