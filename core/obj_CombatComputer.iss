@@ -538,7 +538,7 @@ objectdef obj_CombatComputer
 		if ${Ship.ModuleList_MWD.Count} > 0
 		{
 			; Are we using an MWD?
-			FinalValue:Inc[200]
+			FinalValue:Inc[0]
 		}
 		
 		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Painter%' AND EntityID=${EntityID};"]}]
@@ -578,7 +578,7 @@ objectdef obj_CombatComputer
 		if ${GetCurrentData.NumRows} > 0
 		{
 			; Are we somewhere that this actually matters?
-			FinalValue:Set[20]
+			FinalValue:Set[5000]
 			GetCurrentData:Finalize
 		}
 		return ${FinalValue}	
@@ -623,9 +623,9 @@ objectdef obj_CombatComputer
 		if ${GetCurrentData.NumRows} > 0
 		{
 			if ${Entity[${EntityID}].Distance} > ${Math.Calc[${Ship.ModuleList_MissileLauncher.Range} * 0.75]}
-				FinalValue:Inc[100]
+				FinalValue:Inc[1000]
 			else
-				FinalValue:Inc[50]
+				FinalValue:Inc[500]
 			GetCurrentData:Finalize
 		}
 		return ${FinalValue}	
@@ -651,10 +651,10 @@ objectdef obj_CombatComputer
 			NeutStr:Set[${GetCurrentData.GetFieldValue["NeutStr"]}]
 			; Is this thing actually in range to neut?
 			if ${Entity[${EntityID}].Distance} < ${NeutRng}
-				FinalValue:Inc[50]
+				FinalValue:Inc[200]
 			; If we lose more than 4% of our capacitor per second, that is a significant threat.
 			if ${Math.Calc[${NeutStr}/${MyShip.MaxCapacitor}]} > 0.04
-				FinalValue:Inc[250]
+				FinalValue:Inc[1000]
 			else
 				FinalValue:Inc[50]
 			GetCurrentData:Finalize
@@ -750,7 +750,7 @@ objectdef obj_CombatComputer
 		{
 			; If you are curious, we pull these values back out as strings and I don't feel like dealing with Lavishscript nonsense so we will make it a float then use it as such. This is probably pointless.
 			EffNPCDPS:Set[${GetCurrentData.GetFieldValue["EffNPCDPS"]}]
-			FinalValue:Set[${EffNPCDPS}]
+			FinalValue:Set[${Math.Calc[${EffNPCDPS}*4]}]
 			GetCurrentData:Finalize
 		}
 		else

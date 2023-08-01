@@ -1870,7 +1870,7 @@ objectdef obj_NPCData
 	}
 	;;;
 	; Need a way to get the type ID by feeding in a name, from another table in this DB.
-	member:float64 TypeIDByName(string InputName)
+	member:int64 TypeIDByName(string InputName)
 	{
 		variable int64 TypeID
 		
