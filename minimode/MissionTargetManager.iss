@@ -217,11 +217,11 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			if ${Ship.ModuleList_StasisGrap.InactiveCount} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}].Distance} < 19500 
 			{
-				Ship.ModuleList_StasisGrap:ActivateAll[${DroneTargets.LockedTargetList.Get[1]}]
+				Ship.ModuleList_StasisGrap:ActivateOne[${DroneTargets.LockedTargetList.Get[1]}]
 			}
 			if ${Ship.ModuleList_StasisWeb.InactiveCount} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}].Distance} <= ${Ship.ModuleList_StasisWeb.Range}
 			{
-				Ship.ModuleList_StasisWeb:ActivateAll[${DroneTargets.LockedTargetList.Get[1]}]
+				Ship.ModuleList_StasisWeb:ActivateOne[${DroneTargets.LockedTargetList.Get[1]}]
 			}
 			if ${Entity[${CurrentOffenseTarget}].Distance} <= 140000
 			{
@@ -612,11 +612,11 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			; Thirdly, do we have any inactive combat utility modules? Target painter, web, grapple.
 			if ${Ship.ModuleList_StasisGrap.InactiveCount} > 0 && ${Entity[${CurrentOffenseTarget}].Distance} < 19500 
 			{
-				Ship.ModuleList_StasisGrap:ActivateAll[${CurrentOffenseTarget}]
+				Ship.ModuleList_StasisGrap:ActivateOne[${CurrentOffenseTarget}]
 			}
 			if ${Ship.ModuleList_StasisWeb.InactiveCount} > 0 && ${Entity[${CurrentOffenseTarget}].Distance} <= ${Ship.ModuleList_StasisWeb.Range}
 			{
-				Ship.ModuleList_StasisWeb:ActivateAll[${CurrentOffenseTarget}]
+				Ship.ModuleList_StasisWeb:ActivateOne[${CurrentOffenseTarget}]
 			}
 			if ${Entity[${CurrentOffenseTarget}].Distance} <= 140000
 			{
