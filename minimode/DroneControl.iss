@@ -1092,15 +1092,15 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			{
 				if ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}
 				{
-					if ${Entity[GroupID = GROUP_SALVAGE_DRONE](exists)}
+					if ${Entity[Name =- "Salvage Drone"](exists)}
 					{
-						Entity[GroupID = GROUP_SALVAGE_DRONE]:LockTarget
+						Entity[Name =- "Salvage Drone"]:LockTarget
 					}
-					if ${Entity[GroupID = GROUP_SALVAGE_DRONE && IsLockedTarget](exists)}
+					if ${Entity[Name =- "Salvage Drone" && IsLockedTarget](exists)}
 					{
-						Entity[GroupID = GROUP_SALVAGE_DRONE && IsLockedTarget]:MakeActiveTarget
+						Entity[Name =- "Salvage Drone" && IsLockedTarget]:MakeActiveTarget
 					}
-					if ${Entity[GroupID = GROUP_SALVAGE_DRONE && IsLockedTarget && IsActiveTarget](exists)}
+					if ${Entity[Name =- "Salvage Drone" && IsLockedTarget && IsActiveTarget](exists)}
 					{
 						Keyboard:Press[f]
 					}
