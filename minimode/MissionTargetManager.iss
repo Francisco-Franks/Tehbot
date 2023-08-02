@@ -411,6 +411,11 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			ActiveNPCs:AddTargetExceptionByPartOfName["Batteries"]
 			ActiveNPCs:AddTargetExceptionByPartOfName["Sentry Gun"]
 			ActiveNPCs:AddTargetExceptionByPartOfName["Tower Sentry"]
+			
+			UnDistantNPCs:AddTargetExceptionByPartOfName["Battery"]
+			UnDistantNPCs:AddTargetExceptionByPartOfName["Batteries"]
+			UnDistantNPCs:AddTargetExceptionByPartOfName["Sentry Gun"]
+			UnDistantNPCs:AddTargetExceptionByPartOfName["Tower Sentry"]
 		}
 		ActiveNPCs:AddTargetExceptionByPartOfName["EDENCOM"]
 		ActiveNPCs:AddTargetExceptionByPartOfName["Tyrannos"]
