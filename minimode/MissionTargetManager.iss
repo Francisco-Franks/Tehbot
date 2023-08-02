@@ -194,7 +194,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		if ${AllowSiegeModule} && \
 		${Ship.ModuleList_Siege.Allowed} && \
 		${Ship.ModuleList_Siege.Count} && \
-		${This.CanITargetTheseMooks} && \
+		${UnDistantNPCs.TargetList.Used} > 0 && \
 		!${Ship.RegisteredModule.Element[${Ship.ModuleList_Siege.ModuleID.Get[1]}].IsActive}
 		{
 			Ship.ModuleList_Siege:ActivateOne
@@ -237,7 +237,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		;{
 		;
 		;}
-		if (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1]}]}) && !${This.CanITargetTheseMooks} && ${Entity[${ActiveNPCs.TargetList.Get[1]}](exists)} && ${UnDistantNPCs.TargetList.Used} == 0
+		if (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1]}]})  && ${Entity[${ActiveNPCs.TargetList.Get[1]}](exists)} && ${UnDistantNPCs.TargetList.Used} == 0
 		{
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
