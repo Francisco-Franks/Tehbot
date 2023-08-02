@@ -617,9 +617,9 @@ objectdef obj_DroneControl inherits obj_StateQueue
 
 		if ${Me.ToEntity.Mode} == MOVE_WARPING
 		{
-			if ${Drones.ActiveCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0
+			if ${Drones.ActiveCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE || ToEntity.GroupID = GROUP_SALVAGE_DRONE "]} > 0
 			{
-				Drones:Recall["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]
+				Drones:Recall["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE || ToEntity.GroupID = GROUP_SALVAGE_DRONE"]
 			}
 			return FALSE
 		}
