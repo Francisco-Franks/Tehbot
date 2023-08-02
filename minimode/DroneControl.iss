@@ -1092,8 +1092,18 @@ objectdef obj_DroneControl inherits obj_StateQueue
 			{
 				if ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}
 				{
-					; Need to stop locking until after our drones are out and working.
-					Salvage.WrecksNoLock.AutoLock:Set[FALSE]
+					if ${Entity[GroupID = GROUP_SALVAGE_DRONE](exists)}
+					{
+						Entity[GroupID = GROUP_SALVAGE_DRONE]:LockTarget
+					}
+					if ${Entity[GroupID = GROUP_SALVAGE_DRONE && IsLockedTarget](exists)}
+					{
+						Entity[GroupID = GROUP_SALVAGE_DRONE && IsLockedTarget]:MakeActiveTarget
+					}
+					if ${Entity[GroupID = GROUP_SALVAGE_DRONE && IsLockedTarget && IsActiveTarget](exists)}
+					{
+						Keyboard:Press[f]
+					}
 				}
 				; If our active target isn't a wreck, or it IS a cargo container, or we don't have one at all, we can issue the salvage command no problem.
 				if (!${Me.ActiveTarget.Name.Find["Wreck"]} || !${Me.ActiveTarget(exists)} || ${Me.ActiveTarget.Name.Find["Cargo Container"]})
@@ -1103,10 +1113,6 @@ objectdef obj_DroneControl inherits obj_StateQueue
 					; For now we just use the keybind.
 					Keyboard:Press[f]
 				}
-			}
-			if ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]} > 0 && ${Drones.IdleCount} > 0
-			{
-				Salvage.WrecksNoLock.AutoLock:Set[TRUE]
 			}
 			if ${MaxDroneCount} > ${Drones.ActiveDroneCount}
 			{
