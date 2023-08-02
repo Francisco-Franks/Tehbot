@@ -300,6 +300,11 @@ objectdef obj_Salvager inherits obj_StateQueue
 	member:bool SalvagerPostFilterBM()
 	{
 		echo DEBUG - SALVAGER - CHECKPOINT 2
+		variable int BMThreshold
+		if ${MyShip.ToItem.Type.Find["Orca"]}
+			BMThreshold:Set[15]
+		else
+			BMThreshold:Set[7]
 		GetSalvageBM2:Set[${MySalvageBMs.ExecQuery["SELECT * FROM TempBMTable ORDER BY BMJumpsTo ASC, BMSystem DESC;"]}]
 		if ${GetSalvageBM2.NumRows} > 0
 		{
@@ -309,7 +314,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 				SalvageBMPrepQueue:Queue[${GetSalvageBM2.GetFieldValue["BMName",string]}]
 				GetSalvageBM2:NextRow
 			}
-			while !${GetSalvageBM2.LastRow} && ${SalvageBMPrepQueue.Used} < 5
+			while !${GetSalvageBM2.LastRow} && ${SalvageBMPrepQueue.Used} < ${BMThreshold}
 			MySalvageBMs:ExecDML["DELETE FROM TempBMTable;"]
 			GetSalvageBM2:Finalize
 			if ${SalvageBMPrepQueue.Used} > 0
