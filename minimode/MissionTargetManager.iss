@@ -32,7 +32,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	
 	variable int MaxTarget = ${MyShip.MaxLockedTargets}
 
-	variable obj_TargetList DistantNPCs
+	variable obj_TargetList UnDistantNPCs
 	variable obj_TargetList ActiveNPCs
 	variable obj_TargetList PrimaryWeap
 	variable obj_TargetList DroneTargets
@@ -71,9 +71,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 
 		This.LogLevelBar:Set[${Config.LogLevelBar}]
 		
-		DistantNPCs.NeedUpdate:Set[FALSE]
-		DistantNPCs.AutoLock:Set[FALSE]
-		DistantNPCs.MaxRange:Set[200000]
+		UnDistantNPCs.NeedUpdate:Set[FALSE]
+		UnDistantNPCs.AutoLock:Set[FALSE]
+		UnDistantNPCs.MaxRange:Set[200000]
 		ActiveNPCs.NeedUpdate:Set[FALSE]
 		PrimaryWeap.NeedUpdate:Set[FALSE]
 		DroneTargets.NeedUpdate:Set[FALSE]
@@ -113,7 +113,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	{
 		This:Clear
 		
-		DistantNPCs.NeedUpdate:Set[FALSE]
+		UnDistantNPCs.NeedUpdate:Set[FALSE]
 		ActiveNPCs.NeedUpdate:Set[FALSE]
 		PrimaryWeap.NeedUpdate:Set[FALSE]
 		DroneTargets.NeedUpdate:Set[FALSE]
@@ -181,13 +181,13 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			This:LockManagement
 		}
-		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${ActiveNPCs.TargetList.Used} < 1 && ${ValidPrimaryWeapTargets} < 3 && !${This.CanITargetTheseMooks}
+		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${ActiveNPCs.TargetList.Used} < 1 && ${ValidPrimaryWeapTargets} < 3 && !${This.CanITargetTheseMooks} && ${UnDistantNPCs.TargetList.Used} == 0
 		{
 			echo DEBUG MTM TARGET DEAD DEACTIVATE SIEGE
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_CommandBurst:DeactivateAll
 		}
-		if ${PrimaryWeap.TargetList.Used} > 0
+		if ${PrimaryWeap.TargetList.Used} > 0 || ${UnDistantNPCs.TargetList.Used} > 0
 		{
 			AllowSiegeModule:Set[TRUE]
 		}
@@ -237,7 +237,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		;{
 		;
 		;}
-		if (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1]}]}) && !${This.CanITargetTheseMooks} && ${Entity[${ActiveNPCs.TargetList.Get[1]}](exists)}
+		if (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1]}]}) && !${This.CanITargetTheseMooks} && ${Entity[${ActiveNPCs.TargetList.Get[1]}](exists)} && ${UnDistantNPCs.TargetList.Used} == 0
 		{
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
@@ -257,7 +257,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				Move:Orbit[${Entity[Type = "Acceleration Gate"]}]
 		}
 		; Debug time
-		echo DEBUG MISSION TARGET MANAGER PRIMARY LIST ${PrimaryWeap.TargetList.Used} DRONE LIST ${DroneTargets.TargetList.Used} ACTIVE NPCS ${ActiveNPCs.TargetList.Used} DistantNPCs ${DistantNPCs.TargetList.Used}
+		echo DEBUG MISSION TARGET MANAGER PRIMARY LIST ${PrimaryWeap.TargetList.Used} DRONE LIST ${DroneTargets.TargetList.Used} ACTIVE NPCS ${ActiveNPCs.TargetList.Used} UnDistantNPCs ${UnDistantNPCs.TargetList.Used}
 		
 		PrimaryWeap:RequestUpdate
 		DroneTargets:RequestUpdate	
@@ -419,8 +419,10 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		
 		
 		ActiveNPCs:RequestUpdate
-		DistantNPCs:AddAllNPCs
-		DistantNPCs:RequestUpdate
+		
+		UnDistantNPCs:AddAllNearNPCs
+		UnDistantNPCs:RequestUpdate
+		
 	
 	}
 	; This method will handle the locking for both PrimaryWeapons and CombatDronery.

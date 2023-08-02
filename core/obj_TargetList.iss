@@ -186,6 +186,55 @@ objectdef obj_TargetList inherits obj_StateQueue
 		This:AddQueryString["${QueryString.Escape}"]
 	}
 
+	method AddAllNearNPCs()
+	{
+		variable string QueryString="CategoryID = CATEGORYID_ENTITY && IsNPC && !IsMoribund && Distance < ${Math.Calc[${MyShip.MaxTargetRange} * .95]} && Distance < ${Math.Calc[${Ship.ModuleList_Weapon.Range} * .95]} && !("
+
+		; Abyssal switch for ignoring the really distant cans if we aren't using an MTU
+		if !${Abyssal.Config.UseMTU}
+		{
+			QueryString:Concat["TypeID = 49663 ||"]
+			QueryString:Concat["TypeID = 49662 ||"]
+			QueryString:Concat["TypeID = 49661 ||"]
+		}
+		;Exclude Groups here
+		QueryString:Concat["GroupID = GROUP_CONCORDDRONE ||"]
+		QueryString:Concat["GroupID = GROUP_CONVOYDRONE ||"]
+		QueryString:Concat["GroupID = GROUP_CONVOY ||"]
+		QueryString:Concat["GroupID = GROUP_LARGECOLLIDABLEOBJECT ||"]
+		QueryString:Concat["GroupID = GROUP_LARGECOLLIDABLESHIP ||"]
+		QueryString:Concat["GroupID = GROUP_SPAWNCONTAINER ||"]
+		QueryString:Concat["GroupID = CATEGORYID_ORE ||"]
+		QueryString:Concat["GroupID = GROUP_DEADSPACEOVERSEERSSTRUCTURE ||"]
+		QueryString:Concat["GroupID = GROUP_LARGECOLLIDABLESTRUCTURE ||"]
+		; Somehow the non hostile Orca and Drone ship in the Anomaly mission is in this group
+		QueryString:Concat["GroupID = 288 ||"]		
+		QueryString:Concat["GroupID = 446 ||"]		
+		QueryString:Concat["GroupID = 182 ||"]	
+		QueryString:Concat["GroupID = 4028 ||"]
+		QueryString:Concat["GroupID = 4034 ||"]
+		QueryString:Concat["GroupID = 1803 ||"]
+		QueryString:Concat["GroupID = 1896 ||"]
+		QueryString:Concat["GroupID = 1765 ||"]
+		QueryString:Concat["GroupID = 1766 ||"]
+		QueryString:Concat["GroupID = 1764 ||"]
+		QueryString:Concat["GroupID = 1767 ||"]
+		QueryString:Concat["GroupID = 99 ||"]
+		QueryString:Concat["TypeID = 48253 ||"]
+		QueryString:Concat["TypeID = 54579 ||"]
+		QueryString:Concat["TypeID = 54580 ||"]
+		QueryString:Concat["GroupID = 1307 ||"]
+		QueryString:Concat["GroupID = 4035 ||"]
+		QueryString:Concat["GroupID = 1310 ||"]
+		QueryString:Concat["GroupID = 1956 ||"]	
+		QueryString:Concat["GroupID = 4036 ||"]			
+		QueryString:Concat["GroupID = GROUP_ANCIENTSHIPSTRUCTURE ||"]
+		QueryString:Concat["GroupID = GROUP_PRESSURESOLO)"]
+		
+
+		This:AddQueryString["${QueryString.Escape}"]
+	}
+	
 	method AddTargetExceptionByID(int64 ID)
 	{
 		variable iterator RemoveIterator
