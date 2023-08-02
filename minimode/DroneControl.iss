@@ -1083,7 +1083,30 @@ objectdef obj_DroneControl inherits obj_StateQueue
 
 			Drones:RefreshActiveTypes
 		}
-
+		; Going to be where we launch our salvage drones. Either we are in the salvage mode and there are wrecks and we have salvage drones, or we aren't and we need there to NOT be a current drone target, no pending drone targets, and then have wrecks + salvage drones.
+		; Not sure if combat ships will ever be able to use this correctly the way I have things set but whatever.
+		if (((${CurrentTarget} == 0 || !${Entity[${CurrentTarget}](exists)}) && ${Mission.DroneTargets.TargetList.Used} == 0) || ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}) && (${Salvage.WrecksToLock.TargetList.Used} > 0 && ${This.HaveSalvageDrones} > 0)
+		{
+			; I don't want to issue salvage commands constantly to these things. You can make a drone salvage all in the area by telling it to salvage nothing, or telling it to salvage something that can't be salvaged.
+			if ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_SALVAGE"]} > 0 && ${Drones.IdleCount} > 0
+			{
+				; If our active target isn't a wreck, or it IS a cargo container, or we don't have one at all, we can issue the salvage command no problem.
+				if (!${Me.ActiveTarget.Name.Find["Wreck"]} || !${Me.ActiveTarget(exists)} || ${Me.ActiveTarget.Name.Find["Cargo Container"]})
+				{
+					; Waiting on a solution from Amadeus for this. Can't tell salvage drones to engage it no work.
+					;Drones:Engage["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE", ${CurrentTarget}]
+					; For now we just use the keybind.
+					Keyboard:Press[f]
+				}
+			}
+			if ${MaxDroneCount} > ${Drones.ActiveDroneCount}
+			{
+				Drones:Deploy["GroupID = GROUP_SALVAGE_DRONE", ${Math.Calc[${MaxDroneCount} - ${Drones.ActiveDroneCount}]}]
+				IsBusy:Set[TRUE]
+				Busy:SetBusy["DroneControl"]
+			}	
+			Drones:RefreshActiveTypes
+		}
 		if ${CommonConfig.Tehbot_Mode.Equal["Abyssal"]}
 		{
 			if (${CurrentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0) && !${This.JerkzPresent}
@@ -1094,9 +1117,16 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				return TRUE
 			}
 		}
-		else
+		elseif ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
 		{
-			if (${CurrentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0)
+			if ((${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]} > 0) && ${Salvage.WrecksToLock.TargetList.Used} == 0) && ${Mission.DroneTargets.TargetList.Used} > 0
+			{
+				Drones:Recall["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]
+				This:QueueState["Idle", 5000]
+				This:QueueState["DroneControl"]
+				return TRUE
+			}	
+			if (${CurrentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0) && ${Mission.DroneTargets.TargetList.Used} == 0
 			{
 				Drones:Recall["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]
 				This:QueueState["Idle", 5000]
@@ -1104,7 +1134,33 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				return TRUE
 			}		
 		}
+		else
+		{
+			if ((${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]} > 0) && ${Salvage.WrecksToLock.TargetList.Used} == 0)
+			{
+				Drones:Recall["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]
+				This:QueueState["Idle", 5000]
+				This:QueueState["DroneControl"]
+				return TRUE
+			}	
+			if (${CurrentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0)
+			{
+				Drones:Recall["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]
+				This:QueueState["Idle", 5000]
+				This:QueueState["DroneControl"]
+				return TRUE
+			}		
+		}		
 		return FALSE
 	}
-
+	
+	; This member will return the number of Salvage Drones we have available. I don't know why I am doing an int instead of a bool.
+	member:int HaveSalvageDrones()
+	{
+		variable index:item DronesInBay
+		MyShip:GetDrones[DronesInBay]
+		DronesInBay:RemoveByQuery[${LavishScript.CreateQuery["GroupID = GROUP_SALVAGE_DRONE"]}, FALSE]
+		DronesInBay:Collapse[]
+		return ${DronesInBay.Used}
+	}
 }

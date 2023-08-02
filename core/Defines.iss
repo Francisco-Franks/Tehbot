@@ -91,6 +91,7 @@
 #define GROUP_SUN 																								6
 #define GROUP_SCOUT_DRONE 																						100
 #define GROUP_COMBAT_DRONE 																						549
+#define GROUP_SALVAGE_DRONE																						1159
 
 #define GROUP_ENERGYNEUT																						71
 #define GROUP_WEAPONDISRUPTOR																					291
