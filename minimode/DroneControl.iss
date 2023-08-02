@@ -28,6 +28,8 @@ objectdef obj_DroneControl inherits obj_StateQueue
 	variable obj_TargetList ActiveNPCs
 	variable obj_TargetList NPC
 	
+	variable obj_TargetList SalvageDrone
+	
 	variable obj_TargetList Marshal
 	variable obj_TargetList RemoteRepJerkz
 	variable obj_TargetList StarvingJerks
@@ -61,6 +63,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 		 Drekavacs.NeedUpdate:Set[FALSE]
 		 Cynabals.NeedUpdate:Set[FALSE]
 		 Dramiels.NeedUpdate:Set[FALSE]
+		 SalvageDrone.NeedUpdate:Set[FALSE]
 	}
 	
 	member:bool JerkzPresent()
@@ -1088,22 +1091,20 @@ objectdef obj_DroneControl inherits obj_StateQueue
 		if (((${CurrentTarget} == 0 || !${Entity[${CurrentTarget}](exists)}) && ${Mission.DroneTargets.TargetList.Used} == 0) || ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}) && (${Salvage.WrecksToLock.TargetList.Used} > 0 && ${This.HaveSalvageDrones} > 0)
 		{
 			; I don't want to issue salvage commands constantly to these things. You can make a drone salvage all in the area by telling it to salvage nothing, or telling it to salvage something that can't be salvaged.
+			if ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}
+			{
+				SalvageDrone:AddQueryString["GroupID = GROUP_SALVAGE_DRONE"]
+				SalvageDrone:RequestUpdate
+				SalvageDrone.MinLockCount:Set[1]
+				SalvageDrone.MaxLockCount:Set[1]
+				SalvageDrone.AutoLock:Set[TRUE]
+			}
 			if ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]} > 0 && ${Drones.IdleCount} > 0
 			{
-				if ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}
+				if ${SalvageDrone.LockedTargetList.Used} > 0 && ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}
 				{
-					if ${Entity[Name =- "Salvage Drone"](exists)}
-					{
-						Entity[Name =- "Salvage Drone"]:LockTarget
-					}
-					if ${Entity[Name =- "Salvage Drone" && IsLockedTarget](exists)}
-					{
-						Entity[Name =- "Salvage Drone" && IsLockedTarget]:MakeActiveTarget
-					}
-					if ${Entity[Name =- "Salvage Drone" && IsLockedTarget && IsActiveTarget](exists)}
-					{
-						Keyboard:Press[f]
-					}
+					SalvageDrone.LockedTargetList.Get[1]:MakeActiveTarget
+					Keyboard:Press[f]
 				}
 				; If our active target isn't a wreck, or it IS a cargo container, or we don't have one at all, we can issue the salvage command no problem.
 				if (!${Me.ActiveTarget.Name.Find["Wreck"]} || !${Me.ActiveTarget(exists)} || ${Me.ActiveTarget.Name.Find["Cargo Container"]})
