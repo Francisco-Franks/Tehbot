@@ -1088,7 +1088,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 		if (((${CurrentTarget} == 0 || !${Entity[${CurrentTarget}](exists)}) && ${Mission.DroneTargets.TargetList.Used} == 0) || ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}) && (${Salvage.WrecksToLock.TargetList.Used} > 0 && ${This.HaveSalvageDrones} > 0)
 		{
 			; I don't want to issue salvage commands constantly to these things. You can make a drone salvage all in the area by telling it to salvage nothing, or telling it to salvage something that can't be salvaged.
-			if ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_SALVAGE"]} > 0 && ${Drones.IdleCount} > 0
+			if ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]} > 0 && ${Drones.IdleCount} > 0
 			{
 				if ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}
 				{
@@ -1104,7 +1104,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 					Keyboard:Press[f]
 				}
 			}
-			if ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_SALVAGE"]} > 0 && ${Drones.IdleCount} > 0
+			if ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]} > 0 && ${Drones.IdleCount} > 0
 			{
 				Salvage.WrecksNoLock.AutoLock:Set[TRUE]
 			}
