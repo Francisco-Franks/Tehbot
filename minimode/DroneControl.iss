@@ -1099,7 +1099,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 				SalvageDrone.MaxLockCount:Set[1]
 				SalvageDrone.AutoLock:Set[TRUE]
 			}
-			if ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]} > 0 && ${Drones.IdleCount} > 0
+			if ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]} > 0 && ${Drones.IdleDrone}
 			{
 				if ${SalvageDrone.LockedTargetList.Used} > 0 && ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}
 				{
