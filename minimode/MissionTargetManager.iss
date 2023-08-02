@@ -213,9 +213,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			This:PrimaryWeapons
 		}
-		if ${PrimaryWeap.LockedTargetList.Used} == 0 && ${DroneTargets.LockedTargetList.Used} > 0
+		if ${PrimaryWeap.LockedTargetList.Used} == 0 && ${DroneTargets.LockedTargetList.Used} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}](exists)}
 		{
-			if ${Ship.ModuleList_StasisGrap.InactiveCount} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}].Distance} < 19500
+			if ${Ship.ModuleList_StasisGrap.InactiveCount} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}].Distance} < 19500 
 			{
 				Ship.ModuleList_StasisGrap:ActivateAll[${DroneTargets.LockedTargetList.Get[1]}]
 			}
@@ -228,7 +228,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				Ship.ModuleList_TargetPainter:ActivateAll[${DroneTargets.LockedTargetList.Get[1]}]
 			}		
 		}
-		if ${PrimaryWeap.LockedTargetList.Used} > 0 && ${DroneTargets.LockedTargetList.Used} == 0
+		if ${PrimaryWeap.LockedTargetList.Used} > 0 && ${DroneTargets.LockedTargetList.Used} == 0 && ${Entity[${PrimaryWeap.LockedTargetList.Get[1]}](exists)}
 		{
 			DroneTargets:AddQueryString["ID == ${PrimaryWeap.LockedTargetList.Get[1]}"]
 		}
@@ -610,7 +610,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			GetMTMInfo:Finalize
 			Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]
 			; Thirdly, do we have any inactive combat utility modules? Target painter, web, grapple.
-			if ${Ship.ModuleList_StasisGrap.InactiveCount} > 0 && ${Entity[${CurrentOffenseTarget}].Distance} < 19500
+			if ${Ship.ModuleList_StasisGrap.InactiveCount} > 0 && ${Entity[${CurrentOffenseTarget}].Distance} < 19500 
 			{
 				Ship.ModuleList_StasisGrap:ActivateAll[${CurrentOffenseTarget}]
 			}
