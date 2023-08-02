@@ -417,7 +417,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			UnDistantNPCs:AddTargetExceptionByPartOfName["Sentry Gun"]
 			UnDistantNPCs:AddTargetExceptionByPartOfName["Tower Sentry"]
 		}
-		if !${Mission.CurrentAgentLoot.Equal["Cargo Container"]
+		if !${Mission.CurrentAgentLoot.Equal["Cargo Container"]}
 		{
 			ActiveNPCs:ClearExcludeTarget
 			UnDistantNPCs:ClearExcludeTarget
