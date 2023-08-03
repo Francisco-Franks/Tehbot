@@ -193,7 +193,6 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		}
 		if ${AllowSiegeModule} && \
 		${Ship.ModuleList_Siege.Allowed} && \
-		${UnDistantNPCs.TargetList.Used} > 0  && \
 		${Ship.ModuleList_Siege.Count} && \
 		!${Ship.RegisteredModule.Element[${Ship.ModuleList_Siege.ModuleID.Get[1]}].IsActive}
 		{
