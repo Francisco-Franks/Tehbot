@@ -187,7 +187,7 @@ objectdef obj_TargetList inherits obj_StateQueue
 
 	method AddAllNearNPCs()
 	{
-		variable string QueryString="CategoryID = CATEGORYID_ENTITY && IsNPC && !IsMoribund && Distance < ${Math.Calc[${MyShip.MaxTargetRange} * .95]} && Distance < ${Math.Calc[${Ship.ModuleList_Weapon.Range} * .95]} && !("
+		variable string QueryString="CategoryID = CATEGORYID_ENTITY && IsNPC && !IsMoribund && Distance < ${Math.Calc[${MyShip.MaxTargetRange} * .95]} && !("
 
 		; Abyssal switch for ignoring the really distant cans if we aren't using an MTU
 		if !${Abyssal.Config.UseMTU}
