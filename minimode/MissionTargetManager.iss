@@ -430,7 +430,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		
 		ActiveNPCs:RequestUpdate
 		
-		
+		UnDistantNPCs:ClearQueryString
 		UnDistantNPCs:AddAllNearNPCs
 		UnDistantNPCs:RequestUpdate
 		
