@@ -387,6 +387,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 		if ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].UsedCapacity} / ${EVEWindow[Inventory].ChildWindow[${MyShip.ID}, ShipCargo].Capacity} > 0.925
 		{
 			This:LogInfo["Salvage", "Unload trip required", "g"]
+			DroneControl:Recall
 			This:InsertState["SalvagerMoveToBM",3000]
 			This:InsertState["Traveling",3000]
 			This:InsertState["Offload",5000]
@@ -399,6 +400,7 @@ objectdef obj_Salvager inherits obj_StateQueue
 			ContrabandDetected:Set[FALSE]
 			This:MarkBMAsHistorical[${EVE.Bookmark[${SalvageBMQueue.Peek}].ID}]
 			SalvageBMQueue:Dequeue
+			DroneControl:Recall
 			This:InsertState["SalvagerMoveToBM",5000]
 			This:InsertState["DeleteBookmark"]
 			return TRUE
