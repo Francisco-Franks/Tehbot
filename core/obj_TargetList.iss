@@ -37,7 +37,7 @@ objectdef obj_TargetList inherits obj_StateQueue
 	method Initialize()
 	{
 		This[parent]:Initialize
-		PulseFrequency:Set[170]
+		PulseFrequency:Set[100]
 		This.NonGameTiedPulse:Set[TRUE]
 		RandomDelta:Set[150]
 		This:QueueState["UpdateList"]

@@ -258,6 +258,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		; Debug time
 		echo DEBUG MISSION TARGET MANAGER PRIMARY LIST ${PrimaryWeap.TargetList.Used} DRONE LIST ${DroneTargets.TargetList.Used} ACTIVE NPCS ${ActiveNPCs.TargetList.Used} UnDistantNPCs ${UnDistantNPCs.TargetList.Used}
 		
+		UnDistantNPCs:RequestUpdate
 		PrimaryWeap:RequestUpdate
 		DroneTargets:RequestUpdate	
 
@@ -428,6 +429,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		
 		
 		ActiveNPCs:RequestUpdate
+		
 		
 		UnDistantNPCs:AddAllNearNPCs
 		UnDistantNPCs:RequestUpdate
