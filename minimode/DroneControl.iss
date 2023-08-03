@@ -1088,7 +1088,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 		}
 		; Going to be where we launch our salvage drones. Either we are in the salvage mode and there are wrecks and we have salvage drones, or we aren't and we need there to NOT be a current drone target, no pending drone targets, and then have wrecks + salvage drones.
 		; Not sure if combat ships will ever be able to use this correctly the way I have things set but whatever.
-		if (((${CurrentTarget} == 0 || !${Entity[${CurrentTarget}](exists)}) && ${Mission.DroneTargets.TargetList.Used} == 0) || ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}) && (${Salvage.WrecksToLock.TargetList.Used} > 0 && ${This.HaveSalvageDrones} > 0)
+		if ((((${CurrentTarget} == 0 || !${Entity[${CurrentTarget}](exists)}) && ${Mission.DroneTargets.TargetList.Used} == 0) || ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}) && (${Salvage.WrecksToLock.TargetList.Used} > 0 && ${This.HaveSalvageDrones} > 0) && ${Entity[Name =- "Wreck"](exists)})
 		{
 			; I don't want to issue salvage commands constantly to these things. You can make a drone salvage all in the area by telling it to salvage nothing, or telling it to salvage something that can't be salvaged.
 			if ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}
