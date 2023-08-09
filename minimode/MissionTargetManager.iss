@@ -74,9 +74,11 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 
 		This.LogLevelBar:Set[${Config.LogLevelBar}]
 
-		MTMDB:Set[${SQLite.OpenDB["${Me.Name}MTMDB",":memory:"]}]
-		;MTMDB:Set[${SQLite.OpenDB["${Me.Name}MTMDB","${Script.CurrentDirectory}/Data/${Me.Name}MTMDB.sqlite3"]}]
-		;MTMDB:ExecDML["PRAGMA journal_mode=WAL;"]
+		;MTMDB:Set[${SQLite.OpenDB["${Me.Name}MTMDB",":memory:"]}]
+		MTMDB:Set[${SQLite.OpenDB["${Me.Name}MTMDB","${Script.CurrentDirectory}/Data/${Me.Name}MTMDB.sqlite3"]}]
+		MTMDB:ExecDML["PRAGMA journal_mode=WAL;"]
+		MTMDB:ExecDML["PRAGMA main.mmap_size=64000000"]
+		MTMDB:ExecDML["PRAGMA main.cache_size=-64000;"]
 		if !${MTMDB.TableExists["Targeting"]}
 		{
 			echo DEBUG - MissionTargetManager - Creating Targeting Table
@@ -392,7 +394,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		}
 		if ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
 		{
-			ActiveNPCDB:UpdateTargetingTableQueryString[MissionTarget,"Name == \"${Mission.CurrentAgentDestroy}\""]
+			ActiveNPCDB:UpdateTargetingTableQueryString[MissionTarget,"Name == "${Mission.CurrentAgentDestroy}""]
 		}
 			;ActiveNPCDB:UpdateTargetingTableQueryString[MissionTarget,${DBQueryString.Escape}]
 			;ActiveNPCDB:UpdateTargetingTableQueryString[WeaponTargets,${DBQueryString.Escape}]
@@ -423,109 +425,40 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		
 		echo DEBUG MISSION TARGET MANAGER Valid Primary Targets ${ValidPrimaryWeapTargets} Valid Drone Targets ${ValidDroneTargets} Valid Mission Ojective Targets ${ValidMissionTargets}
 		echo DEBUG ROWCOUNT ${This.DBRowCount[WeaponTargets]}
-		if (${ValidPrimaryWeapTargets} > 0
+		if (${ValidPrimaryWeapTargets} > 0)
 		{
-			if ${Ship.ModuleList_Weapon.Type.Find["Laser"]}
+			GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%';"]}]
+			if ${GetMTMInfo.NumRows} > 0
 			{
-				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%';"]}]
-				if ${GetMTMInfo.NumRows} > 0
+				do
 				{
-					do
+					TargetEntityID:Set[${GetMTMInfo.GetFieldValue["EntityID"]}]
+					GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From WeaponTargets WHERE EntityID=${TargetEntityID};"]}]
+					if ${GetActiveNPCs.NumRows} > 0
 					{
-						TargetEntityID:Set[${GetMTMInfo.GetFieldValue["EntityID"]}]
-						GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From WeaponTargets WHERE EntityID=${TargetEntityID};"]}]
-						if ${GetActiveNPCs.NumRows} > 0
-						{
-							; Already present in the destination Table.
-							GetActiveNPCs:Finalize
-						}
-						else
-						{
-							GetActiveNPCs:Finalize
-							ActiveNPCDB.TargetingDatabase:ExecDML["INSERT INTO WeaponTargets SELECT * FROM ActiveNPCs WHERE EntityID=${TargetEntityID};"]					
-						}
-						; We should check if this already exists in the wrong Table while we are here.
-						GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From DroneTargets WHERE EntityID=${TargetEntityID};"]}]
-						if ${GetActiveNPCs.NumRows} > 0
-						{
-							; In the wrong Table, delete it
-							ActiveNPCDB.TargetingDatabase:ExecDML["DELETE FROM DroneTargets WHERE EntityID=${TargetEntityID};"]
-							GetActiveNPCs:Finalize
-						}
-						GetMTMInfo:NextRow
+						; Already present in the destination Table.
+						GetActiveNPCs:Finalize
 					}
-					while !${GetMTMInfo.LastRow}
-					GetMTMInfo:Finalize
-				}
-			}
-			else
-			{
-				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE OurNeededAmmo='${Ship.ModuleList_Weapon.ChargeType}' AND TargetingCategory LIKE '%Primary%';"]}]
-				if ${GetMTMInfo.NumRows} > 0
-				{
-					do
+					else
 					{
-						TargetEntityID:Set[${GetMTMInfo.GetFieldValue["EntityID"]}]
-						GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From WeaponTargets WHERE EntityID=${TargetEntityID};"]}]
-						if ${GetActiveNPCs.NumRows} > 0
-						{
-							; Already present in the destination Table.
-							GetActiveNPCs:Finalize
-						}
-						else
-						{
-							GetActiveNPCs:Finalize
-							ActiveNPCDB.TargetingDatabase:ExecDML["INSERT INTO WeaponTargets SELECT * FROM ActiveNPCs WHERE EntityID=${TargetEntityID};"]					
-						}
-						; We should check if this already exists in the wrong Table while we are here.
-						GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From DroneTargets WHERE EntityID=${TargetEntityID};"]}]
-						if ${GetActiveNPCs.NumRows} > 0
-						{
-							; In the wrong Table, delete it
-							ActiveNPCDB.TargetingDatabase:ExecDML["DELETE FROM DroneTargets WHERE EntityID=${TargetEntityID};"]
-							GetActiveNPCs:Finalize
-						}
-						GetMTMInfo:NextRow
+						GetActiveNPCs:Finalize
+						ActiveNPCDB.TargetingDatabase:ExecDML["INSERT INTO WeaponTargets SELECT * FROM ActiveNPCs WHERE EntityID=${TargetEntityID};"]					
 					}
-					while !${GetMTMInfo.LastRow}
-					GetMTMInfo:Finalize
-				}
-				else
-				{
-					GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%';"]}]
-					if ${GetMTMInfo.NumRows} > 0
+					; We should check if this already exists in the wrong Table while we are here.
+					GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From DroneTargets WHERE EntityID=${TargetEntityID};"]}]
+					if ${GetActiveNPCs.NumRows} > 0
 					{
-						do
-						{
-							TargetEntityID:Set[${GetMTMInfo.GetFieldValue["EntityID"]}]
-							GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From WeaponTargets WHERE EntityID=${TargetEntityID};"]}]
-							if ${GetActiveNPCs.NumRows} > 0
-							{
-								; Already present in the destination Table.
-								GetActiveNPCs:Finalize
-							}
-							else
-							{
-								GetActiveNPCs:Finalize
-								ActiveNPCDB.TargetingDatabase:ExecDML["INSERT INTO WeaponTargets SELECT * FROM ActiveNPCs WHERE EntityID=${TargetEntityID};"]					
-							}
-							; We should check if this already exists in the wrong Table while we are here.
-							GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From DroneTargets WHERE EntityID=${TargetEntityID};"]}]
-							if ${GetActiveNPCs.NumRows} > 0
-							{
-								; In the wrong Table, delete it
-								ActiveNPCDB.TargetingDatabase:ExecDML["DELETE FROM DroneTargets WHERE EntityID=${TargetEntityID};"]
-								GetActiveNPCs:Finalize
-							}
-							GetMTMInfo:NextRow
-						}
-						while !${GetMTMInfo.LastRow}
-						GetMTMInfo:Finalize
-					}				
+						; In the wrong Table, delete it
+						ActiveNPCDB.TargetingDatabase:ExecDML["DELETE FROM DroneTargets WHERE EntityID=${TargetEntityID};"]
+						GetActiveNPCs:Finalize
+					}
+					GetMTMInfo:NextRow
 				}
+				while !${GetMTMInfo.LastRow}
+				GetMTMInfo:Finalize
 			}			
 		}
-		if (${ValidDroneTargets} > 0
+		if (${ValidDroneTargets} > 0)
 		{
 			GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Drone%';"]}]
 			if ${GetMTMInfo.NumRows} > 0

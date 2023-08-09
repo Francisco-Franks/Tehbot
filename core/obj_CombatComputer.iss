@@ -41,8 +41,10 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		;;; Going to try making this DB reside in memory instead. We are going to be writing and reading to this fucker a gazillion times a second probably. Also the information is meant to be destroyed at the end
 		;;; not going to be pulling any stats from this specific DB.
 		;;; Addendum, at first I need to see the results of this table, lets see how poorly this goes.
-		;CombatData:Set[${SQLite.OpenDB["${Me.Name}CombatData","${Script.CurrentDirectory}/Data/${Me.Name}CombatData.sqlite3"]}]
-		;CombatData:ExecDML["PRAGMA journal_mode=WAL;"]
+		CombatData:Set[${SQLite.OpenDB["${Me.Name}CombatData","${Script.CurrentDirectory}/Data/${Me.Name}CombatData.sqlite3"]}]
+		CombatData:ExecDML["PRAGMA journal_mode=WAL;"]
+		CombatData:ExecDML["PRAGMA main.mmap_size=64000000"]
+		CombatData:ExecDML["PRAGMA main.cache_size=-64000;"]
 		if !${CombatData.TableExists["CurrentData"]}
 		{
 			echo DEBUG - CombatComputer - Creating CurrentData Table
