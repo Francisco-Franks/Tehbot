@@ -427,7 +427,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		; its Priority (going to use a number here, higher number means higher priority), and when the row was last updated.
 		TargetingDatabase:ExecDML["create table ${TableName} (EntityID INTEGER PRIMARY KEY, Distance REAL, LockStatus TEXT, Priority INTEGER, PreferredAmmo TEXT, RowLastUpdate INTEGER);"]
 		; Adding a row to Primary, to keep track of the tables we have. This doesn't need to be an upsert, there should never be a conflict. We do this exactly once per startup.
-		TargetingDatabase:ExecDML["insert into Origin (TableName, TableQueryString, MinimumLocks, TableLastUpdate, TableUpdateInterval, QueryChanged) values ('${TableName}', '${TableQueryString.ReplaceSubstring[','']}}', ${MinimumLocks}, 000000000, ${TableUpdateInterval}, 1);"]
+		TargetingDatabase:ExecDML["insert into Origin (TableName, TableQueryString, MinimumLocks, TableLastUpdate, TableUpdateInterval, QueryChanged) values ('${TableName}', '${TableQueryString.ReplaceSubstring[','']}', ${MinimumLocks}, 000000000, ${TableUpdateInterval}, 1);"]
 		
 		; Registering this table's minimum targets reserve. Basically guaranteeing the table however many slots MinimumLocks is set to.
 		TargetReservationCollection:Set[${TableName},${MinimumLocks}]
@@ -455,7 +455,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 			else
 				DidItActuallyChange:Set[1]
 		}
-		TargetingDatabase:ExecDML["update Origin SET TableQueryString='${NewQueryString.ReplaceSubstring[','']}}', QueryChanged=${DidItActuallyChange} WHERE TableName='${TableName}';"]
+		TargetingDatabase:ExecDML["update Origin SET TableQueryString='${NewQueryString.ReplaceSubstring[','']}', QueryChanged=${DidItActuallyChange} WHERE TableName='${TableName}';"]
 	}
 	
 	; This method will be used to populate the priorities of a given table, for Mission Target Manager specifically. I'll work on the others later.
