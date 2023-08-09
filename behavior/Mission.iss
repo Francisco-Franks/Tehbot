@@ -1391,10 +1391,8 @@ objectdef obj_Mission inherits obj_StateQueue
 						{
 							Move:Undock
 							Move:AgentBookmark[${bookmarkIterator.Value.ID}]
-							TargetManager.ActiveNPCs.AutoLock:Set[FALSE]
-							MissionTargetManager.ActiveNPCs.AutoLock:Set[FALSE]
-							TargetManager.NPCs.AutoLock:Set[FALSE]
-							MissionTargetManager.NPCs.AutoLock:Set[FALSE]
+							;TargetManager.ActiveNPCs.AutoLock:Set[FALSE]
+							;TargetManager.NPCs.AutoLock:Set[FALSE]
 							This:InsertState["Traveling", 5000]
 							reload:Set[TRUE]
 							This:QueueState["CombatMission", 4000]
@@ -1585,8 +1583,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		variable index:bookmark BookmarkIndex2
 		variable iterator		BookmarkIterator2
 		
-		variable iterator CombatIterator
-		TargetManager.ActiveNPCs.TargetList:GetIterator[CombatIterator]
 		
 		if ${This.JerksPresent}
 		{
@@ -1603,25 +1599,6 @@ objectdef obj_Mission inherits obj_StateQueue
 			; Bad guys still here. Fighting loop.
 			if ${MyShip.ToEntity.Group.Find[Marauder]}
 			{
-				;;; This will be implemented in the future.
-				; Marauders play by much different rules. We don't move, we bastion and obliterate. Unless you are a Blaster Kronos.
-				;if ${CombatMissionMidrangeTargets.Used} > ${CombatMissionDistantTargets}
-				;{
-				;	; More enemies are in range than are not.
-				;	AllowSiegeModule:Set[TRUE]
-				;	
-				;}
-				;if (${CombatMissionMidrangeTargets.Used} < ${CombatMissionDistantTargets})
-				;{
-				;	; More enemies are out of range than in range.
-				;	AllowSiegeModule:Set[FALSE]
-				;	
-				;}	
-				;if ${CombatMissionCloseTargets.Used} > ${CombatMissionMidrangeTargets.Used}
-				;{
-				;	; MJD usage will go here. If too many enemies are close we will MJD away, again, only if we are a Turret based ship and if we have an MJD.
-				;	AllowSiegeModule:Set[FALSE]
-				;}
 				if ${Entity[${CurrentOffenseTarget}](exists)}
 				{
 					;TargetManager:RegisterCurrentPrimaryWeaponRange
@@ -1796,14 +1773,10 @@ objectdef obj_Mission inherits obj_StateQueue
 			if ${Entity[Name == "${CurrentAgentDestroy.Escape}"].Distance} > ${CurrentOffenseRange}
 			{
 				Move:Approach[${Entity[Name == "${CurrentAgentDestroy.Escape}"]},2500]
-				TargetManager.ActiveNPCs:AddQueryString[Name == "${CurrentAgentDestroy.Escape}"]
-				MissionTargetManager.ActiveNPCs:AddQueryString[Name == "${CurrentAgentDestroy.Escape}"]
 				CurrentOffenseTarget:Set[${Entity[Name == "${CurrentAgentDestroy.Escape}"]}]
 			}
 			elseif ${Entity[Name == "${CurrentAgentDestroy.Escape}"].Distance} < ${CurrentOffenseRange}
 			{
-				TargetManager.ActiveNPCs:AddQueryString[Name == "${CurrentAgentDestroy.Escape}"]
-				MissionTargetManager.ActiveNPCs:AddQueryString[Name == "${CurrentAgentDestroy.Escape}"]
 				CurrentOffenseTarget:Set[${Entity[Name == "${CurrentAgentDestroy.Escape}"]}]
 				echo DEBUG ALLOW SIEGE
 				AllowSiegeModule:Set[TRUE]
@@ -4822,7 +4795,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	; This member will be used by Combat Missioneer to tell if there are bad guys around.
 	member:bool JerksPresent()
 	{
-		if (${Script[Tehbot].VariableScope.TargetManager.ActiveNPCs.TargetList.Used} > 0) || (${Script[Tehbot].VariableScope.MissionTargetManager.ActiveNPCs.TargetList.Used} > 0)
+		if (${Script[Tehbot].VariableScope.MissionTargetManager.TDBRowCount[ActiveNPCs]} > 0)
 		{
 			return TRUE
 		}

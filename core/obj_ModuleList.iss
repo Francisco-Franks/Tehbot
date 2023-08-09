@@ -343,6 +343,11 @@ objectdef obj_ModuleList inherits obj_Logger
 		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].Charge.TypeID}
 	}
 	
+	member:string ChargeType()
+	{
+		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].Charge.Type}
+	}	
+	
 	member:int64 ChargeQuantity()
 	{
 		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].Charge.Quantity}

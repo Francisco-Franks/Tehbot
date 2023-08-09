@@ -32,11 +32,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	
 	variable int MaxTarget = ${MyShip.MaxLockedTargets}
 
-	variable obj_TargetList UnDistantNPCs
-	variable obj_TargetList ActiveNPCs
-	variable obj_TargetList PrimaryWeap
-	variable obj_TargetList DroneTargets
+
 	
+	variable obj_TargetingDatabase ActiveNPCDB
 
 	; Query for our combat computer DB
 	variable sqlitequery GetCCInfo
@@ -44,7 +42,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	variable sqlitequery GetATInfo
 	; Query for our Mission Target Manager DB
 	variable sqlitequery GetMTMInfo
-	
+	; Query for our TargetList Replacement
+	variable sqlitequery GetActiveNPCs
+	variable sqlitequery GetActiveNPCs2
 	; Surprise, I want a DB up in this place.
 	variable sqlitedb MTMDB
 
@@ -58,6 +58,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	variable int ValidPrimaryWeapTargets
 	variable int ValidDroneTargets
 	variable int ValidMissionTargets
+	
+	; Going to need this for constructing our Query.
+	variable string DBQueryString
 
 	method Initialize()
 	{
@@ -70,25 +73,10 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 
 
 		This.LogLevelBar:Set[${Config.LogLevelBar}]
-		
-		UnDistantNPCs.NeedUpdate:Set[FALSE]
-		UnDistantNPCs.AutoLock:Set[FALSE]
-		UnDistantNPCs.MaxRange:Set[200000]
-		ActiveNPCs.NeedUpdate:Set[FALSE]
-		PrimaryWeap.NeedUpdate:Set[FALSE]
-		DroneTargets.NeedUpdate:Set[FALSE]
-		
-		DroneTargets.MaxRange:Set[${Me.DroneControlDistance}]
-		PrimaryWeap.AutoLock:Set[TRUE]
-		DroneTargets.AutoLock:Set[TRUE]
-		PrimaryWeap.MaxLockCount:Set[4]
-		DroneTargets.MaxLockCount:Set[2]
-		
-		PrimaryWeap.MinLockCount:Set[4]
-		DroneTargets.MinLockCount:Set[2]
+
 		MTMDB:Set[${SQLite.OpenDB["${Me.Name}MTMDB",":memory:"]}]
 		;MTMDB:Set[${SQLite.OpenDB["${Me.Name}MTMDB","${Script.CurrentDirectory}/Data/${Me.Name}MTMDB.sqlite3"]}]
-		MTMDB:ExecDML["PRAGMA journal_mode=WAL;"]
+		;MTMDB:ExecDML["PRAGMA journal_mode=WAL;"]
 		if !${MTMDB.TableExists["Targeting"]}
 		{
 			echo DEBUG - MissionTargetManager - Creating Targeting Table
@@ -113,12 +101,6 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	{
 		This:Clear
 		
-		UnDistantNPCs.NeedUpdate:Set[FALSE]
-		ActiveNPCs.NeedUpdate:Set[FALSE]
-		PrimaryWeap.NeedUpdate:Set[FALSE]
-		DroneTargets.NeedUpdate:Set[FALSE]
-		PrimaryWeap.AutoLock:Set[FALSE]
-		DroneTargets.AutoLock:Set[FALSE]
 		
 		MTMDB:Close
 	}
@@ -126,11 +108,14 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	method Shutdown()
 	{
 		MTMDB:Close
+		ActiveNPCDB.TargetingDatabase:Close
 	}
 	
 	; This member is the primary loop for the minimode.
 	member:bool MissionTargetManager()
 	{
+		variable int64 TempEntID
+		
 		; Well let's do the usual, throw our auto-return FALSE conditions out there.
 		; If we aren't in space we aren't targeting.
 		if !${Client.InSpace}
@@ -138,56 +123,52 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		; Since this targetmanager is expected SPECIFICALLY for missions, if we aren't in mission mode, return false.
 		if !${CommonConfig.Tehbot_Mode.Equal["Mission"]}
 			return FALSE
-		; TargetManager can be inhibited when we are in transit, hopefully this won't break
-		if ${TargetManagerInhibited}
-		{
-			ActiveNPCs.AutoLock:Set[FALSE]		
-			return FALSE
-		}
 		; Don't need to be doing this while in warp.
 		if ${MyShip.ToEntity.Mode} == MOVE_WARPING
 			return FALSE
 		if !${Entity[${CurrentOffenseTarget}](exists)}
 			CurrentOffenseTarget:Set[0]
-		; This will kick off a targelist query for ActiveNPCs which will basically cover absolutely everything we would ever want to target in a mission.
+		; This will kick off a series of events which will populate a table in a DB object attached to this mode.
 		This:TargetListPreManagement
-		ActiveNPCs.AutoLock:Set[FALSE]	
+		
+		This:TargetListCleanup
+		
 		; Combat Computer will take those entities returned (if any) and databasify them. 
 		if ${LavishScript.RunningTime} >= ${CombatComputerTimer}
 		{
 			Ship2:GetAmmoInformation
 			Ship2:GetReloadTime
-			variable iterator ActiveNPCIterator
-			ActiveNPCs.TargetList:GetIterator[ActiveNPCIterator]
-			if ${ActiveNPCIterator:First(exists)}
+
+			GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ActiveNPCs UNION SELECT * From MissionTarget;"]}]
+
+			if ${GetActiveNPCs.NumRows} > 0
 			{
 				do
 				{
-					echo DEBUG TARGET MANAGER INSERT INTO INDEX ${ActiveNPCIterator.Value}
-					CombatComputer.ActiveNPCIndex:Insert[${ActiveNPCIterator.Value}]
-					
+					echo DEBUG TARGET MANAGER INSERT INTO INDEX ${GetActiveNPCs.GetFieldValue["EntityID"]}
+					TempEntID:Set[${GetActiveNPCs.GetFieldValue["EntityID"]}]
+					if ${TempEntID} > 0
+						CombatComputer.ActiveNPCQueue:Queue[${TempEntID}]
+					CombatComputerTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 20000]}]
+					GetActiveNPCs:NextRow
 				}
-				while ${ActiveNPCIterator:Next(exists)}
-			}
-			if ${CombatComputer.ActiveNPCIndex.Used} > 0
-			{
-				CombatComputer:UpsertCurrentData
-				CombatComputerTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 20000]}]
+				while !${GetActiveNPCs.LastRow}
+				GetActiveNPCs:Finalize
 			}
 		}
 		This:TargetListManagement
 		; With that done, let's get locking.
-		if ${ActiveNPCs.TargetList.Used} > 0
-		{
+		if ${This.DBRowCount[ActiveNPCs]} > 0 || ((${This.TDBRowCount[WeaponTargets]} == 0) && (${This.TDBRowCount[MissionTarget]} > 0))
 			This:LockManagement
-		}
-		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${ActiveNPCs.TargetList.Used} < 1 && ${ValidPrimaryWeapTargets} < 3 && !${This.CanITargetTheseMooks} && ${UnDistantNPCs.TargetList.Used} == 0
+			
+		
+		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${This.DBRowCount[ActiveNPCs]} < 1 && ${This.DBRowCount[WeaponTargets]} < 1
 		{
 			echo DEBUG MTM TARGET DEAD DEACTIVATE SIEGE
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_CommandBurst:DeactivateAll
 		}
-		if ${PrimaryWeap.TargetList.Used} > 0 || ${UnDistantNPCs.TargetList.Used} > 0
+		if ${This.DBRowCount[WeaponTargets]} > 0 || ${This.TDBRowCount[WeaponTargets]} > 0 || (${This.DBRowCount[WeaponTargets]} == 0 && ${This.TDBRowCount[MissionTarget]} > 0)
 		{
 			AllowSiegeModule:Set[TRUE]
 		}
@@ -208,43 +189,40 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			AllowSiegeModule:Set[TRUE]
 		}
 		; With that done, kick off the Primary Weapon method.
-		if ${PrimaryWeap.LockedTargetList.Used} > 0
+		if ${This.DBRowCount[WeaponTargets]} > 0 || ${This.TDBRowCount[WeaponTargets]} > 0
 		{
 			This:PrimaryWeapons
 		}
-		if ${PrimaryWeap.LockedTargetList.Used} == 0 && ${DroneTargets.LockedTargetList.Used} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}](exists)}
+		if ${This.DBRowCount[WeaponTargets]} == 0 && ${This.DBRowCount[DroneTargets]} > 0 && ${Entity[${This.GetFirstRowEntity[DroneTargets]}](exists)}
 		{
-			if ${Ship.ModuleList_StasisGrap.InactiveCount} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}].Distance} < 19500 
+			if ${Ship.ModuleList_StasisGrap.InactiveCount} > 0 && ${Entity[${This.GetFirstRowEntity[DroneTargets]}].Distance} < 19500 
 			{
-				Ship.ModuleList_StasisGrap:ActivateOne[${DroneTargets.LockedTargetList.Get[1]}]
+				Ship.ModuleList_StasisGrap:ActivateOne[${This.GetFirstRowEntity[DroneTargets]}]
 			}
-			if ${Ship.ModuleList_StasisWeb.InactiveCount} > 0 && ${Entity[${DroneTargets.LockedTargetList.Get[1]}].Distance} <= ${Ship.ModuleList_StasisWeb.Range}
+			if ${Ship.ModuleList_StasisWeb.InactiveCount} > 0 && ${Entity[${This.GetFirstRowEntity[DroneTargets]}].Distance} <= ${Ship.ModuleList_StasisWeb.Range}
 			{
-				Ship.ModuleList_StasisWeb:ActivateOne[${DroneTargets.LockedTargetList.Get[1]}]
+				Ship.ModuleList_StasisWeb:ActivateOne[${This.GetFirstRowEntity[DroneTargets]}]
 			}
-			if ${Entity[${CurrentOffenseTarget}].Distance} <= 140000
+			if ${Entity[${This.GetFirstRowEntity[DroneTargets]}].Distance} <= 140000
 			{
-				Ship.ModuleList_TargetPainter:ActivateAll[${DroneTargets.LockedTargetList.Get[1]}]
+				Ship.ModuleList_TargetPainter:ActivateAll[${This.GetFirstRowEntity[DroneTargets]}]
 			}		
 		}
-		if ${PrimaryWeap.LockedTargetList.Used} > 0 && ${DroneTargets.LockedTargetList.Used} == 0 && ${Entity[${PrimaryWeap.LockedTargetList.Get[1]}](exists)}
+		if ${ValidDroneTargets} > 0 && ${DroneControl.CurrentTarget} == 0
+			DroneControl.CurrentTarget:Set[${This.GetFirstRowEntity[DroneTargets]}]
+		if ${This.DBRowCount[WeaponTargets]} > 0 && ${This.DBRowCount[DroneTargets]} == 0 && ${Entity[${This.GetFirstRowEntity[WeaponTargets]}](exists)}
 		{
-			DroneTargets:AddQueryString["ID == ${PrimaryWeap.LockedTargetList.Get[1]}"]
+			DroneTargets:AddQueryString["ID == ${This.GetFirstRowEntity[WeaponTargets]}"]
 		}
-		; Need a way to deal with enemies that are just too far away.
-		;if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.TargetList.Used} < 1 && ${DroneTargets.TargetList.Used} < 1) && ${ValidPrimaryWeapTargets} < 3
-		;{
-		;
-		;}
-		if (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1]}]})  && ${Entity[${ActiveNPCs.TargetList.Get[1]}](exists)} && ${UnDistantNPCs.TargetList.Used} == 0
+		if (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${This.GetFirstRowEntity[ActiveNPCs]}]})  && ${Entity[${This.GetFirstRowEntity[ActiveNPCs]}](exists)} && ${This.DBRowCount[WeaponTargets]} == 0
 		{
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
-			This:LogInfo["Approaching out of range target: \ar${Entity[${ActiveNPCs.TargetList.Get[1]}].Name}"]
-			Entity[${ActiveNPCs.TargetList.Get[1]}]:Approach		
+			This:LogInfo["Approaching out of range target: \ar${Entity[${This.GetFirstRowEntity[ActiveNPCs]}].Name}"]
+			Entity[${This.GetFirstRowEntity[ActiveNPCs]}]:Approach		
 		}
 		; Well, if all that is left are drone targets, may as well approach our mission objective or orbit the next gate or something.
-		if (${ActiveNPCs.TargetList.Used} > 0 && ${PrimaryWeap.TargetList.Used} < 1 && ${DroneTargets.TargetList.Used} > 1) && !${Move.Traveling} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING
+		if (${This.DBRowCount[ActiveNPCs]} > 0 && ${This.DBRowCount[WeaponTargets]} < 1 && ${This.DBRowCount[DroneTargets]} > 1) && !${Move.Traveling} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING
 		{
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll		
@@ -256,17 +234,13 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				Move:Orbit[${Entity[Type = "Acceleration Gate"]}]
 		}
 		; Debug time
-		echo DEBUG MISSION TARGET MANAGER PRIMARY LIST ${PrimaryWeap.TargetList.Used} DRONE LIST ${DroneTargets.TargetList.Used} ACTIVE NPCS ${ActiveNPCs.TargetList.Used} UnDistantNPCs ${UnDistantNPCs.TargetList.Used}
-		
-		UnDistantNPCs:RequestUpdate
-		PrimaryWeap:RequestUpdate
-		DroneTargets:RequestUpdate	
+		echo DEBUG MISSION TARGET MANAGER PRIMARY LIST ${This.DBRowCount[WeaponTargets]} DRONE LIST ${This.DBRowCount[DroneTargets]} ACTIVE NPCS ${This.DBRowCount[ActiveNPCs]}
 
-		
 		return FALSE
 	}
 	; This method will handle the management of our TargetLists
 	;; ADDENDUM - Targetlists will be replaced with SQLite. Except for the TargetList ActiveNPCs.
+	;;; Even more addendum, ActiveNPCs will also be replaced with SQLite.
 	method TargetListManagement()
 	{	
 		; Storage variables 
@@ -278,38 +252,37 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		variable string TargetingCategory
 		; Index for bulk transaction.
 		variable index:string TargetingUpsertIndex
-		; If there are not ActiveNPCs then there is no point in doing this.
-		if ${ActiveNPCs.TargetList.Used} == 0
-			return FALSE
-		; Next up we need to iterate through our TargetList. This will be used different from the above section.
-		variable iterator ActiveNPCIterator
-		ActiveNPCs.TargetList:GetIterator[ActiveNPCIterator]	
-		if ${ActiveNPCIterator:First(exists)}
+		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ActiveNPCs;"]}]
+
+		if ${GetActiveNPCs.NumRows} > 0
 		{
 			do
 			{
 				; If somehow the NPC stopped existing before we got the original index and iterated it, we should discard it. OR if it is already in our MTM DB we should remove it.
-				if !${Entity[${ActiveNPCIterator.Value}](exists)}
+				if !${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}](exists)}
 				{
-					GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE EntityID=${ActiveNPCIterator.Value};"]}]
+					GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE EntityID=${GetActiveNPCs.GetFieldValue["EntityID"]};"]}]
 					if ${GetMTMInfo.NumRows} > 0
 					{
 						GetMTMInfo:Finalize
-						MTMDB:ExecDML["DELETE From Targeting WHERE EntityID=${ActiveNPCIterator.Value};"]
+						MTMDB:ExecDML["DELETE From Targeting WHERE EntityID=${GetActiveNPCs.GetFieldValue["EntityID"]};"]
 					}
 					else
+					{
+						GetActiveNPCs:NextRow
 						continue
+					}
 				}
 				; Ok so it is now time to categorize this target.
 				; (EntityID INTEGER PRIMARY KEY, TargetingCategory TEXT, HullHPPercent REAL, ArmorHPPercent REAL, ShieldHPPercent REAL, EffNPCDPS REAL, OurDamageEff REAL, ExpectedShotDmg REAL, OurNeededAmmo TEXT, ThreatLevel INTEGER)
-				GetCCInfo:Set[${CombatComputer.CombatData.ExecQuery["Select * FROM CurrentData WHERE EntityID=${ActiveNPCIterator.Value};"]}]
+				GetCCInfo:Set[${CombatComputer.CombatData.ExecQuery["Select * FROM CurrentData WHERE EntityID=${GetActiveNPCs.GetFieldValue["EntityID"]};"]}]
 				if ${GetCCInfo.NumRows} > 0
 				{
 					EffNPCDPS:Set[${GetCCInfo.GetFieldValue["EffNPCDPS"]}]
 					ThreatLevel:Set[${GetCCInfo.GetFieldValue["ThreatLevel"]}]
 					GetCCInfo:Finalize
 				}
-				GetATInfo:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM AmmoTable WHERE EntityID=${ActiveNPCIterator.Value} AND ExpectedShotDmg = (SELECT MAX(ExpectedShotDmg) FROM AmmoTable WHERE EntityID=${ActiveNPCIterator.Value});"]}]
+				GetATInfo:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM AmmoTable WHERE EntityID=${GetActiveNPCs.GetFieldValue["EntityID"]} AND ExpectedShotDmg = (SELECT MAX(ExpectedShotDmg) FROM AmmoTable WHERE EntityID=${GetActiveNPCs.GetFieldValue["EntityID"]});"]}]
 				if ${GetATInfo.NumRows} > 0
 				{
 					ExpectedShotDmg:Set[${GetATInfo.GetFieldValue["ExpectedShotDmg"]}]
@@ -331,7 +304,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				; This would be things we can not apply damage to (less than 5% efficiency), depending on range we will employ a different category. Things within drone control range can be drone targets, things outside that are treated out of range.
 				if ${OurDamageEff} < .02
 				{
-					if ${Entity[${ActiveNPCIterator.Value}].Distance} < ${Me.DroneControlDistance}
+					if ${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}].Distance} < ${Me.DroneControlDistance}
 					{
 						TargetingCategory:Set[DroneTarget] 
 					}
@@ -346,17 +319,19 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				}
 				if ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
 				{
-					if ${Entity[${ActiveNPCIterator.Value}].Name.Find["${Mission.CurrentAgentDestroy}"]}
+					if ${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}].Name.Find["${Mission.CurrentAgentDestroy}"]}
 					{
 						TargetingCategory:Set[MissionTarget] 
 					}
 				}
-				TargetingUpsertIndex:Insert["insert into Targeting (EntityID, TargetingCategory, HullHPPercent, ArmorHPPercent, ShieldHPPercent, EffNPCDPS, OurDamageEff, ExpectedShotDmg, OurNeededAmmo, ThreatLevel) values (${ActiveNPCIterator.Value}, '${TargetingCategory}', ${Entity[${ActiveNPCIterator.Value}].StructurePct},  ${Entity[${ActiveNPCIterator.Value}].ArmorPct},  ${Entity[${ActiveNPCIterator.Value}].ShieldPct}, ${EffNPCDPS}, ${OurDamageEff}, ${ExpectedShotDmg}, '${OurNeededAmmo}', ${ThreatLevel}) ON CONFLICT (EntityID) DO UPDATE SET TargetingCategory=excluded.TargetingCategory, HullHPPercent=excluded.HullHPPercent, ArmorHPPercent=excluded.ArmorHPPercent, ShieldHPPercent=excluded.ShieldHPPercent, EffNPCDPS=excluded.EffNPCDPS, OurDamageEff=excluded.OurDamageEff, ExpectedShotDmg=excluded.ExpectedShotDmg, OurNeededAmmo=excluded.OurNeededAmmo, ThreatLevel=excluded.ThreatLevel;"]
+				TargetingUpsertIndex:Insert["insert into Targeting (EntityID, TargetingCategory, HullHPPercent, ArmorHPPercent, ShieldHPPercent, EffNPCDPS, OurDamageEff, ExpectedShotDmg, OurNeededAmmo, ThreatLevel) values (${GetActiveNPCs.GetFieldValue["EntityID"]}, '${TargetingCategory}', ${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}].StructurePct},  ${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}].ArmorPct},  ${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}].ShieldPct}, ${EffNPCDPS}, ${OurDamageEff}, ${ExpectedShotDmg}, '${OurNeededAmmo}', ${ThreatLevel}) ON CONFLICT (EntityID) DO UPDATE SET TargetingCategory=excluded.TargetingCategory, HullHPPercent=excluded.HullHPPercent, ArmorHPPercent=excluded.ArmorHPPercent, ShieldHPPercent=excluded.ShieldHPPercent, EffNPCDPS=excluded.EffNPCDPS, OurDamageEff=excluded.OurDamageEff, ExpectedShotDmg=excluded.ExpectedShotDmg, OurNeededAmmo=excluded.OurNeededAmmo, ThreatLevel=excluded.ThreatLevel;"]
+				GetActiveNPCs:NextRow
 			}
-			while ${ActiveNPCIterator:Next(exists)}
+			while !${GetActiveNPCs.LastRow}
+			GetActiveNPCs:Finalize
 		}
 		; If we have anything to upsert, upsert.
-		if ${TargetingUpsertIndex.Size} > 0
+		if ${TargetingUpsertIndex.Used} > 0
 		{
 			MTMDB:ExecDMLTransaction[TargetingUpsertIndex]
 			TargetingUpsertIndex:Clear
@@ -394,50 +369,40 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	}
 
 	; This method gets us our initial, and only TargetList, to make the DBs with.
+	;;; ADDENDUM - We SQL now, this gets us our initial tables and possibly updates ones that have their query change.
 	method TargetListPreManagement()
 	{
-		ActiveNPCs:ClearQueryString
-		
-		ActiveNPCs:AddAllNPCs
-		ActiveNPCs.MaxRange:Set[${Math.Calc[${MyShip.MaxTargetRange} * .95]}]
-		
-		; This specifically can be very much simplified now. 
+		if !${ActiveNPCDB.TableCreated[ActiveNPCs]}
+		{
+			This:BuildQueryForDB[None]
+			ActiveNPCDB:InstantiateTargetingTable[ActiveNPCs,1000,${DBQueryString.Escape},0]
+			DBQueryString:Set[""]
+		}
+		if !${ActiveNPCDB.TableCreated[DroneTargets]}
+		{
+			ActiveNPCDB:InstantiateTargetingTable[DroneTargets,1000,"ID == -111111111111111111",2]
+		}
+		if !${ActiveNPCDB.TableCreated[WeaponTargets]}
+		{
+			ActiveNPCDB:InstantiateTargetingTable[WeaponTargets,1000,"ID == -111111111111111111",4]
+		}
+		if !${ActiveNPCDB.TableCreated[MissionTarget]}
+		{
+			ActiveNPCDB:InstantiateTargetingTable[MissionTarget,5000,"ID == -111111111111111111",1]
+		}
 		if ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
-				ActiveNPCs:AddQueryString["Name == \"${Mission.CurrentAgentDestroy}\""]
-		; These cargo containers can prove massively time wasting.
-		if ${Mission.Config.IgnoreNPCSentries} || ${Mission.CurrentAgentLoot.Equal["Cargo Container"]}
 		{
-			ActiveNPCs:AddTargetExceptionByPartOfName["Battery"]
-			ActiveNPCs:AddTargetExceptionByPartOfName["Batteries"]
-			ActiveNPCs:AddTargetExceptionByPartOfName["Sentry Gun"]
-			ActiveNPCs:AddTargetExceptionByPartOfName["Tower Sentry"]
-			
-			UnDistantNPCs:AddTargetExceptionByPartOfName["Battery"]
-			UnDistantNPCs:AddTargetExceptionByPartOfName["Batteries"]
-			UnDistantNPCs:AddTargetExceptionByPartOfName["Sentry Gun"]
-			UnDistantNPCs:AddTargetExceptionByPartOfName["Tower Sentry"]
+			ActiveNPCDB:UpdateTargetingTableQueryString[MissionTarget,"Name == \"${Mission.CurrentAgentDestroy}\""]
 		}
-		if !${Mission.CurrentAgentLoot.Equal["Cargo Container"]}
-		{
-			ActiveNPCs:ClearExcludeTarget
-			UnDistantNPCs:ClearExcludeTarget
-		}
-		ActiveNPCs:AddTargetExceptionByPartOfName["EDENCOM"]
-		ActiveNPCs:AddTargetExceptionByPartOfName["Tyrannos"]
-		ActiveNPCs:AddTargetExceptionByPartOfName["Drifter"]
-		ActiveNPCs:AddTargetExceptionByPartOfName["Sleeper"]
+			;ActiveNPCDB:UpdateTargetingTableQueryString[MissionTarget,${DBQueryString.Escape}]
+			;ActiveNPCDB:UpdateTargetingTableQueryString[WeaponTargets,${DBQueryString.Escape}]
+			;ActiveNPCDB:UpdateTargetingTableQueryString[DroneTargets,${DBQueryString.Escape}]
+
 		
-		
-		ActiveNPCs:RequestUpdate
-		
-		UnDistantNPCs:ClearQueryString
-		UnDistantNPCs:AddAllNearNPCs
-		UnDistantNPCs:RequestUpdate
-		
-	
 	}
 	; This method will handle the locking for both PrimaryWeapons and CombatDronery.
 	; We are going to use 2 additional TargetLists because the lock management is just too handy to leave behind.
+	;;; ADDENDUM - What a nightmare TargetList really is, we are SQL now. 
 	method LockManagement()
 	{
 
@@ -456,72 +421,170 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		ValidMissionTargets:Set[${GetMTMInfo.NumRows}]
 		GetMTMInfo:Finalize
 		
-		PrimaryWeap:ClearQueryString
-		DroneTargets:ClearQueryString	
-		
 		echo DEBUG MISSION TARGET MANAGER Valid Primary Targets ${ValidPrimaryWeapTargets} Valid Drone Targets ${ValidDroneTargets} Valid Mission Ojective Targets ${ValidMissionTargets}
-		if (${ValidPrimaryWeapTargets} > ${PrimaryWeap.TargetList.Used}) && (${PrimaryWeap.TargetList.Used} < 4)
+		echo DEBUG ROWCOUNT ${This.DBRowCount[WeaponTargets]}
+		if (${ValidPrimaryWeapTargets} > 0
 		{
 			if ${Ship.ModuleList_Weapon.Type.Find["Laser"]}
 			{
-				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%' ORDER BY ThreatLevel DESC;"]}]
+				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%';"]}]
 				if ${GetMTMInfo.NumRows} > 0
 				{
 					do
 					{
 						TargetEntityID:Set[${GetMTMInfo.GetFieldValue["EntityID"]}]
-						PrimaryWeap:AddQueryString["ID == ${TargetEntityID}"]
+						GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From WeaponTargets WHERE EntityID=${TargetEntityID};"]}]
+						if ${GetActiveNPCs.NumRows} > 0
+						{
+							; Already present in the destination Table.
+							GetActiveNPCs:Finalize
+						}
+						else
+						{
+							GetActiveNPCs:Finalize
+							ActiveNPCDB.TargetingDatabase:ExecDML["INSERT INTO WeaponTargets SELECT * FROM ActiveNPCs WHERE EntityID=${TargetEntityID};"]					
+						}
+						; We should check if this already exists in the wrong Table while we are here.
+						GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From DroneTargets WHERE EntityID=${TargetEntityID};"]}]
+						if ${GetActiveNPCs.NumRows} > 0
+						{
+							; In the wrong Table, delete it
+							ActiveNPCDB.TargetingDatabase:ExecDML["DELETE FROM DroneTargets WHERE EntityID=${TargetEntityID};"]
+							GetActiveNPCs:Finalize
+						}
 						GetMTMInfo:NextRow
 					}
-					while !${GetMTMInfo.LastRow} && (${PrimaryWeap.TargetList.Used} < 4)
+					while !${GetMTMInfo.LastRow}
 					GetMTMInfo:Finalize
 				}
 			}
 			else
 			{
-				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE OurNeededAmmo='${Ship.ModuleList_Weapon.ChargeName}' AND TargetingCategory LIKE '%Primary%' ORDER BY ThreatLevel DESC;"]}]
+				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE OurNeededAmmo='${Ship.ModuleList_Weapon.ChargeType}' AND TargetingCategory LIKE '%Primary%';"]}]
 				if ${GetMTMInfo.NumRows} > 0
 				{
 					do
 					{
 						TargetEntityID:Set[${GetMTMInfo.GetFieldValue["EntityID"]}]
-						PrimaryWeap:AddQueryString["ID == ${TargetEntityID}"]
+						GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From WeaponTargets WHERE EntityID=${TargetEntityID};"]}]
+						if ${GetActiveNPCs.NumRows} > 0
+						{
+							; Already present in the destination Table.
+							GetActiveNPCs:Finalize
+						}
+						else
+						{
+							GetActiveNPCs:Finalize
+							ActiveNPCDB.TargetingDatabase:ExecDML["INSERT INTO WeaponTargets SELECT * FROM ActiveNPCs WHERE EntityID=${TargetEntityID};"]					
+						}
+						; We should check if this already exists in the wrong Table while we are here.
+						GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From DroneTargets WHERE EntityID=${TargetEntityID};"]}]
+						if ${GetActiveNPCs.NumRows} > 0
+						{
+							; In the wrong Table, delete it
+							ActiveNPCDB.TargetingDatabase:ExecDML["DELETE FROM DroneTargets WHERE EntityID=${TargetEntityID};"]
+							GetActiveNPCs:Finalize
+						}
 						GetMTMInfo:NextRow
 					}
-					while !${GetMTMInfo.LastRow} && (${PrimaryWeap.TargetList.Used} < 4)
+					while !${GetMTMInfo.LastRow}
 					GetMTMInfo:Finalize
 				}
 				else
 				{
-					GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%' ORDER BY ThreatLevel DESC;"]}]
+					GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%';"]}]
 					if ${GetMTMInfo.NumRows} > 0
 					{
 						do
 						{
 							TargetEntityID:Set[${GetMTMInfo.GetFieldValue["EntityID"]}]
-							PrimaryWeap:AddQueryString["ID == ${TargetEntityID}"]
+							GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From WeaponTargets WHERE EntityID=${TargetEntityID};"]}]
+							if ${GetActiveNPCs.NumRows} > 0
+							{
+								; Already present in the destination Table.
+								GetActiveNPCs:Finalize
+							}
+							else
+							{
+								GetActiveNPCs:Finalize
+								ActiveNPCDB.TargetingDatabase:ExecDML["INSERT INTO WeaponTargets SELECT * FROM ActiveNPCs WHERE EntityID=${TargetEntityID};"]					
+							}
+							; We should check if this already exists in the wrong Table while we are here.
+							GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From DroneTargets WHERE EntityID=${TargetEntityID};"]}]
+							if ${GetActiveNPCs.NumRows} > 0
+							{
+								; In the wrong Table, delete it
+								ActiveNPCDB.TargetingDatabase:ExecDML["DELETE FROM DroneTargets WHERE EntityID=${TargetEntityID};"]
+								GetActiveNPCs:Finalize
+							}
 							GetMTMInfo:NextRow
 						}
-						while !${GetMTMInfo.LastRow} && (${PrimaryWeap.TargetList.Used} < 4)
+						while !${GetMTMInfo.LastRow}
 						GetMTMInfo:Finalize
 					}				
 				}
 			}			
 		}
-		if (${ValidDroneTargets} > ${DroneTargets.TargetList.Used}) && (${DroneTargets.TargetList.Used} < 2)
+		if (${ValidDroneTargets} > 0
 		{
-			GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Drone%' ORDER BY ThreatLevel DESC;"]}]
+			GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Drone%';"]}]
 			if ${GetMTMInfo.NumRows} > 0
 			{
 				do
 				{
 					TargetEntityID:Set[${GetMTMInfo.GetFieldValue["EntityID"]}]
-					DroneTargets:AddQueryString["ID == ${TargetEntityID}"]
+					GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From DroneTargets WHERE EntityID=${TargetEntityID};"]}]
+					if ${GetActiveNPCs.NumRows} > 0
+					{
+						; Already present in the destination Table.
+						GetActiveNPCs:Finalize
+					}
+					else
+					{
+						GetActiveNPCs:Finalize
+						ActiveNPCDB.TargetingDatabase:ExecDML["INSERT INTO DroneTargets SELECT * FROM ActiveNPCs WHERE EntityID=${TargetEntityID};"]					
+					}
+					; We should check if this already exists in the wrong Table while we are here.
+					GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From DroneTargets WHERE EntityID=${TargetEntityID};"]}]
+					if ${GetActiveNPCs.NumRows} > 0
+					{
+						; In the wrong Table, delete it
+						ActiveNPCDB.TargetingDatabase:ExecDML["DELETE FROM WeaponTargets WHERE EntityID=${TargetEntityID};"]
+						GetActiveNPCs:Finalize
+					}
 					GetMTMInfo:NextRow
 				}
-				while !${GetMTMInfo.LastRow} && (${DroneTargets.TargetList.Used} < 2)
+				while !${GetMTMInfo.LastRow}
+				GetMTMInfo:Finalize
 			}
 			GetMTMInfo:Finalize			
+		}
+		if (${This.TDBRowCount[WeaponTargets]} == 0) && (${This.TDBRowCount[MissionTarget]} > 0) 
+		{
+			; I need to be able to port these rows back into the ActiveNPCs list. Idk why. Don't ask.
+			
+			GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From MissionTarget ORDER BY Priority DESC;"]}]
+			if ${GetActiveNPCs.NumRows} > 0
+			{
+				do
+				{
+					TargetEntityID:Set[${GetActiveNPCs.GetFieldValue["EntityID"]}]
+					GetActiveNPCs2:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From WeaponTargets WHERE EntityID=${TargetEntityID};"]}]
+					if ${GetActiveNPCs2.NumRows} > 0
+					{
+						; Already present in the destination Table.
+						GetActiveNPCs2:Finalize
+					}
+					else
+					{
+						GetActiveNPCs2:Finalize
+						ActiveNPCDB.TargetingDatabase:ExecDML["INSERT INTO WeaponTargets SELECT * FROM MissionTarget WHERE EntityID=${TargetEntityID};"]					
+					}
+					GetActiveNPCs:NextRow
+				}
+				while !${GetActiveNPCs.LastRow}
+			}
+			GetActiveNPCs:Finalize		
 		}
 		if (${ValidPrimaryWeapTargets} == 0) && (${ValidMissionTargets} > 0)
 		{
@@ -531,16 +594,37 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				do
 				{
 					TargetEntityID:Set[${GetMTMInfo.GetFieldValue["EntityID"]}]
-					PrimaryWeap:AddQueryString["ID == ${TargetEntityID}"]
-					GetMTMInfo:NextRow
+					GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From MissionTarget WHERE EntityID=${TargetEntityID};"]}]
+					if ${GetActiveNPCs.NumRows} > 0
+					{
+						; Already present in the destination Table.
+						GetMTMInfo:NextRow
+						GetActiveNPCs:Finalize
+						continue
+					}
+					else
+					{
+						ActiveNPCDB.TargetingDatabase:ExecDML["INSERT INTO MissionTarget SELECT * FROM ActiveNPCs WHERE EntityID=${TargetEntityID};"]
+						GetMTMInfo:NextRow
+						GetActiveNPCs:Finalize
+						continue							
+					}
 				}
-				while !${GetMTMInfo.LastRow} && (${PrimaryWeap.TargetList.Used} < 4)
-				GetMTMInfo:Finalize
+				while !${GetMTMInfo.LastRow}
 			}		
 		}
-		PrimaryWeap:RequestUpdate
-		DroneTargets:RequestUpdate
 	}
+	;;; ADDENDUN - This might not actually be needed? If the previous method removes from wrong and adds to right, thats enough? Right?
+	; This method will be used to shuffle between our TargetManagement tables. This will be quite similar to the method just before this one.
+	; Except it will be for moving items between the actionable tables, not from the source table. 
+	;method TargetingTableChecking()
+	;{
+	;	; Guess we will start off by looking at WeaponTargets.
+	;	
+	;
+	;
+	;}
+	
 	; This method will handle distribution of Primary Weapons Systems (guns/launchers)
 	method PrimaryWeapons()
 	{
@@ -561,19 +645,24 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		if ${CurrentOffenseTarget} == 0 || !${Entity[${CurrentOffenseTarget}](exists)} || !${Entity[${CurrentOffenseTarget}].IsLockedTarget}
 		{
 			; Well, I mean, the stuff placed in here was already pre-sorted and whatnot. Do I need to do anything more complex than just pick the first thing in the index?
-			if ${PrimaryWeap.LockedTargetList.Get[1]} > 0 && ${Entity[${PrimaryWeap.LockedTargetList.Get[1]}](exists)}
+			if (${This.GetFirstRowEntity[WeaponTargets]} > 0 && ${Entity[${This.GetFirstRowEntity[WeaponTargets]}](exists)}) || (${This.DBRowCount[WeaponTargets]} == 0 && ${This.GetFirstRowEntity[MissionTarget]} > 0 )
 			{
 				if ${WatchDog.WaitAndSee}
 				{
-					if ${PrimaryWeap.LockedTargetList.Get[2](exists)} && ${Entity[${PrimaryWeap.LockedTargetList.Get[2]}](exists)}
-						CurrentOffenseTarget:Set[${PrimaryWeap.LockedTargetList.Get[2]}]
-					else
-						CurrentOffenseTarget:Set[0]
+					CurrentOffenseTarget:Set[0]
 					WatchDog.WaitAndSee:Set[FALSE]
 				}
+				elseif (${This.DBRowCount[WeaponTargets]} == 0 && ${This.GetFirstRowEntity[MissionTarget]} > 0 )
+					CurrentOffenseTarget:Set[${This.GetFirstRowEntity[MissionTarget]}]
 				else
-					CurrentOffenseTarget:Set[${PrimaryWeap.LockedTargetList.Get[1]}]
-					
+					CurrentOffenseTarget:Set[${This.GetFirstRowEntity[WeaponTargets]}]
+				; If we have no other targets (other than drone targets), set current offense target to the MissionTarget
+				if ${ValidPrimaryWeapTargets} < 1 && ${ValidMissionTargets} > 0
+					CurrentOffenseTarget:Set[${This.GetFirstRowEntity[MissionTarget]}]
+				; If we end up attacking the mission target early, let us not do that.
+				if (${CurrentOffenseTarget} == ${This.GetFirstRowEntity[MissionTarget]}) && ${ValidWeapTargets} > 0
+					CurrentOffenseTarget:Set[${This.GetFirstRowEntity[WeaponTargets]}]
+				
 				Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]
 				
 				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE EntityID=${CurrentOffenseTarget};"]}]
@@ -588,27 +677,26 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				GetATInfo:Finalize
 				if ${Entity[${CurrentOffenseTarget}].Name.Find[${Mission.CurrentAgentDestroy}]} && ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
 					CurrentOffenseTargetExpectedShots:Set[9999999]
-				if ${NPCData.EnemyArmorRepSecond[${Entity[${CurrentOffenseTarget}].TypeID}]} > 0 || ${NPCData.EnemyShieldRepSecond[${Entity[${CurrentOffenseTarget}].TypeID}]} > 0
+				if ${NPCData.EnemyArmorRepSecond[${Entity[${CurrentOffenseTarget}].TypeID}]} > 50 || ${NPCData.EnemyShieldRepSecond[${Entity[${CurrentOffenseTarget}].TypeID}]} > 50
 					CurrentOffenseTargetExpectedShots:Set[9999999]
 				This:LogInfo["${Entity[${CurrentOffenseTarget}].Name} is expected to require ${CurrentOffenseTargetExpectedShots} Salvos to kill with current ammo"]
 			}
-		
+			
 		}
 		; Second and a halfly, we will periodically recheck the categorization of our CurrentOffenseTarget
 		if ${CurrentOffenseTarget} > 0 && ${Entity[${CurrentOffenseTarget}](exists)}
 		{
-			GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE EntityID=${CurrentOffenseTarget} AND TargetingCategory LIKE '%Primary%' OR TargetingCategory LIKE '%MissionTarget%';"]}]
-			if ${GetMTMInfo.NumRows} > 0
+			if ${This.PresentInTable[WeaponTargets,${CurrentOffenseTarget}]} || (${This.PresentInTable[MissionTarget,${CurrentOffenseTarget}]} && ${This.DBRowCount[WeaponTargets]} == 0)
 			{
-				; We have a row, that means this entity is still in a valid category for PrimaryWeaps
-				GetMTMInfo:Finalize
+				; zzzz
 			}
 			else
 			{
-				; No row, probably means this entity is now in a different category. Kick it out of the TargetList and reset CurrentOffenseTarget to 0
-				This:LogInfo["Wrong Category removing ${Entity[${CurrentOffenseTarget}].Name} from PrimaryWeap TargetList."]
-				PrimaryWeap.TargetList:Remove[${CurrentOffenseTarget}]
-				CurrentOffenseTarget:Set[0]
+				This:LogInfo["Shooting at something that ought not be shot, resetting current offense target"]
+				if (${This.GetFirstRowEntity[WeaponTargets]} > 0 && ${Entity[${This.GetFirstRowEntity[WeaponTargets]}](exists)})
+					CurrentOffenseTarget:Set[${This.GetFirstRowEntity[WeaponTargets]}]
+				else
+					CurrentOffenseTarget:Set[0]
 			}
 		}
 		if ${CurrentOffenseTarget} > 0 && ${Entity[${CurrentOffenseTarget}].IsLockedTarget}
@@ -649,25 +737,168 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	
 	
 	}
-	; Need a quick and easy way of telling if everything is beyond my lock range.
-	member:bool CanITargetTheseMooks()
+	; This method will be used to construct our Query for our TargetingDatabase.
+	method BuildQueryForDB()
 	{
-		variable iterator ActiveNPCIterator
-		ActiveNPCs.TargetList:GetIterator[ActiveNPCIterator]
-		if ${ActiveNPCIterator:First(exists)}
+		variable string QueryString="CategoryID = CATEGORYID_ENTITY && IsNPC && !IsMoribund && !("
+
+		
+		;Exclude Groups here
+		QueryString:Concat["GroupID = GROUP_CONCORDDRONE ||"]
+		QueryString:Concat["GroupID = GROUP_CONVOYDRONE ||"]
+		QueryString:Concat["GroupID = GROUP_CONVOY ||"]
+		QueryString:Concat["GroupID = GROUP_LARGECOLLIDABLEOBJECT ||"]
+		QueryString:Concat["GroupID = GROUP_LARGECOLLIDABLESHIP ||"]
+		QueryString:Concat["GroupID = GROUP_SPAWNCONTAINER ||"]
+		QueryString:Concat["GroupID = CATEGORYID_ORE ||"]
+		QueryString:Concat["GroupID = GROUP_DEADSPACEOVERSEERSSTRUCTURE ||"]
+		QueryString:Concat["GroupID = GROUP_LARGECOLLIDABLESTRUCTURE ||"]
+		; Somehow the non hostile Orca and Drone ship in the Anomaly mission is in this group
+		QueryString:Concat["GroupID = 288 ||"]		
+		QueryString:Concat["GroupID = 446 ||"]		
+		QueryString:Concat["GroupID = 182 ||"]	
+		QueryString:Concat["GroupID = 4028 ||"]
+		QueryString:Concat["GroupID = 4034 ||"]
+		QueryString:Concat["GroupID = 1803 ||"]
+		QueryString:Concat["GroupID = 1896 ||"]
+		QueryString:Concat["GroupID = 1765 ||"]
+		QueryString:Concat["GroupID = 1766 ||"]
+		QueryString:Concat["GroupID = 1764 ||"]
+		QueryString:Concat["GroupID = 1767 ||"]
+		QueryString:Concat["GroupID = 99 ||"]
+		QueryString:Concat["TypeID = 48253 ||"]
+		QueryString:Concat["TypeID = 54579 ||"]
+		QueryString:Concat["TypeID = 54580 ||"]
+		QueryString:Concat["GroupID = 1307 ||"]
+		QueryString:Concat["GroupID = 4035 ||"]
+		QueryString:Concat["GroupID = 1310 ||"]
+		QueryString:Concat["GroupID = 1956 ||"]	
+		QueryString:Concat["GroupID = 4036 ||"]	
+		QueryString:Concat["GroupID = 323 ||"]
+		if ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
+			QueryString:Concat["Name == \"${Mission.CurrentAgentDestroy}\""]
+		QueryString:Concat["GroupID = GROUP_ANCIENTSHIPSTRUCTURE ||"]
+		QueryString:Concat["GroupID = GROUP_PRESSURESOLO)"]
+			
+		DBQueryString:Set[${QueryString.Escape}]
+	}
+
+	; This member will provide a quick way for me to get a row count from our MTMDB
+	member:int DBRowCount(string LookingFor)
+	{
+		variable int FinalValue
+		if ${LookingFor.Equal[ActiveNPCs]}
+		{
+			GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting;"]}]
+			if ${GetMTMInfo.NumRows} > 0
+			{
+				FinalValue:Set[${GetMTMInfo.NumRows}]
+			}
+			else
+				FinalValue:Set[0]
+		}
+		if ${LookingFor.Equal[DroneTargets]}
+		{
+			GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Drone%';"]}]
+			if ${GetMTMInfo.NumRows} > 0
+			{
+				FinalValue:Set[${GetMTMInfo.NumRows}]
+			}
+			else
+				FinalValue:Set[0]
+		}
+		if ${LookingFor.Equal[WeaponTargets]}
+		{
+			GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%';"]}]
+			if ${GetMTMInfo.NumRows} > 0
+			{
+				FinalValue:Set[${GetMTMInfo.NumRows}]
+			}
+			else
+				FinalValue:Set[0]
+		}
+		GetMTMInfo:Finalize
+		return ${FinalValue}
+	}
+	; This member is like the previous one, but for a rowcount from our obj_TargetingDatabase DB.
+	member:int TDBRowCount(string TableName)
+	{
+		variable int FinalValue
+		
+		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * FROM ${TableName};"]}]
+		if ${GetActiveNPCs.NumRows} > 0
+		{
+			FinalValue:Set[${GetActiveNPCs.NumRows}]
+		}
+		else
+			FinalValue:Set[0]
+
+		GetMTMInfo:Finalize
+		return ${FinalValue}
+	}	
+	; This member will provide a quick way to grab the first (valid, living and locked) entity ID from a given table in our TargetingDatabase.
+	member:int64 GetFirstRowEntity(string TableName)
+	{
+		variable int64 FinalValue = 0
+		
+		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]}
+			GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} WHERE PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' ORDER BY PreferredAmmo ASC, Priority DESC;"]}]
+		else
+			GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} ORDER BY Priority DESC;"]}]
+		if ${GetActiveNPCs.NumRows} > 0
 		{
 			do
 			{
-				; I just woke up, this should work, I guess.
-				if ${ActiveNPCIterator.Value.Distance} < ${MyShip.MaxTargetRange}
-					return TRUE
-				else
+				; 
+				if !${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}].IsLockedTarget} || !${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}](exists)} || ${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}].IsMoribund}
+				{
+					GetActiveNPCs:NextRow
 					continue
-
+				}
+				else
+					FinalValue:Set[${GetActiveNPCs.GetFieldValue["EntityID"]}]
 			}
-			while ${ActiveNPCIterator:Next(exists)}
+			while !${GetActiveNPCs.LastRow} && ${FinalValue} == 0
 		}
-		return FALSE
+		elseif (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]} && ${FinalValue} == 0
+		{
+			GetActiveNPCs:Finalize
+			GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} ORDER BY Priority DESC;"]}]
+		}
+		if ${GetActiveNPCs.NumRows} > 0
+		{
+			do
+			{
+				; 
+				if !${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}].IsLockedTarget} || !${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}](exists)} || ${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}].IsMoribund}
+				{
+					GetActiveNPCs:NextRow
+					continue
+				}
+				else
+					FinalValue:Set[${GetActiveNPCs.GetFieldValue["EntityID"]}]
+			}
+			while !${GetActiveNPCs.LastRow} && ${FinalValue} == 0
+		}
+		GetActiveNPCs:Finalize
+		return ${FinalValue}
 	}
-
+	; This member will return whether a given entity is present in a given TargetingDatabase DB table.
+	member:bool PresentInTable(string TableName, int64 EntityID)
+	{
+		variable bool FinalValue
+		
+		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} WHERE EntityID=${EntityID};"]}]
+		if ${GetActiveNPCs.NumRows} > 0
+		{
+			FinalValue:Set[TRUE]
+		}
+		else
+			FinalValue:Set[FALSE]
+			
+		GetActiveNPCs:Finalize
+		return ${FinalValue}	
+	
+	
+	}
 }

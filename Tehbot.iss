@@ -40,6 +40,8 @@
 ; want to try and remove
 ;#include core/obj_Busy.iss
 
+#include core/obj_TargetingDatabase.iss
+
 ; clear
 #include core/obj_NPCData.iss
 #include core/obj_FactionData.iss
@@ -157,6 +159,7 @@ function main(string Character="")
 	declarevariable Ship obj_Ship script
 	declarevariable Ship2 obj_Ship2 script
 	declarevariable CombatComputer obj_CombatComputer script
+	;declarevariable TargetingDatabase obj_TargetingDatabase script
 	declarevariable Cargo obj_Cargo script
 	declarevariable RefineData obj_Configuration_RefineData script
 	declarevariable Drones obj_Drones script

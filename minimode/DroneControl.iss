@@ -1135,14 +1135,14 @@ objectdef obj_DroneControl inherits obj_StateQueue
 		}
 		elseif ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
 		{
-			if ((${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]} > 0) && ${Salvage.WrecksToLock.TargetList.Used} == 0) && ${Mission.DroneTargets.TargetList.Used} > 0
+			if ((${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]} > 0) && ${Salvage.WrecksToLock.TargetList.Used} == 0) && ${MissionTargetManager.TDBRowCount[DroneTargets]} > 0
 			{
 				Drones:Recall["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]
 				This:QueueState["Idle", 5000]
 				This:QueueState["DroneControl"]
 				return TRUE
 			}	
-			if (${CurrentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0) && ${Mission.DroneTargets.TargetList.Used} == 0
+			if (${CurrentTarget} == 0 && ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0) && ${MissionTargetManager.TDBRowCount[DroneTargets]} == 0
 			{
 				Drones:Recall["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]
 				This:QueueState["Idle", 5000]

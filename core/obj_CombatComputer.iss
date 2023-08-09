@@ -1,4 +1,4 @@
-objectdef obj_CombatComputer
+objectdef obj_CombatComputer inherits obj_StateQueue
 {
 	; This will be the DB where our character specific ship info lives.
 	variable sqlitedb CombatData
@@ -18,29 +18,43 @@ objectdef obj_CombatComputer
 	; This float is the time it takes to reload your weapon.
 	variable float64 ChangeTime
 	
-	variable index:int64 ActiveNPCIndex
-
+	variable queue:int64 ActiveNPCQueue
+	variable queue:int64 AmmoTableQueue
 	
+	variable queue:int64 CleanupQueue
+	
+	; To keep track of what entities we have batch processed. An index of int64.
+	variable index:int64 EntriesProcessedIndex
+
+	;;; NOT IMPLEMENTED YET, BUT SOON
+	; This int will not be configurable by the user, but just here to make my life simpler.
+	; We use this to decide how many rows to update at a time, doing all of them simultaneously is a real performance killer dontchaknow.
+	; We will start with 10 entities at a time.
+	variable int UpdateBatchSize = 6	
 	
 	method Initialize()
 	{
+		This[parent]:Initialize
+		PulseFrequency:Set[2000]
+		;This.NonGameTiedPulse:Set[TRUE]
 		CombatData:Set[${SQLite.OpenDB["CombatData",":memory:"]}]
 		;;; Going to try making this DB reside in memory instead. We are going to be writing and reading to this fucker a gazillion times a second probably. Also the information is meant to be destroyed at the end
 		;;; not going to be pulling any stats from this specific DB.
 		;;; Addendum, at first I need to see the results of this table, lets see how poorly this goes.
 		;CombatData:Set[${SQLite.OpenDB["${Me.Name}CombatData","${Script.CurrentDirectory}/Data/${Me.Name}CombatData.sqlite3"]}]
-		CombatData:ExecDML["PRAGMA journal_mode=WAL;"]
+		;CombatData:ExecDML["PRAGMA journal_mode=WAL;"]
 		if !${CombatData.TableExists["CurrentData"]}
 		{
 			echo DEBUG - CombatComputer - Creating CurrentData Table
-			CombatData:ExecDML["create table CurrentData (EntityID INTEGER PRIMARY KEY, NPCName TEXT, NPCTypeID INTEGER, CurDist REAL, FtrDist REAL, CurVel REAL, MaxVel REAL, CruiseVel REAL, NeutRng REAL, NeutStr REAL, EWARType TEXT, EWARStr REAL, EWARRng REAL, WebRng REAL, WrpDisRng REAL, WrpScrRng REAL, EffNPCDPS REAL, ThreatLevel INTEGER);"]
+			CombatData:ExecDML["create table CurrentData (EntityID INTEGER PRIMARY KEY, NPCName TEXT, NPCTypeID INTEGER, CurDist REAL, FtrDist REAL, CurVel REAL, MaxVel REAL, CruiseVel REAL, NeutRng REAL, NeutStr REAL, EWARType TEXT, EWARStr REAL, EWARRng REAL, WebRng REAL, WrpDisRng REAL, WrpScrRng REAL, EffNPCDPS REAL, ThreatLevel INTEGER, LastUpdate INTEGER, UpdateType TEXT);"]
 		}
 		; This table will relate our ammo effectiveness against each NPC. 
 		if !${CombatData.TableExists["AmmoTable"]}
 		{
 			echo DEBUG - CombatComputer - Creating AmmoTable
-			CombatData:ExecDML["create table AmmoTable (EntityID INTEGER NOT NULL, AmmoTypeID INTEGER NOT NULL, AmmoName TEXT, ExpectedShotDmg REAL, ShotsToKill REAL, TimeToKill REAL, OurDamageEff REAL, ChangeTime REAL, PRIMARY KEY(EntityID, AmmoTypeID));"]
+			CombatData:ExecDML["create table AmmoTable (EntityID INTEGER NOT NULL, AmmoTypeID INTEGER NOT NULL, AmmoName TEXT, ExpectedShotDmg REAL, ShotsToKill REAL, TimeToKill REAL, OurDamageEff REAL, ChangeTime REAL, LastUpdate INTEGER, PRIMARY KEY(EntityID, AmmoTypeID));"]
 		}
+		This:QueueState["CombatComputerHub"]
 	}
  
 	method Shutdown()
@@ -63,85 +77,154 @@ objectdef obj_CombatComputer
 	;;; Entity ID, Ammo Type ID, Expected Shot Damage (effective, after resists), Predicted Shots to Kill, Predicted Time to Kill, Estimated % Of our Damage that will Land, Time to change ammo.
 	;;; 
 	;;; This info is going to be a tall order, but I think I can manage.
-	
-	; One DB method to rule them all
-	method UpsertCurrentData()
+
+	; Going to convert this object to use the state queue, so we can go through our processing queue in discreet portions.
+	member:bool CombatComputerHub()
 	{
-		echo DEBUG COMBAT COMPUTER UCD ${ActiveNPCIndex.Used}
+		if !${Client.InSpace} || ${MyShip.ToEntity.Mode} == MOVE_WARPING
+			return FALSE
+		if ${ActiveNPCQueue.Peek} < 1
+			return FALSE
+
+		; Lets clean up our tables
+		This:CleanupTables
+		; The argument is how many entities we want to process at a time.
+		This:UpsertCurrentData[${UpdateBatchSize}]
 		
-		if !${ActiveNPCIndex.Used}
-			return
-		variable iterator EntityIDIterator
-		ActiveNPCIndex:GetIterator[EntityIDIterator]
-		if ${EntityIDIterator:First(exists)}
-		do
+
+		return FALSE
+		
+	}
+	; This method will prefill the table with info so we can update in discrete chunks and keep track of when we last touched a given row.
+	; This one will just pass along the BatchCount argument. This prefill shouldnt include anything too resource heavy.
+	method UpsertCurrentData(int BatchCount)
+	{
+
+		variable int64 ProcessedCount
+
+		if ${ActiveNPCQueue.Peek} > 0
 		{
-			if !${Entity[${EntityIDIterator.Value}](exists)}
-				continue
-			;echo (${EntityIDIterator.Value}, '${This.NPCName[${EntityIDIterator.Value}].ReplaceSubstring[','']}', ${This.NPCTypeID[${EntityIDIterator.Value}]}, ${This.NPCCurrentDist[${EntityIDIterator.Value}]}, ${This.NPCFutureDist[${EntityIDIterator.Value}]}, ${This.NPCCurrentVel[${EntityIDIterator.Value}]}, ${This.NPCMaximumVel[${EntityIDIterator.Value}]}, ${This.NPCCruiseVel[${EntityIDIterator.Value}]}, ${This.NPCNeutRange[${EntityIDIterator.Value}]}, ${This.NPCNeutAmount[${EntityIDIterator.Value}]}, '${This.NPCEWARType[${EntityIDIterator.Value}]}', ${This.NPCEWARStrength[${EntityIDIterator.Value}]}, ${This.NPCEWARRange[${EntityIDIterator.Value}]}, ${This.NPCWebRange[${EntityIDIterator.Value}]}, ${This.NPCDisruptRange[${EntityIDIterator.Value}]}, ${This.NPCScramRange[${EntityIDIterator.Value}]}, ${This.NPCDPSOutput[${EntityIDIterator.Value}]}, ${This.NPCThreatLevel[${EntityIDIterator.Value}]})	
-			;echo ${This.NPCDPSOutput[${EntityIDIterator.Value}]}
-			CurrentDataTransactionIndex:Insert["insert into CurrentData (EntityID, NPCName, NPCTypeID, CurDist, FtrDist, CurVel, MaxVel, CruiseVel, NeutRng, NeutStr, EWARType, EWARStr, EWARRng, WebRng, WrpDisRng, WrpScrRng, EffNPCDPS, ThreatLevel) values (${EntityIDIterator.Value}, '${This.NPCName[${EntityIDIterator.Value}].ReplaceSubstring[','']}', ${This.NPCTypeID[${EntityIDIterator.Value}]}, ${This.NPCCurrentDist[${EntityIDIterator.Value}]}, ${This.NPCFutureDist[${EntityIDIterator.Value}]}, ${This.NPCCurrentVel[${EntityIDIterator.Value}]}, ${This.NPCMaximumVel[${EntityIDIterator.Value}]}, ${This.NPCCruiseVel[${EntityIDIterator.Value}]}, ${This.NPCNeutRange[${EntityIDIterator.Value}]}, ${This.NPCNeutAmount[${EntityIDIterator.Value}]}, '${This.NPCEWARType[${EntityIDIterator.Value}]}', ${This.NPCEWARStrength[${EntityIDIterator.Value}]}, ${This.NPCEWARRange[${EntityIDIterator.Value}]}, ${This.NPCWebRange[${EntityIDIterator.Value}]}, ${This.NPCDisruptRange[${EntityIDIterator.Value}]}, ${This.NPCScramRange[${EntityIDIterator.Value}]}, ${This.NPCDPSOutput[${EntityIDIterator.Value}]}, ${This.NPCThreatLevel[${EntityIDIterator.Value}]}) ON CONFLICT (EntityID) DO UPDATE SET CurDist=excluded.CurDist, CurVel=excluded.CurVel, EffNPCDps=excluded.EffNPCDPS, ThreatLevel=excluded.ThreatLevel;"]
+			do
+			{
+				if !${Entity[${ActiveNPCQueue.Peek}](exists)} || ${Entity[${ActiveNPCQueue.Peek}].IsMoribund}
+				{
+					ActiveNPCQueue:Dequeue
+					continue
+				}
+				CurrentDataTransactionIndex:Insert["insert into CurrentData (EntityID, NPCName, NPCTypeID, CurDist, FtrDist, CurVel, MaxVel, CruiseVel, NeutRng, NeutStr, EWARType, EWARStr, EWARRng, WebRng, WrpDisRng, WrpScrRng, EffNPCDPS, ThreatLevel, LastUpdate, UpdateType) values (${ActiveNPCQueue.Peek}, '${This.NPCName[${ActiveNPCQueue.Peek}].ReplaceSubstring[','']}', ${This.NPCTypeID[${ActiveNPCQueue.Peek}]}, ${This.NPCCurrentDist[${ActiveNPCQueue.Peek}]}, ${This.NPCFutureDist[${ActiveNPCQueue.Peek}]}, ${This.NPCCurrentVel[${ActiveNPCQueue.Peek}]}, ${This.NPCMaximumVel[${ActiveNPCQueue.Peek}]}, ${This.NPCCruiseVel[${ActiveNPCQueue.Peek}]}, ${This.NPCNeutRange[${ActiveNPCQueue.Peek}]}, ${This.NPCNeutAmount[${ActiveNPCQueue.Peek}]}, '${This.NPCEWARType[${ActiveNPCQueue.Peek}]}', ${This.NPCEWARStrength[${ActiveNPCQueue.Peek}]}, ${This.NPCEWARRange[${ActiveNPCQueue.Peek}]}, ${This.NPCWebRange[${ActiveNPCQueue.Peek}]}, ${This.NPCDisruptRange[${ActiveNPCQueue.Peek}]}, ${This.NPCScramRange[${ActiveNPCQueue.Peek}]}, ${This.NPCDPSOutput[${ActiveNPCQueue.Peek}]}, ${This.NPCThreatLevel[${ActiveNPCQueue.Peek}]}, ${Time.Timestamp}, 'Maintain') ON CONFLICT (EntityID) DO UPDATE SET CurDist=excluded.CurDist, CurVel=excluded.CurVel, EffNPCDps=excluded.EffNPCDPS, ThreatLevel=excluded.ThreatLevel, LastUpdate=excluded.LastUpdate, UpdateType=excluded.UpdateType;"]
+				AmmoTableQueue:Queue[${ActiveNPCQueue.Peek}]
+				ActiveNPCQueue:Dequeue
+				ProcessedCount:Inc[1]
+			}
+			while (${ActiveNPCQueue.Peek} > 0) && (${ProcessedCount} <= ${BatchCount})
 		}
-		while ${EntityIDIterator:Next(exists)}
 		
-		CombatData:ExecDMLTransaction[CurrentDataTransactionIndex]
-		CurrentDataTransactionIndex:Clear
-		This:UpsertAmmoTable
+		if ${CurrentDataTransactionIndex.Used} > 0
+		{
+			CombatData:ExecDMLTransaction[CurrentDataTransactionIndex]
+			CurrentDataTransactionIndex:Clear
+		}
+		
+		if ${AmmoTableQueue.Peek} > 0
+		{
+			This:UpsertAmmoTable
+		}
 	}
 	
 	; I lied, another table exists.
 	method UpsertAmmoTable()
 	{
-		echo DEBUG COMBAT COMPUTER UAT
-		if !${ActiveNPCIndex.Used}
-			return
-		variable iterator EntityIDIterator
-		ActiveNPCIndex:GetIterator[EntityIDIterator]
-		if ${EntityIDIterator:First(exists)}
-		do
+		variable int64 TempEntID
+		; We will process the entries from the previous method.
+		echo DEBUG COMBAT COMPUTER UAT ${AmmoTableQueue.Used}
+
+		if ${AmmoTableQueue.Peek} > 0
 		{
-			if !${Entity[${EntityIDIterator.Value}](exists)}
-				continue
-			variable iterator AmmoCollectionIterator
-			echo ${AmmoCollection.Size} AMMO COLLECTION SIZE
-			if ${AmmoCollection.Size} < 1
-				return
-			AmmoCollection:GetIterator[AmmoCollectionIterator]
-			if ${AmmoCollectionIterator:First(exists)}
+			do
 			{
-				do
+				if !${Entity[${AmmoTableQueue.Peek}](exists)}
 				{
-					echo DEBUG AMMOTABLE (${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, '${AmmoCollectionIterator.Key.ReplaceSubstring[','']}', ${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "ExpectedShotDmg"]}, ${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "ShotsToKill"]}, ${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "TimeToKill"]} ,${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "OurDamageEff"]}, ${ChangeTime})
-					AmmoTableTransactionIndex:Insert["insert into AmmoTable (EntityID, AmmoTypeID, AmmoName, ExpectedShotDmg, ShotsToKill, TimeToKill, OurDamageEff, ChangeTime) values (${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, '${AmmoCollectionIterator.Key.ReplaceSubstring[','']}', ${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "ExpectedShotDmg"]}, ${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "ShotsToKill"]}, ${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "TimeToKill"]} ,${This.ExpectedShotDmg[${EntityIDIterator.Value}, ${AmmoCollectionIterator.Value}, "OurDamageEff"]}, ${ChangeTime}) ON CONFLICT (EntityID, AmmoTypeID) DO UPDATE SET ExpectedShotDmg=excluded.ExpectedShotDmg, ShotsToKill=excluded.ShotsToKill, TimeToKill=excluded.TimeToKill, OurDamageEff=excluded.OurDamageEff;"]
-					;echo plz hold
+					AmmoTableQueue:Dequeue
+					continue
 				}
-				while ${AmmoCollectionIterator:Next(exists)}
+				variable iterator AmmoCollectionIterator
+				echo ${AmmoCollection.Size} AMMO COLLECTION SIZE
+				if ${AmmoCollection.Size} < 1
+					break
+				AmmoCollection:GetIterator[AmmoCollectionIterator]
+				if ${AmmoCollectionIterator:First(exists)}
+				{
+					do
+					{
+						AmmoTableTransactionIndex:Insert["insert into AmmoTable (EntityID, AmmoTypeID, AmmoName, ExpectedShotDmg, ShotsToKill, TimeToKill, OurDamageEff, ChangeTime, LastUpdate) values (${AmmoTableQueue.Peek}, ${AmmoCollectionIterator.Value}, '${AmmoCollectionIterator.Key.ReplaceSubstring[','']}', ${This.ExpectedShotDmg[${AmmoTableQueue.Peek}, ${AmmoCollectionIterator.Value}, "ExpectedShotDmg"]}, ${This.ExpectedShotDmg[${AmmoTableQueue.Peek}, ${AmmoCollectionIterator.Value}, "ShotsToKill"]}, ${This.ExpectedShotDmg[${AmmoTableQueue.Peek}, ${AmmoCollectionIterator.Value}, "TimeToKill"]} ,${This.ExpectedShotDmg[${AmmoTableQueue.Peek}, ${AmmoCollectionIterator.Value}, "OurDamageEff"]}, ${ChangeTime}, ${Time.Timestamp}) ON CONFLICT (EntityID, AmmoTypeID) DO UPDATE SET ExpectedShotDmg=excluded.ExpectedShotDmg, ShotsToKill=excluded.ShotsToKill, TimeToKill=excluded.TimeToKill, OurDamageEff=excluded.OurDamageEff, LastUpdate=excluded.LastUpdate;"]
+						echo AmmoTableTransactionIndex:Insert["insert into AmmoTable (EntityID, AmmoTypeID, AmmoName, ExpectedShotDmg, ShotsToKill, TimeToKill, OurDamageEff, ChangeTime, LastUpdate) values (${AmmoTableQueue.Peek}, ${AmmoCollectionIterator.Value}, '${AmmoCollectionIterator.Key.ReplaceSubstring[','']}', ${This.ExpectedShotDmg[${AmmoTableQueue.Peek}, ${AmmoCollectionIterator.Value}, "ExpectedShotDmg"]}, ${This.ExpectedShotDmg[${AmmoTableQueue.Peek}, ${AmmoCollectionIterator.Value}, "ShotsToKill"]}, ${This.ExpectedShotDmg[${AmmoTableQueue.Peek}, ${AmmoCollectionIterator.Value}, "TimeToKill"]} ,${This.ExpectedShotDmg[${AmmoTableQueue.Peek}, ${AmmoCollectionIterator.Value}, "OurDamageEff"]}, ${ChangeTime}, ${Time.Timestamp}) ON CONFLICT (EntityID, AmmoTypeID) DO UPDATE SET ExpectedShotDmg=excluded.ExpectedShotDmg, ShotsToKill=excluded.ShotsToKill, TimeToKill=excluded.TimeToKill, OurDamageEff=excluded.OurDamageEff, LastUpdate=excluded.LastUpdate;"]
+
+					}
+					while ${AmmoCollectionIterator:Next(exists)}
+				}
+				AmmoTableQueue:Dequeue
 			}
+			while ${AmmoTableQueue.Peek} > 0
 		}
-		while ${EntityIDIterator:Next(exists)}
+		if ${AmmoTableTransactionIndex.Used} > 0
+		{
+			CombatData:ExecDMLTransaction[AmmoTableTransactionIndex]
+			AmmoTableTransactionIndex:Clear
+		}
+		This:CleanupTables
 		
-		CombatData:ExecDMLTransaction[AmmoTableTransactionIndex]
-		AmmoTableTransactionIndex:Clear
-		ActiveNPCIndex:Clear
 	}
 	
 	; And a method to remove things that don't belong here anymore.
 	; We won't be employing this just yet. Also it isn't built yet.
 	; Addendum, ultimately this DB will reside entirely within memory (after I get everything working) so this doesn't really need to exist at all.
+	;; ADDENDUM - We will clean up.
 	method CleanupTables()
 	{
-		; Well, if it doesn't exist, kick it from the Table and move on.
-		if !${Entity[${EntityID}](exists)}
+		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM AmmoTable;"]}]
+		if ${GetCurrentData.NumRows} > 0
 		{
-			This:LogInfo["CombatComputer - Removing Entity ${EntityID} From Table"]
-			CombatData:ExecDML["Delete FROM AmmoTable WHERE EntityID=${EntityID};"]
-			return
+			do
+			{
+				if !${Entity[${GetCurrentData.GetFieldValue["EntityID"]}](exists)} 
+					CleanupQueue:Queue[${GetCurrentData.GetFieldValue["EntityID"]}]
+					
+				GetCurrentData:NextRow
+			}
+			while !${GetCurrentData.LastRow}
+			GetCurrentData:Finalize
 		}
-		if !${Entity[${EntityID}](exists)}
+		if ${CleanupQueue.Peek}
 		{
-			This:LogInfo["CombatComputer - Removing Entity ${EntityID} From Table"]
-			CombatData:ExecDML["Delete FROM CurrentData WHERE EntityID=${EntityID};"]
-			return
+			do
+			{
+				CombatData:ExecDML["Delete FROM AmmoTable WHERE EntityID=${CleanupQueue.Peek};"]
+				CleanupQueue:Dequeue
+			}
+			while ${CleanupQueue.Peek}
+		}
+		GetCurrentData:Finalize
+		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData;"]}]
+		if ${GetCurrentData.NumRows} > 0
+		{
+			do
+			{
+				if !${Entity[${GetCurrentData.GetFieldValue["EntityID"]}](exists)} 
+					CleanupQueue:Queue[${GetCurrentData.GetFieldValue["EntityID"]}]
+					
+				GetCurrentData:NextRow
+			}
+			while !${GetCurrentData.LastRow}
+			GetCurrentData:Finalize
+		}
+		if ${CleanupQueue.Peek}
+		{
+			do
+			{
+				CombatData:ExecDML["Delete FROM CurrentData WHERE EntityID=${CleanupQueue.Peek};"]
+				CleanupQueue:Dequeue
+			}
+			while ${CleanupQueue.Peek}
 		}
 	}
 	; This member will return the Name of the given enemy.
