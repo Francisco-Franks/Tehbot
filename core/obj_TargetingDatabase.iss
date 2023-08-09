@@ -455,7 +455,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 			else
 				DidItActuallyChange:Set[1]
 		}
-		TargetingDatabase:ExecDML["update Origin SET TableQueryString='${NewQueryString}', QueryChanged=${DidItActuallyChange} WHERE TableName='${TableName}';"]
+		TargetingDatabase:ExecDML["update Origin SET TableQueryString='${NewQueryString.ReplaceSubstring[','']}}', QueryChanged=${DidItActuallyChange} WHERE TableName='${TableName}';"]
 	}
 	
 	; This method will be used to populate the priorities of a given table, for Mission Target Manager specifically. I'll work on the others later.
