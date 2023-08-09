@@ -300,7 +300,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					continue
 				}
 				; First up, do we NEED more locks? If we have as many locks as we reserve, or more, then...
-				if (${This.TableOwnedLocks[${TableName}]} >= ${This.TableReservedLocks[${TableName}]}) || (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} <= 1) || (${LockedHowMany} > ${This.TableReservedLocks[${TableName}]})
+				if (${This.TableOwnedLocks[${TableName}]} >= ${This.TableReservedLocks[${TableName}]}) || (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} <= 1) || (${LockedHowMany} > ${Math.Calc[${This.TableReservedLocks[${TableName}]}+${This.TableOwnedLocks[${TableName}]}]})
 				{
 					; No locks for now. May as well exit the loop. In the future we may have a bypass for when we NEED A LOCK RIGHT NOW.
 					break
@@ -315,7 +315,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				}
 				GetOtherTableInfo:NextRow
 			}
-			while !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${This.TableReservedLocks[${TableName}]})
+			while !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
 			GetOtherTableInfo:Finalize
 		}
 		elseif (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]} && (${LockedHowMany} <= ${This.TableReservedLocks[${TableName}]})
@@ -334,7 +334,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					continue
 				}
 				; First up, do we NEED more locks? If we have as many locks as we reserve, or more, then...
-				if (${This.TableOwnedLocks[${TableName}]} >= ${This.TableReservedLocks[${TableName}]}) || (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} <= 1) || (${LockedHowMany} > ${This.TableReservedLocks[${TableName}]})
+				if (${This.TableOwnedLocks[${TableName}]} >= ${This.TableReservedLocks[${TableName}]}) || (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} <= 1) || (${LockedHowMany} > ${Math.Calc[${This.TableReservedLocks[${TableName}]}+${This.TableOwnedLocks[${TableName}]}]})
 				{
 					; No locks for now. May as well exit the loop. In the future we may have a bypass for when we NEED A LOCK RIGHT NOW.
 					break
@@ -349,7 +349,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				}
 				GetOtherTableInfo:NextRow
 			}
-			while !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${This.TableReservedLocks[${TableName}]})
+			while !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
 		}
 		GetOtherTableInfo:Finalize
 		; Lets get those updates through.
