@@ -775,8 +775,6 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		QueryString:Concat["GroupID = 1956 ||"]	
 		QueryString:Concat["GroupID = 4036 ||"]	
 		QueryString:Concat["GroupID = 323 ||"]
-		if ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
-			QueryString:Concat["Name == \"${Mission.CurrentAgentDestroy}\""]
 		QueryString:Concat["GroupID = GROUP_ANCIENTSHIPSTRUCTURE ||"]
 		QueryString:Concat["GroupID = GROUP_PRESSURESOLO)"]
 			
