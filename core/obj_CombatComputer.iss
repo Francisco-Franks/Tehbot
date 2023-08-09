@@ -37,7 +37,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		This[parent]:Initialize
 		PulseFrequency:Set[2000]
 		;This.NonGameTiedPulse:Set[TRUE]
-		CombatData:Set[${SQLite.OpenDB["CombatData",":memory:"]}]
+		;CombatData:Set[${SQLite.OpenDB["CombatData",":memory:"]}]
 		;;; Going to try making this DB reside in memory instead. We are going to be writing and reading to this fucker a gazillion times a second probably. Also the information is meant to be destroyed at the end
 		;;; not going to be pulling any stats from this specific DB.
 		;;; Addendum, at first I need to see the results of this table, lets see how poorly this goes.
