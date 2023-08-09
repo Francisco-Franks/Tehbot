@@ -314,6 +314,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				GetOtherTableInfo:NextRow
 			}
 			while !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${This.TableReservedLocks[${TableName}]})
+			GetOtherTableInfo:Finalize
 		}
 		elseif (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]} && (${LockedHowMany} <= ${This.TableReservedLocks[${TableName}]})
 		{

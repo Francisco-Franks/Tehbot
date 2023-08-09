@@ -857,6 +857,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 					FinalValue:Set[${GetActiveNPCs.GetFieldValue["EntityID"]}]
 			}
 			while !${GetActiveNPCs.LastRow} && ${FinalValue} == 0
+			GetActiveNPCs:Finalize
 		}
 		elseif (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]} && ${FinalValue} == 0
 		{
