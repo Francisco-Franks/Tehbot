@@ -850,6 +850,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	{
 		variable float64 FinalValue
 		variable bool Missl
+		variable bool Precision
 		variable collection:string DmgPMCollection
 		; Need this for the Shots to Kill return
 		variable int ShotCounter
@@ -866,6 +867,10 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		{
 			echo EXPECTEDSHOTDMG MISSL
 			GetShipInfo:Set[${Ship2.MyShipInfo.ExecQuery["Select * FROM ShipAmmunitionMissile WHERE AmmoTypeID=${AmmoID};"]}]
+			; We need precisions to show as having ever so slightly less damage so that we will prefer normal missiles if the difference is very little.
+			if ${GetShipInfo.GetFieldValue["AmmoType"].Find[Precision]}
+				Precision:Set[TRUE]
+				
 			Missl:Set[TRUE]
 		}
 		echo DEBUG EXPECTEDSHOTDMG GETSHIPINFO NUMROWS ${GetShipInfo.NumRows}
@@ -878,6 +883,13 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		AmmoDmgKin:Set[${GetShipInfo.GetFieldValue["KinDamage"]}]
 		variable float64 AmmoDmgTherm
 		AmmoDmgTherm:Set[${GetShipInfo.GetFieldValue["ThermDamage"]}]
+		if ${Precision} && ${Missl}
+		{
+			AmmoDmgEM:Set[${Math.Calc[${AmmoDmgEM}*.95]}]
+			AmmoDmgExp:Set[${Math.Calc[${AmmoDmgExp}*.95]}]
+			AmmoDmgKin:Set[${Math.Calc[${AmmoDmgKin}*.95]}]
+			AmmoDmgTherm:Set[${Math.Calc[${AmmoDmgTherm}*.95]}]
+		}
 		echo DEBUG PRE-MOD AMMO DMG EM ${AmmoDmgEM} Exp ${AmmoDmgExp} Kin ${AmmoDmgKin} Therm ${AmmoDmgTherm}
 		; Our ammunition's Turret Damage Application Parameters
 		variable float64 TurretTrack
