@@ -164,14 +164,15 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			This:LockManagement
 			
 		
-		if (${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${This.DBRowCount[ActiveNPCs]} < 1 && ${This.DBRowCount[WeaponTargets]} < 1
+		if ((${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${This.DBRowCount[ActiveNPCs]} < 1 && ${This.DBRowCount[WeaponTargets]} < 1) || (${This.TableWithinRange[WeaponTargets]} == 0 || ${This.TableWithinRange[ActiveNPCs]} == 0)
 		{
 			echo DEBUG MTM TARGET DEAD DEACTIVATE SIEGE
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_CommandBurst:DeactivateAll
 		}
-		if ${This.DBRowCount[WeaponTargets]} > 0 || ${This.TDBRowCount[WeaponTargets]} > 0 || (${This.DBRowCount[WeaponTargets]} == 0 && ${This.TDBRowCount[MissionTarget]} > 0)
+		if (${This.DBRowCount[WeaponTargets]} > 0 || ${This.TDBRowCount[WeaponTargets]} > 0 || (${This.DBRowCount[WeaponTargets]} == 0 && ${This.TDBRowCount[MissionTarget]} > 0)) && (${This.TableWithinRange[WeaponTargets]} > 0 || ${This.TableWithinRange[ActiveNPCs]} > 0)
 		{
+			echo ALLOWING SIEGE ${This.TableWithinRange[WeaponTargets]} ${This.TableWithinRange[ActiveNPCs]}
 			AllowSiegeModule:Set[TRUE]
 		}
 		if ${AllowSiegeModule} && \
@@ -186,7 +187,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			Ship.ModuleList_Siege:DeactivateAll
 		}
 		; For when I inevitably make this for all modes not just mission, it will need to control its own siege allowance.
-		if !${CommonConfig.Tehbot_Mode.Find["Mission"]} && ${CurrentOffenseTarget} > 0
+		if !${CommonConfig.Tehbot_Mode.Find["Mission"]} && ${CurrentOffenseTarget} > 0 && (${This.TableWithinRange[WeaponTargets]} > 0)
 		{
 			AllowSiegeModule:Set[TRUE]
 		}
@@ -214,17 +215,17 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			DroneControl.CurrentTarget:Set[${This.GetFirstRowEntity[DroneTargets]}]
 		if ${This.DBRowCount[WeaponTargets]} > 0 && ${This.DBRowCount[DroneTargets]} == 0 && ${Entity[${This.GetFirstRowEntity[WeaponTargets]}](exists)}
 		{
-			DroneTargets:AddQueryString["ID == ${This.GetFirstRowEntity[WeaponTargets]}"]
+			DroneControl.CurrentTarget:Set[${This.GetFirstRowEntity[DroneTargets]}]
 		}
-		if (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${This.GetFirstRowEntity[ActiveNPCs]}]})  && ${Entity[${This.GetFirstRowEntity[ActiveNPCs]}](exists)} && ${This.DBRowCount[WeaponTargets]} == 0
+		if (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${This.GetClosestEntity[ActiveNPCs]}]}) && ${Entity[${This.GetClosestEntity[ActiveNPCs]}](exists)} && ${This.TableWithinRange[ActiveNPCs]} == 0
 		{
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
-			This:LogInfo["Approaching out of range target: \ar${Entity[${This.GetFirstRowEntity[ActiveNPCs]}].Name}"]
-			Entity[${This.GetFirstRowEntity[ActiveNPCs]}]:Approach		
+			This:LogInfo["Approaching out of range target: \ar${Entity[${This.GetClosestEntity[ActiveNPCs]}].Name}"]
+			Entity[${This.GetClosestEntity[ActiveNPCs]}]:Approach		
 		}
 		; Well, if all that is left are drone targets, may as well approach our mission objective or orbit the next gate or something.
-		if (${This.DBRowCount[ActiveNPCs]} > 0 && ${This.DBRowCount[WeaponTargets]} < 1 && ${This.DBRowCount[DroneTargets]} > 1) && !${Move.Traveling} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING
+		if (${This.DBRowCount[ActiveNPCs]} > 0 && ${This.DBRowCount[WeaponTargets]} < 1 && ${This.DBRowCount[DroneTargets]} > 1) && !${Move.Traveling} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING && ${MyShip.ToEntity.Mode} != MOVE_ORBITING
 		{
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll		
@@ -831,6 +832,40 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		GetActiveNPCs:Finalize
 		return ${FinalValue}	
 	
+	
+	}
+	; This member will return how many valid targets in a given table are within our ships lock range * 0.95
+	member:int TableWithinRange(string TableName)
+	{
+		variable int FinalValue
+		
+		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} WHERE Distance<${Math.Calc[${MyShip.MaxTargetRange} * .95]};"]}]
+		if ${GetActiveNPCs.NumRows} > 0
+		{
+			FinalValue:Set[${GetActiveNPCs.NumRows}]
+		}
+		else
+			FinalValue:Set[0]
+			
+		GetActiveNPCs:Finalize
+		return ${FinalValue}			
+	
+	}
+	; This member will return the closest entity from a given table
+	member:int64 GetClosestEntity(string TableName)
+	{
+		variable int64 FinalValue
+		
+		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} ORDER BY Distance DESC;"]}]
+		if ${GetActiveNPCs.NumRows} > 0
+		{
+			FinalValue:Set[${GetActiveNPCs.GetFieldValue["EntityID"]}]
+		}
+		else
+			FinalValue:Set[0]
+			
+		GetActiveNPCs:Finalize
+		return ${FinalValue}			
 	
 	}
 }
