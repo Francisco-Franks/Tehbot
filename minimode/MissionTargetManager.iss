@@ -140,6 +140,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			Ship2:GetAmmoInformation
 			Ship2:GetReloadTime
+			Ship2:CleanupAmmoTable
 
 			GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ActiveNPCs UNION SELECT * From MissionTarget;"]}]
 
