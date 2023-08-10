@@ -264,8 +264,10 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		variable string TargetingCategory
 		; Index for bulk transaction.
 		variable index:string TargetingUpsertIndex
-		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ActiveNPCs UNION SELECT * From MissionTarget;"]}]
-
+		if ${This.DBRowCount[ActiveNPCs]} == 0 && ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
+			GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ActiveNPCs UNION SELECT * From MissionTarget;"]}]
+		else
+			GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ActiveNPCs;"]}]
 		if ${GetActiveNPCs.NumRows} > 0
 		{
 			do

@@ -251,44 +251,44 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				}
 				; If it is still locked, see if it SHOULD still be locked. This will involve looking at Priorities, and probably other complicated things. Heck.
 				;;; ADDENDUM - Need two versions for this, one for lasers one for not.
-				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]}
-				{
-					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
-					if ${GetMoreTableInfo.NumRows} > 0
-					{
-						; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
-						if ${Math.Calc[(${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} < 1
-						{
-							; If we have less than 1 available lock right now, drop this target.
-							PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
-							Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
-							RecentlyUnlocked:Inc[1]
-						}
-					}
-					else
-					{
-						GetMoreTableInfo:Finalize
-						GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
-						if ${GetMoreTableInfo.NumRows} > 0
-						{
-							; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
-							if ${Math.Calc[(${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} < 1
-							{
-								; If we have less than 1 available lock right now, drop this target.
-								PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
-								Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
-								RecentlyUnlocked:Inc[1]
-							}
-						}						
-						else
-						{
-							; Nope no need to change course on this one. Just update its last update time and continue.
-							PendingTransaction:Insert["update ${TableName} SET RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
-						}
-						GetMoreTableInfo:Finalize
-					}
-				}
-				elseif ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]} || ${TableName.Equal[DroneTargets]})
+				;if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]}
+				;{
+				;	GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
+				;	if ${GetMoreTableInfo.NumRows} > 0
+				;	{
+				;		; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
+				;		if ${Math.Calc[(${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} < 1
+				;		{
+				;			; If we have less than 1 available lock right now, drop this target.
+				;			PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+				;			Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
+				;			RecentlyUnlocked:Inc[1]
+				;		}
+				;	}
+				;	else
+				;	{
+				;		GetMoreTableInfo:Finalize
+				;		GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
+				;		if ${GetMoreTableInfo.NumRows} > 0
+				;		{
+				;			; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
+				;			if ${Math.Calc[(${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} < 1
+				;			{
+				;				; If we have less than 1 available lock right now, drop this target.
+				;				PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+				;				Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
+				;				RecentlyUnlocked:Inc[1]
+				;			}
+				;		}						
+				;		else
+				;		{
+				;			; Nope no need to change course on this one. Just update its last update time and continue.
+				;			PendingTransaction:Insert["update ${TableName} SET RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+				;		}
+				;		GetMoreTableInfo:Finalize
+				;	}
+				;}
+				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]} || ${TableName.Equal[DroneTargets]})
 				{
 					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
 					if ${GetMoreTableInfo.NumRows} > 0
@@ -322,13 +322,13 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		}
 		; And now we get to the good stuff, Unlocked Targets.
 		;;; Addendum, still the same but now we need 2, one for laser ships and everything that isnt a WeaponTargets table, and then one for WeaponTargets table without lasers.
-		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]}
-		{
-			GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' ORDER BY Priority DESC;"]}]
+		;if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]}
+		;{
+		;	GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' ORDER BY Priority DESC;"]}]
 			
-		}
-		else
-			GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' ORDER BY Priority DESC;"]}]
+		;}
+		;else
+		GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' ORDER BY Priority DESC;"]}]
 		if ${GetOtherTableInfo.NumRows} > 0
 		{
 			do
@@ -358,38 +358,38 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 			while !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
 			GetOtherTableInfo:Finalize
 		}
-		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]}  && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
-		{
-			GetOtherTableInfo:Finalize
-			GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' ORDER BY Priority DESC;"]}]
-		}
-		if ${GetOtherTableInfo.NumRows} > 0
-		{
-			do
-			{
-				; Zeroth up, is this row's entity out of our lock range or dead? Skip this row.
-				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund} || !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || (${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} > ${Math.Calc[${MyShip.MaxTargetRange} * .95]})
-				{
-					GetOtherTableInfo:NextRow
-					continue
-				}
+		;if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]}  && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
+		;{
+		;	GetOtherTableInfo:Finalize
+		;	GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' ORDER BY Priority DESC;"]}]
+		;}
+		;if ${GetOtherTableInfo.NumRows} > 0
+		;{
+		;	do
+		;	{
+		;		; Zeroth up, is this row's entity out of our lock range or dead? Skip this row.
+		;		if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund} || !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || (${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} > ${Math.Calc[${MyShip.MaxTargetRange} * .95]})
+		;		{
+		;			GetOtherTableInfo:NextRow
+		;			continue
+		;		}
 				; First up, do we NEED more locks? If we have as many locks as we reserve, or more, then...
-				if (${This.TableOwnedLocks[${TableName}]} >= ${This.TableReservedLocks[${TableName}]}) || (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} <= 1) || (${LockedHowMany} > ${Math.Calc[${This.TableReservedLocks[${TableName}]}+${This.TableOwnedLocks[${TableName}]}]})
-				{
+		;		if (${This.TableOwnedLocks[${TableName}]} >= ${This.TableReservedLocks[${TableName}]}) || (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} <= 1) || (${LockedHowMany} > ${Math.Calc[${This.TableReservedLocks[${TableName}]}+${This.TableOwnedLocks[${TableName}]}]})
+		;		{
 					; No locks for now. May as well exit the loop. In the future we may have a bypass for when we NEED A LOCK RIGHT NOW.
-					break
-				}
-				elseif (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && ${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1
-				{
-					; Well, this should have been sorted by Priority, so uh, we'll just lock these things up in order.
-					PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
-					Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:LockTarget
-					LockedHowMany:Inc[1]
-					TotalCurrentLocks:Inc[1]					
-				}
-				GetOtherTableInfo:NextRow
-			}
-			while !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
+		;			break
+		;		}
+		;		elseif (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && ${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1
+		;		{
+		;			; Well, this should have been sorted by Priority, so uh, we'll just lock these things up in order.
+		;			PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+		;			Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:LockTarget
+		;			LockedHowMany:Inc[1]
+		;			TotalCurrentLocks:Inc[1]					
+		;		}
+		;		GetOtherTableInfo:NextRow
+		;	}
+		;	while !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
 		}
 		GetOtherTableInfo:Finalize
 		; Lets get those updates through.
