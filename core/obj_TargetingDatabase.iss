@@ -358,7 +358,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 			while !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
 			GetOtherTableInfo:Finalize
 		}
-		elseif (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]} && (${LockedHowMany} <= ${This.TableReservedLocks[${TableName}]})
+		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]}  && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
 		{
 			GetOtherTableInfo:Finalize
 			GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' ORDER BY Priority DESC;"]}]
