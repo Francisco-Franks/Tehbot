@@ -58,6 +58,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	variable int ValidPrimaryWeapTargets
 	variable int ValidDroneTargets
 	variable int ValidMissionTargets
+	variable int ValidIgnoreTargets
 	
 	; Going to need this for constructing our Query.
 	variable string DBQueryString
@@ -420,9 +421,45 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory='MissionTarget';"]}]
 		ValidMissionTargets:Set[${GetMTMInfo.NumRows}]
 		GetMTMInfo:Finalize
+		; and how many IgnoreTarget we have
+		GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory='IgnoreTarget';"]}]
+		ValidIgnoreTargets:Set[${GetMTMInfo.NumRows}]
+		GetMTMInfo:Finalize	
 		
 		echo DEBUG MISSION TARGET MANAGER Valid Primary Targets ${ValidPrimaryWeapTargets} Valid Drone Targets ${ValidDroneTargets} Valid Mission Ojective Targets ${ValidMissionTargets}
 		echo DEBUG ROWCOUNT ${This.DBRowCount[WeaponTargets]}
+		; Need to kick things out of the TargetingTables and back into ActiveNPCs if they are ignore targets.
+		if (${ValidIgnoreTargets} > 0)
+		{
+			GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Ignore%';"]}]
+			if ${GetMTMInfo.NumRows} > 0
+			{
+				do
+				{
+					TargetEntityID:Set[${GetMTMInfo.GetFieldValue["EntityID"]}]
+					GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From WeaponTargets WHERE EntityID=${TargetEntityID};"]}]
+					if ${GetActiveNPCs.NumRows} > 0
+					{
+						ActiveNPCDB.TargetingDatabase:ExecDML["DELETE FROM WeaponTargets WHERE EntityID=${TargetEntityID};"]
+						GetActiveNPCs:Finalize
+					}
+					else
+					{
+						GetActiveNPCs:Finalize					
+					}
+					; We should check if this already exists in the wrong Table while we are here.
+					GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From DroneTargets WHERE EntityID=${TargetEntityID};"]}]
+					if ${GetActiveNPCs.NumRows} > 0
+					{
+						ActiveNPCDB.TargetingDatabase:ExecDML["DELETE FROM DroneTargets WHERE EntityID=${TargetEntityID};"]
+						GetActiveNPCs:Finalize
+					}
+					GetMTMInfo:NextRow
+				}
+				while !${GetMTMInfo.LastRow}
+				GetActiveNPCs:Finalize
+			}
+		}
 		if (${ValidPrimaryWeapTargets} > 0)
 		{
 			GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Primary%';"]}]
