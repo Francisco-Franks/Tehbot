@@ -162,7 +162,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		}
 		This:TargetListManagement
 		; With that done, let's get locking.
-		if ${This.DBRowCount[ActiveNPCs]} > 0 || ((${This.TDBRowCount[WeaponTargets]} == 0) && (${This.TDBRowCount[MissionTarget]} > 0))
+		if (${This.DBRowCount[ActiveNPCs]} > 0 || ${This.TDBRowCount[ActiveNPCs]} > 0 )|| ((${This.TDBRowCount[WeaponTargets]} == 0) && (${This.TDBRowCount[MissionTarget]} > 0))
 			This:LockManagement
 			
 		
@@ -872,16 +872,17 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	member:int TableWithinRange(string TableName)
 	{
 		variable int FinalValue
-		variable float64 LockRange = ${Math.Calc[${MyShip.MaxTargetRange} * .95]}
-		
-		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} WHERE Distance<${LockRange};"]}]
+		variable float64 LockRange
+		LockRange:Set[${Math.Calc[${MyShip.MaxTargetRange} * .95]}]
+		echo TABLEWITHINRANGE ${LockRange}
+		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} WHERE Distance < ${LockRange};"]}]
 		if ${GetActiveNPCs.NumRows} > 0
 		{
 			FinalValue:Set[${GetActiveNPCs.NumRows}]
 		}
 		else
 			FinalValue:Set[0]
-			
+		echo TABLEWITHINRANGE ${TableName} ${FinalValue}
 		GetActiveNPCs:Finalize
 		return ${FinalValue}			
 	

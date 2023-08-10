@@ -1593,30 +1593,8 @@ objectdef obj_Mission inherits obj_StateQueue
 			}
 			;This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0]
 			This:UpdateWatchDog
-			; Bad guys still here. Fighting loop.
-			if ${MyShip.ToEntity.Group.Find[Marauder]}
-			{
-				if ${Entity[${CurrentOffenseTarget}](exists)}
-				{
-					if (${Entity[${CurrentOffenseTarget}].Distance} > ${MyShip.MaxTargetRange})
-					{
-						; Out of target or offense range. Orbit Target
-						echo DEBUG DISALLOW SIEGE
-						AllowSiegeModule:Set[FALSE]
-						Move:Orbit[${CurrentOffenseTarget},5000]
-					}
-				}
-			}
-			else
-			{
-				; Why aren't you using a Marauder, god damn you.
-				if ((${Entity[${CurrentOffenseTarget}].Distance} > ${MyShip.MaxTargetRange})
-				{
-					; Out of target or offense range. Orbit Target
-					Move:Orbit[${CurrentOffenseTarget},5000]
-					echo DEBUG NOT MARAUDER
-				}				
-			}
+			; Guess we should stay here in the interim
+			return FALSE
 		}
 		else
 		{
