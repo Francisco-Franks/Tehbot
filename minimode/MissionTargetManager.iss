@@ -872,8 +872,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	member:int TableWithinRange(string TableName)
 	{
 		variable int FinalValue
+		variable float64 LockRange = ${Math.Calc[${MyShip.MaxTargetRange} * .95]}
 		
-		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} WHERE Distance<${Math.Calc[${MyShip.MaxTargetRange} * .95]};"]}]
+		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} WHERE Distance<${LockRange};"]}]
 		if ${GetActiveNPCs.NumRows} > 0
 		{
 			FinalValue:Set[${GetActiveNPCs.NumRows}]
