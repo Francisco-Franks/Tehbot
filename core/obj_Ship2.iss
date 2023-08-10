@@ -26,7 +26,6 @@ objectdef obj_Ship2
 	; Storage index for bulk DB insert
 	variable index:string DBInsertIndex
 	
-	
 	method Initialize()
 	{
 
@@ -220,10 +219,10 @@ objectdef obj_Ship2
 	{
 		
 		if ${Ship.ModuleList_MissileLauncher.Count} > 0
-			CombatComputer.MinAmmoAmount:Set[40]
+			CombatComputer.MinAmmoAmount:Set[301]
 
 		if ${Ship.ModuleList_Turret.Count} > 0
-			CombatComputer.MinAmmoAmount:Set[40]
+			CombatComputer.MinAmmoAmount:Set[301]
 		; Energy Weapons specifically, 4 or more crystals.
 		if ${Ship.ModuleList_Turret.GroupID} == 53
 			CombatComputer.MinAmmoAmount:Set[4]	
@@ -233,5 +232,47 @@ objectdef obj_Ship2
 	{
 		CombatComputer.ChangeTime:Set[${NPCData.PlayerReloadTime[${Ship.ModuleList_Weapon.TypeID}]}]
 		echo DEBUG - Ship 2 - Change Ammo Time ${NPCData.PlayerReloadTime[${Ship.ModuleList_Weapon.TypeID}]}
+	}
+	; This method will clean up the Ammo Table.
+	method CleanupAmmoTable()
+	{
+		GetShipInfo:Set[${MyShipInfo.ExecQuery["Select * FROM ShipAmmunitionMissile;"]}]
+		if ${GetShipInfo.NumRows} > 0
+		{
+			do
+			{
+				if ${MyShip.Cargo[${GetShipInfo.GetFieldValue["AmmoType"]}].Quantity} == 0 && !(${Ship.ModuleList_Weapon.ChargeType.Equal[${GetShipInfo.GetFieldValue["AmmoType"]}]} && ${Ship.ModuleList_Weapon.ChargeQuantity} > 0)
+				{
+					MyShipInfo:ExecDML["DELETE From ShipAmmunitionMissile WHERE AmmoType='${GetShipInfo.GetFieldValue["AmmoType"]}';"]
+				}
+				GetShipInfo:NextRow
+			}
+			while !${GetShipInfo.LastRow}
+			GetShipInfo:Finalize
+		}
+		else
+		{
+			GetShipInfo:Finalize
+		}
+		
+		GetShipInfo:Set[${MyShipInfo.ExecQuery["Select * FROM ShipAmmunitionTurret;"]}]
+		if ${GetShipInfo.NumRows} > 0
+		{
+			do
+			{
+				if ${MyShip.Cargo[${GetShipInfo.GetFieldValue["AmmoType"]}].Quantity} == 0 && !(${Ship.ModuleList_Weapon.ChargeType.Equal[${GetShipInfo.GetFieldValue["AmmoType"]}]} && ${Ship.ModuleList_Weapon.ChargeQuantity} > 0)
+				{
+					MyShipInfo:ExecDML["DELETE From ShipAmmunitionTurret WHERE AmmoType='${GetShipInfo.GetFieldValue["AmmoType"]}';"]
+				}
+				GetShipInfo:NextRow
+			}
+			while !${GetShipInfo.LastRow}
+			GetShipInfo:Finalize
+		}
+		else
+		{
+			GetShipInfo:Finalize
+		}		
+	
 	}
 }

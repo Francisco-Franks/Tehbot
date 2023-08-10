@@ -289,7 +289,6 @@ objectdef obj_Mission inherits obj_StateQueue
 	; Target list(s)
 	; TargetList for DatabasifyNPCs method.
 	variable obj_TargetList DatabasifyNPC
-	variable obj_TargetList Lootables
 	
 	; Timer for last NPC databasification
 	variable int64 LastNPCDatabasification
@@ -366,7 +365,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		This:QueueState["CheckForWork",5000]
 		UIElement[Run@TitleBar@Tehbot]:SetText[Stop]
 		DatabasifyNPC:AddAllNPCs
-		Lootables:AddQueryString["(GroupID = GROUP_WRECK || GroupID = GROUP_CARGOCONTAINER) && !IsMoribund"]
 	}
 
 	method Stop()
@@ -1550,8 +1548,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			else
 			{
 				; Need to do this somewhere. We are making a Salvage BM and also placing an entry in the SalvageBM DB.
-				Lootables:RequestUpdate
-				if (${Lootables.TargetList.Used} >= ${Config.WreckBMThreshold} && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
+				if (${Salvage.WrecksToLock.TargetList.Used} >= ${Config.WreckBMThreshold} && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Salvage.WrecksToLock.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Salvage.WrecksToLock.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
 				{
 					EVE:GetBookmarks[BookmarkIndex]
 					BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
@@ -1560,7 +1557,7 @@ objectdef obj_Mission inherits obj_StateQueue
 
 					if !${BookmarkIndex.Used}
 					{
-						Lootables.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Lootables.TargetList.Used} ${EVETime.Time.Left[5]}", "", "${Config.SalvageBMFolderName}", 1]		
+						Salvage.WrecksToLock.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Salvage.WrecksToLock.TargetList.Used} ${EVETime.Time.Left[5]}", "", "${Config.SalvageBMFolderName}", 1]		
 						This:InsertState["CombatMission", 5000,"3"]
 						EVE:RefreshBookmarks
 						return TRUE
@@ -1601,13 +1598,6 @@ objectdef obj_Mission inherits obj_StateQueue
 			{
 				if ${Entity[${CurrentOffenseTarget}](exists)}
 				{
-					;TargetManager:RegisterCurrentPrimaryWeaponRange
-					if ${Entity[${CurrentOffenseTarget}].Distance} < ${CurrentOffenseRange} 
-					{
-						; In range, Bastion.
-						echo DEBUG ALLOW SIEGE
-						AllowSiegeModule:Set[TRUE]
-					}
 					if (${Entity[${CurrentOffenseTarget}].Distance} > ${MyShip.MaxTargetRange})
 					{
 						; Out of target or offense range. Orbit Target
@@ -1620,7 +1610,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			else
 			{
 				; Why aren't you using a Marauder, god damn you.
-				if (${Entity[${CurrentOffenseTarget}].Distance} > ${CurrentOffenseRange}) || (${Entity[${CurrentOffenseTarget}].Distance} > ${MyShip.MaxTargetRange})
+				if ((${Entity[${CurrentOffenseTarget}].Distance} > ${MyShip.MaxTargetRange})
 				{
 					; Out of target or offense range. Orbit Target
 					Move:Orbit[${CurrentOffenseTarget},5000]
@@ -1648,8 +1638,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				CurrentRunVanquisher:Set[TRUE]			
 			}
 			; Really want the salvage BM to work properly...
-			Lootables:RequestUpdate
-			if (${Lootables.TargetList.Used} >= ${Config.WreckBMThreshold} && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
+			if (${Salvage.WrecksToLock.TargetList.Used} >= ${Config.WreckBMThreshold} && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Salvage.WrecksToLock.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Salvage.WrecksToLock.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
 			{
 				EVE:GetBookmarks[BookmarkIndex]
 				BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
@@ -1657,7 +1646,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				BookmarkIndex:Collapse
 				if !${BookmarkIndex.Used}
 				{
-					Lootables.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Lootables.TargetList.Used} ${EVETime.Time.Left[5]}", "", "${Config.SalvageBMFolderName}", 1]
+					Salvage.WrecksToLock.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Salvage.WrecksToLock.TargetList.Used} ${EVETime.Time.Left[5]}", "", "${Config.SalvageBMFolderName}", 1]
 					This:InsertState["CombatMissionTransition",6000]
 					return TRUE
 				}
@@ -1685,8 +1674,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		variable index:bookmark BookmarkIndex2
 		variable iterator		BookmarkIterator2
 		; The Salvage BM thing also has to go here. We either are changing rooms, or we are in a room with no gate so the one in the main CombatMission state will get it on exit.
-		Lootables:RequestUpdate
-		if (${Lootables.TargetList.Used} >= ${Config.WreckBMThreshold} && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Lootables.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
+		if (${Salvage.WrecksToLock.TargetList.Used} >= ${Config.WreckBMThreshold} && ${Config.SalvagePrefix.NotNULLOrEmpty}) || ((${Salvage.WrecksToLock.TargetList.Used} > 1 && ${Entity[Name =- "Imperial"](exists)}) || (${Salvage.WrecksToLock.TargetList.Used} > 1 && ${Entity[Name =- "State"](exists)}) && ${Config.SalvagePrefix.NotNULLOrEmpty} )
 		{
 			EVE:GetBookmarks[BookmarkIndex]
 			BookmarkIndex:RemoveByQuery[${LavishScript.CreateQuery[SolarSystemID == ${Me.SolarSystemID}]}, FALSE]
@@ -1694,7 +1682,7 @@ objectdef obj_Mission inherits obj_StateQueue
 			BookmarkIndex:Collapse
 			if !${BookmarkIndex.Used}
 			{
-				Lootables.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Lootables.TargetList.Used} ${EVETime.Time.Left[5]}", "", "${Config.SalvageBMFolderName}", 1]
+				Salvage.WrecksToLock.TargetList.Get[1]:CreateBookmark["${Config.SalvagePrefix} ${Salvage.WrecksToLock.TargetList.Used} ${EVETime.Time.Left[5]}", "", "${Config.SalvageBMFolderName}", 1]
 				EVE:RefreshBookmarks
 			}
 		}
@@ -1770,12 +1758,12 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 		if ${ObjectiveAction.Equal["Destroy"]}
 		{
-			if ${Entity[Name == "${CurrentAgentDestroy.Escape}"].Distance} > ${CurrentOffenseRange}
+			if ${Entity[Name == "${CurrentAgentDestroy.Escape}"].Distance} > 80000
 			{
 				Move:Approach[${Entity[Name == "${CurrentAgentDestroy.Escape}"]},2500]
 				CurrentOffenseTarget:Set[${Entity[Name == "${CurrentAgentDestroy.Escape}"]}]
 			}
-			elseif ${Entity[Name == "${CurrentAgentDestroy.Escape}"].Distance} < ${CurrentOffenseRange}
+			elseif ${Entity[Name == "${CurrentAgentDestroy.Escape}"].Distance} < 80000
 			{
 				CurrentOffenseTarget:Set[${Entity[Name == "${CurrentAgentDestroy.Escape}"]}]
 				echo DEBUG ALLOW SIEGE
@@ -1896,7 +1884,8 @@ objectdef obj_Mission inherits obj_StateQueue
 				return TRUE		
 			}		
 		}
-		return FALSE
+		This:InsertState["CombatMission", 4000]
+		return TRUE	
 	}
 	; This state will be used to see if we have Technically Completed a mission (we can turn it in, but there are rooms left) or Truely Completed a mission
 	; (everything is dead, objectives done). 
