@@ -1478,7 +1478,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					This:InsertState["CombatMissionObjectives",5000,"Destroy, ${Entity[Name == \"${CurrentAgentDestroy.Escape}\"]}"}]
 					return TRUE
 				}
-				elseif ${CurrentAgentLoot.NotNULLOrEmpty} && !${CurrentRunContainerLooted}
+				elseif ${CurrentAgentLoot.NotNULLOrEmpty} && !${CurrentRunContainerLooted} && ((!${Entity[Type = "Acceleration Gate"](exists)} && ${CurrentAgentLoot.Find[Cargo Container]}) || (${Entity[Type = "Acceleration Gate"](exists)} && !${CurrentAgentLoot.Find[Cargo Container]}))
 				{
 					; If we have a target to Loot and it hasn't already been looted. Look for it in this room.
 					This:LogInfo["Checking room for ${CurrentAgentLoot} to Loot."]
