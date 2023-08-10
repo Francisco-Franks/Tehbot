@@ -217,7 +217,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			DroneControl.CurrentTarget:Set[${This.GetFirstRowEntity[DroneTargets]}]
 		if ${This.DBRowCount[WeaponTargets]} > 0 && ${This.DBRowCount[DroneTargets]} == 0 && ${Entity[${This.GetFirstRowEntity[WeaponTargets]}](exists)}
 		{
-			DroneControl.CurrentTarget:Set[${This.GetFirstRowEntity[DroneTargets]}]
+			DroneControl.CurrentTarget:Set[${This.GetFirstRowEntity[WeaponTargets]}]
 		}
 		if (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${This.GetClosestEntity[ActiveNPCs]}]}) && ${Entity[${This.GetClosestEntity[ActiveNPCs]}](exists)} && ${This.TableWithinRange[ActiveNPCs]} == 0
 		{
@@ -302,12 +302,12 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				{
 					TargetingCategory:Set[PrimaryWeapon]
 				}
-				if ${OurDamageEff} < .2 && ${OurDamageEff} > .02
+				if ${OurDamageEff} < .2 && ${OurDamageEff} > .05
 				{
 					TargetingCategory:Set[PrimaryWeaponLow]
 				}
 				; This would be things we can not apply damage to (less than 5% efficiency), depending on range we will employ a different category. Things within drone control range can be drone targets, things outside that are treated out of range.
-				if ${OurDamageEff} < .02
+				if ${OurDamageEff} =< .05
 				{
 					if ${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}].Distance} < ${Me.DroneControlDistance}
 					{
