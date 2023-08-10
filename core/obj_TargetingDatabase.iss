@@ -390,7 +390,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		;		GetOtherTableInfo:NextRow
 		;	}
 		;	while !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
-		}
+		;}
 		GetOtherTableInfo:Finalize
 		; Lets get those updates through.
 		if ${PendingTransaction.Used} > 0
