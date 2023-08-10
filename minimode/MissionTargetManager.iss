@@ -827,7 +827,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		variable int64 FinalValue = 0
 		
 		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]}
-			GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} WHERE PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' ORDER BY PreferredAmmo ASC, Priority DESC;"]}]
+			GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} WHERE PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' ORDER BY Priority DESC;"]}]
 		else
 			GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} ORDER BY Priority DESC;"]}]
 		if ${GetActiveNPCs.NumRows} > 0
@@ -846,7 +846,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			while !${GetActiveNPCs.LastRow} && ${FinalValue} == 0
 			GetActiveNPCs:Finalize
 		}
-		elseif (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]} && ${FinalValue} == 0
+		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]} && ${FinalValue} == 0
 		{
 			GetActiveNPCs:Finalize
 			GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} ORDER BY Priority DESC;"]}]
