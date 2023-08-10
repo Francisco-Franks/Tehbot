@@ -311,7 +311,6 @@ objectdef obj_Mission inherits obj_StateQueue
 	; Need a place to store our string for our Precision/High Damage ammo
 	variable string PrecisionAmmo
 	variable string HighDamageAmmo
-
 	
 	method Initialize()
 	{
@@ -1476,7 +1475,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					This:InsertState["CombatMissionObjectives",5000,"Destroy, ${Entity[Name == \"${CurrentAgentDestroy.Escape}\"]}"}]
 					return TRUE
 				}
-				elseif ${CurrentAgentLoot.NotNULLOrEmpty} && !${CurrentRunContainerLooted} && ((!${Entity[Type = "Acceleration Gate"](exists)} && ${CurrentAgentLoot.Find[Cargo Container]}) || (${Entity[Type = "Acceleration Gate"](exists)} && !${CurrentAgentLoot.Find[Cargo Container]}))
+				elseif ${CurrentAgentLoot.NotNULLOrEmpty} && !${CurrentRunContainerLooted} && ${This.LastRoom}
 				{
 					; If we have a target to Loot and it hasn't already been looted. Look for it in this room.
 					This:LogInfo["Checking room for ${CurrentAgentLoot} to Loot."]
@@ -4770,6 +4769,16 @@ objectdef obj_Mission inherits obj_StateQueue
 		{
 			return FALSE
 		}
+	}
+	; This member will return whether we are in the last room or not.
+	member:bool LastRoom()
+	{
+		if !${Entity[Type = "Acceleration Gate"](exists)} && !${CurrentAgentMissionName.Find[Collide]}
+			return TRUE
+		elseif ${CurrentAgentMissionName.Find[Collide]} && ${Entity[Name == \"${CurrentAgentLoot.Escape}\"](exists)}
+			return TRUE
+		else
+			return FALSE
 	}
 }
 
