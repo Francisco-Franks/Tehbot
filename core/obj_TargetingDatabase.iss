@@ -164,6 +164,8 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		variable int LockedHowMany
 		; This will be how many locks we have attempted to begin this loop.
 		variable int InitiatedLocks
+		
+		variable int RecentlyUnlocked
 
 		; Could come up, I guess.
 		if !${Client.InSpace}
@@ -254,15 +256,12 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					if ${GetMoreTableInfo.NumRows} > 0
 					{
 						; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
-						if ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]} <= 1
+						if ${Math.Calc[${This.TableReservedLocks[(${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} <= 0
 						{
 							; If we have less than or exactly 1 available lock right now, drop this target.
 							PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 							Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
-							OurReservation:Inc[-1]
-							TotalReservation:Inc[-1]
-							SpareLocks:Set[${Math.Calc[${MaxTarget} - ${TotalReservation}]}]
-							TotalCurrentLocks:Inc[-1]
+							RecentlyUnlocked:Inc[1]
 						}
 					}
 					else
