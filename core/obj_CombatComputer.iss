@@ -947,6 +947,8 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 			ChanceToHit:Set[${This.TurretChanceToHit[${EntityID},${TurretTrack},${TurretOpt},${TurretFall},FALSE]}]
 			echo ${ChanceToHit} CHANCETOHIT
 			TurretDmgMod:Set[${Math.Calc[0.5 * (${Utility.MinFloat[${Math.Calc[(${ChanceToHit}^^2) + (0.98 * ${ChanceToHit}) + 0.0501]}, ${Math.Calc[${ChanceToHit}*6]}]})]}]
+			if ${TurretDmgMod} < 0.03
+				TurretDmgMod:Set[0]
 			echo ${TurretDmgMod} TURRETDMGMOD
 		}
 		if ${ReqInfo.Equals["OurDamageEff"]} && !${Missl}
