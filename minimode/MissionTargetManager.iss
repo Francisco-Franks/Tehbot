@@ -307,7 +307,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 					TargetingCategory:Set[PrimaryWeaponLow]
 				}
 				; This would be things we can not apply damage to (less than 5% efficiency), depending on range we will employ a different category. Things within drone control range can be drone targets, things outside that are treated out of range.
-				if ${OurDamageEff} =< .05
+				if ${OurDamageEff} <= .05
 				{
 					if ${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}].Distance} < ${Me.DroneControlDistance}
 					{
