@@ -257,9 +257,9 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					if ${GetMoreTableInfo.NumRows} > 0
 					{
 						; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
-						if ${Math.Calc[(${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} <= 0
+						if ${Math.Calc[(${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} < 1
 						{
-							; If we have less than or exactly 1 available lock right now, drop this target.
+							; If we have less than 1 available lock right now, drop this target.
 							PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 							Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
 							RecentlyUnlocked:Inc[1]
@@ -267,10 +267,26 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					}
 					else
 					{
-						; Nope no need to change course on this one. Just update its last update time and continue.
-						PendingTransaction:Insert["update ${TableName} SET RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+						GetMoreTableInfo:Finalize
+						GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
+						if ${GetMoreTableInfo.NumRows} > 0
+						{
+							; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
+							if ${Math.Calc[(${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} < 1
+							{
+								; If we have less than 1 available lock right now, drop this target.
+								PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+								Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
+								RecentlyUnlocked:Inc[1]
+							}
+						}						
+						else
+						{
+							; Nope no need to change course on this one. Just update its last update time and continue.
+							PendingTransaction:Insert["update ${TableName} SET RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+						}
+						GetMoreTableInfo:Finalize
 					}
-					GetMoreTableInfo:Finalize					
 				}
 				elseif ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]} || ${TableName.Equal[DroneTargets]})
 				{
@@ -278,9 +294,9 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					if ${GetMoreTableInfo.NumRows} > 0
 					{
 						; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
-						if ${Math.Calc[(${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} <= 0
+						if ${Math.Calc[(${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} < 1
 						{
-							; If we have less than or exactly 1 available lock right now, drop this target.
+							; If we have less than 1 available lock right now, drop this target.
 							PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 							Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
 							RecentlyUnlocked:Inc[1]
