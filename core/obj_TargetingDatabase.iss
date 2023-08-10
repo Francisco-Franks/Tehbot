@@ -256,7 +256,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					if ${GetMoreTableInfo.NumRows} > 0
 					{
 						; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
-						if ${Math.Calc[${This.TableReservedLocks[(${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} <= 0
+						if ${Math.Calc[(${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} <= 0
 						{
 							; If we have less than or exactly 1 available lock right now, drop this target.
 							PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
