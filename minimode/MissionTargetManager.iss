@@ -226,6 +226,13 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			This:LogInfo["Approaching out of range target: \ar${Entity[${This.GetClosestEntity[ActiveNPCs]}].Name}"]
 			Entity[${This.GetClosestEntity[ActiveNPCs]}]:Approach		
 		}
+		if (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${This.GetClosestEntity[ActiveNPCs]}]}) && ${Entity[${This.GetClosestEntity[ActiveNPCs]}](exists)} && ((${This.DBRowCount[IgnoreTarget]} > 0) && (${This.TDBRowCount[WeaponTargets]} == 0)) && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING
+		{
+			AllowSiegeModule:Set[FALSE]
+			Ship.ModuleList_Siege:DeactivateAll
+			This:LogInfo["Approaching out of range target: \ar${Entity[${This.GetClosestEntity[ActiveNPCs]}].Name}"]
+			Entity[${This.GetClosestEntity[ActiveNPCs]}]:Approach		
+		}
 		; Well, if all that is left are drone targets, may as well approach our mission objective or orbit the next gate or something.
 		if (${This.DBRowCount[ActiveNPCs]} > 0 && ${This.DBRowCount[WeaponTargets]} < 1 && ${This.DBRowCount[DroneTargets]} > 1) && !${Move.Traveling} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING && ${MyShip.ToEntity.Mode} != MOVE_ORBITING
 		{
@@ -783,6 +790,16 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			else
 				FinalValue:Set[0]
 		}
+		if ${LookingFor.Equal[IgnoreTarget]}
+		{
+			GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory LIKE '%Ignore%';"]}]
+			if ${GetMTMInfo.NumRows} > 0
+			{
+				FinalValue:Set[${GetMTMInfo.NumRows}]
+			}
+			else
+				FinalValue:Set[0]
+		}
 		GetMTMInfo:Finalize
 		return ${FinalValue}
 	}
@@ -902,6 +919,12 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			
 		GetActiveNPCs:Finalize
 		return ${FinalValue}			
+	
+	}
+	; This member will return how many targets in a given table are within our ship's longest range weapon.
+	member:int TableWithinWeaponRange(string TableName)
+	{
+	
 	
 	}
 }
