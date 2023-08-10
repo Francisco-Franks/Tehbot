@@ -312,10 +312,6 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 					{
 						TargetingCategory:Set[DroneTarget] 
 					}
-					elseif !${Ship.ModuleList_Weapon.IsUsingLongRangeAmmo}
-					{
-						TargetingCategory:Set[PrimaryWeaponLow]
-					}
 					else
 					{
 						TargetingCategory:Set[IgnoreTarget] 
