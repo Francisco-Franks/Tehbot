@@ -855,7 +855,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			while !${GetActiveNPCs.LastRow} && ${FinalValue} == 0
 			GetActiveNPCs:Finalize
 		}
-		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${FinalValue} == 0
+		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]} || ${TableName.Equal[DroneTargets]}) && ${FinalValue} == 0
 		{
 			GetActiveNPCs:Finalize
 			GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} ORDER BY Priority DESC;"]}]
