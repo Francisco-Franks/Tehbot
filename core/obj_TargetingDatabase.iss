@@ -288,7 +288,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 						GetMoreTableInfo:Finalize
 					}
 				}
-				elseif ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]} || ${TableName.Equal[DroneTargets]})
+				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]} || ${TableName.Equal[DroneTargets]})
 				{
 					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
 					if ${GetMoreTableInfo.NumRows} > 0
@@ -301,6 +301,13 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 							Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
 							RecentlyUnlocked:Inc[1]
 						}
+					}
+					; If we have a locked target, and that target is the mission target, and there are things other than the mission target, please unlock this fucking mission target.
+					if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && ${TableName.Equal[MissionTarget]} && ${This.TableOwnedLocks[WeaponTargets]} > 1
+					{
+						PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+						Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
+						RecentlyUnlocked:Inc[1]				
 					}
 					else
 					{
