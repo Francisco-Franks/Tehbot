@@ -1405,11 +1405,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	; This state will be the start of Primary Logic for Combat Missions.Basically this state here will be our hub for combat missions.
 	member:bool CombatMission(int Cycles)
 	{
-		if !${AmmoInfoAcquired}
-		{
-			This:LogInfo["Getting current Ammunition Information"]
-			AmmoInfoAcquired:Set[TRUE]
-		}
+
 		variable index:bookmark BookmarkIndex
 		variable index:bookmark BookmarkIndex2
 		variable iterator		BookmarkIterator2
@@ -1437,7 +1433,7 @@ objectdef obj_Mission inherits obj_StateQueue
 		This:UpdateWatchDog
 		This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0]
 		; Check to see if we've completed the mission, completely
-		if (${CurrentRunTechnicalComplete} && ${Config.BlitzMissions}) || ${CurrentRunTrueComplete}
+		if ${CurrentRunTechnicalComplete}
 		{
 			This:LogInfo["Mission Completed - Transition to CombatMissionFinish"]
 			This:InsertState["CombatMissionFinish", 4000]
@@ -1518,13 +1514,6 @@ objectdef obj_Mission inherits obj_StateQueue
 				}
 			}
 			; Lets just check for completion eh?
-			if ${Cycles} > 6
-			{
-				This:LogInfo["Checking for Completion"]
-				This:InsertState["CombatMission", 4000,"${Math.Calc[${Cycles} + 1]}"]
-				This:InsertState["CheckForCompletion",5000]
-				return TRUE	
-			}
 			if ${CurrentAgentLoot.NotNULLOrEmpty} && !${CurrentRunContainerLooted}
 			{
 				; If we have a target to Loot and it hasn't already been looted. Look for it in this room.
@@ -1614,13 +1603,6 @@ objectdef obj_Mission inherits obj_StateQueue
 		}
 		else
 		{
-			; Exit condition
-			; If we saw the destroy target, and it wasn't Anire Scarlet, they died in this room.
-			;if ${CombatMissionDestroyTargetSeen}
-			;{
-			;	This:LogInfo["Destroyed Target - ${CurrentAgentDestroy}."]
-			;	CurrentRunKilledTarget:Set[TRUE]
-			;}
 			if !${Entity[TypeID == 17831](exists)}
 			{
 				This:LogInfo["Room is Gateless, We have Vanquished all Enemies."]
