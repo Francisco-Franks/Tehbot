@@ -232,7 +232,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					else
 					{
 						; I want to always have a threshold of one extra lock, hence the greater than 1. If our max number of targets minus our current locks is greater than 1, then relock the target.
-						if ${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1 && ( !${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} || (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} == 1))
+						if ${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1 && ( !${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} || (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} == ${This.TableOwnedLocks[MissionTarget]}))
 						{
 							PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 							;LockQueue:Queue[{GetOtherTableInfo.GetFieldValue["EntityID"]}]
@@ -384,7 +384,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					continue
 				}
 				; Zeroth and a half up. If this is a MissionTarget AND we have more than 1 WeaponsTarget, we don't want to lock it
-				if (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} || (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} > 1))
+				if (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} || (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} > ${This.TableOwnedLocks[MissionTarget]}))
 				{
 					GetOtherTableInfo:NextRow
 					continue				
