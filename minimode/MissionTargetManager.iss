@@ -552,7 +552,21 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 					else
 					{
 						GetActiveNPCs2:Finalize
-						ActiveNPCDB.TargetingDatabase:ExecDML["INSERT INTO WeaponTargets SELECT * FROM MissionTarget WHERE EntityID=${TargetEntityID};"]					
+						ActiveNPCDB.TargetingDatabase:ExecDML["INSERT INTO WeaponTargets SELECT * FROM MissionTarget WHERE EntityID=${TargetEntityID};"]
+						
+					}
+					TargetEntityID:Set[${GetActiveNPCs.GetFieldValue["EntityID"]}]
+					GetActiveNPCs2:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ActiveNPCs WHERE EntityID=${TargetEntityID};"]}]
+					if ${GetActiveNPCs2.NumRows} > 0
+					{
+						; Already present in the destination Table.
+						GetActiveNPCs2:Finalize
+					}
+					else
+					{
+						GetActiveNPCs2:Finalize
+						ActiveNPCDB.TargetingDatabase:ExecDML["INSERT INTO WeaponTargets SELECT * FROM ActiveNPCs WHERE EntityID=${TargetEntityID};"]
+						
 					}
 					GetActiveNPCs:NextRow
 				}
