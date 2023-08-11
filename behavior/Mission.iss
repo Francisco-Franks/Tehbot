@@ -1475,8 +1475,17 @@ objectdef obj_Mission inherits obj_StateQueue
 					This:InsertState["CombatMissionObjectives",5000,"Destroy, ${Entity[Name == \"${CurrentAgentDestroy.Escape}\"]}"}]
 					return TRUE
 				}
-				elseif ${CurrentAgentLoot.NotNULLOrEmpty} && !${CurrentRunContainerLooted} && ${This.LastRoom}
+				if ${CurrentAgentLoot.NotNULLOrEmpty} && !${CurrentRunContainerLooted}
 				{
+					; Fucking "In The Midst of Deadspace", bespoke bullshit stopgap solution here.
+					if ${Entity[Type = "Acceleration Gate"](exists)} && ${CurrentAgentMissionName.Find[Midst]}
+					{
+						This:LogInfo["In the Midst of Deadspace 1 Bypass"]
+						This:LogInfo["Gate Detected"]
+						This:InsertState["CombatMissionTransition",4000]
+						This:InsertState["CheckForCompletion",5000]
+						return TRUE							
+					}
 					; If we have a target to Loot and it hasn't already been looted. Look for it in this room.
 					This:LogInfo["Checking room for ${CurrentAgentLoot} to Loot."]
 					if ${Entity[Name == \"${CurrentAgentLoot.Escape}\"](exists)}
@@ -1497,7 +1506,7 @@ objectdef obj_Mission inherits obj_StateQueue
 						return TRUE
 					}				
 				}
-				elseif !${Entity[Type = "Acceleration Gate"](exists)}
+				if !${Entity[Type = "Acceleration Gate"](exists)}
 				{
 					This:LogInfo["Didn't find ${CurrentAgentDestroy} to Destroy. Check for Completion."]
 					This:InsertState["CombatMission", 4000]
