@@ -8,6 +8,8 @@ objectdef obj_Module inherits obj_StateQueue
 	variable string LongRangeAmmo
 	variable string XtraLongRangeAmmo
 
+	variable int64 LastAmmoChange
+
 	variable int _lastDeactivationTimestamp
 	variable int _deactivationRetryInterval = 2000
 	variable int _lastChangeAmmoTimestamp
@@ -198,11 +200,12 @@ objectdef obj_Module inherits obj_StateQueue
 			if ${targetID} != TARGET_NA
 			{
 				optimalAmmo:Set[${This._pickOptimalAmmo[${targetID}]}]
-				if ${optimalAmmo.NotNULLOrEmpty} && !${This.Charge.Type.Equal[${optimalAmmo}]}
+				if ${optimalAmmo.NotNULLOrEmpty} && !${This.Charge.Type.Equal[${optimalAmmo}]} && (${LastAmmoChange} > ${Math.Calc[${LastAmmoChange} + 20000]} || ${Ship.ModuleList_Weapon.Type.Find[Laser]})
 				{
 					This:LogDebug["${This.Name} optimalAmmo is ${optimalAmmo} for ${Entity[${targetID}].Name} distance ${Entity[${targetID}].Distance}"]
 					This:LogDebug["Deactivating ${This.Name} to change ammo to ${optimalAmmo}."]
 					This:_deactivate
+					LastAmmoChange:Set[${Math.Calc[${LavishScript.RunningTime} + 20000]}]
 					return
 				}
 			}

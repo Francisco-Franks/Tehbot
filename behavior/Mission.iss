@@ -1586,7 +1586,8 @@ objectdef obj_Mission inherits obj_StateQueue
 				return TRUE	
 			}
 		}
-		return FALSE
+		This:InsertState["CombatMission", 4000,"${Math.Calc[${Cycles} + 1]}"]
+		return TRUE	
 	}
 	; This state will handle the fighting in a room in a combat mission site.
 	member:bool CombatMissionFight()
