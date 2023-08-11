@@ -232,14 +232,11 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					else
 					{
 						; I want to always have a threshold of one extra lock, hence the greater than 1. If our max number of targets minus our current locks is greater than 1, then relock the target.
-						if ${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1
+						if ${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1 && ( !${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} || (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} == 1))
 						{
 							PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 							;LockQueue:Queue[{GetOtherTableInfo.GetFieldValue["EntityID"]}]
 							Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:LockTarget
-							OurReservation:Inc[1]
-							TotalReservation:Inc[1]
-							SpareLocks:Set[${Math.Calc[${MaxTarget} - ${TotalReservation}]}]
 						}
 						else
 						{
@@ -345,6 +342,12 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				{
 					GetOtherTableInfo:NextRow
 					continue
+				}
+				; Zeroth and a half up. If this is a MissionTarget AND we have more than 1 WeaponsTarget, we don't want to lock it
+				if (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} || (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} > 1))
+				{
+					GetOtherTableInfo:NextRow
+					continue				
 				}
 				; First up, do we NEED more locks? If we have as many locks as we reserve, or more, then...
 				if (${This.TableOwnedLocks[${TableName}]} >= ${This.TableReservedLocks[${TableName}]}) || (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} <= 1) || (${LockedHowMany} > ${Math.Calc[${This.TableReservedLocks[${TableName}]}+${This.TableOwnedLocks[${TableName}]}]})

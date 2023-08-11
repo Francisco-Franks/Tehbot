@@ -1464,6 +1464,9 @@ objectdef obj_Mission inherits obj_StateQueue
 				This:InsertState["CombatMission", 4000,"${Math.Calc[${Cycles} + 1]}"]
 				return TRUE
 			}
+			; Let's try something.
+			Cycles:Inc[1]
+			This:LogInfo["Cycle Number ${Cycles}."]
 			; We waited for a spawn and nothing happened, proceed.
 			if ${CurrentAgentDestroy.NotNULLOrEmpty} && !${CurrentRunKilledTarget}
 			{
@@ -1509,14 +1512,18 @@ objectdef obj_Mission inherits obj_StateQueue
 				if !${Entity[Type = "Acceleration Gate"](exists)}
 				{
 					This:LogInfo["Didn't find ${CurrentAgentDestroy} to Destroy. Check for Completion."]
-					This:InsertState["CombatMission", 4000]
+					This:InsertState["CombatMission", 4000,"${Math.Calc[${Cycles} + 1]}", 4000]
 					This:InsertState["CheckForCompletion",5000]
 					return TRUE
 				}
 			}
-			elseif !${CurrentAgentDestroy.NotNULLOrEmpty} || ${CurrentRunKilledTarget}
+			; Lets just check for completion eh?
+			if ${Cycles} > 6
 			{
-				; Target was already destroyed, skip.
+				This:LogInfo["Checking for Completion"]
+				This:InsertState["CombatMission", 4000,"${Math.Calc[${Cycles} + 1]}"]
+				This:InsertState["CheckForCompletion",5000]
+				return TRUE	
 			}
 			if ${CurrentAgentLoot.NotNULLOrEmpty} && !${CurrentRunContainerLooted}
 			{
@@ -1574,7 +1581,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				; (BMID INTEGER PRIMARY KEY, BMName TEXT, WreckCount INTEGER, BMSystem TEXT, ExpectedExpiration INTEGER, ClaimedByCharID INTEGER, SalvageTime INTEGER, Historical BOOLEAN);"]
 				; There is no gate here, let's check for both completion types (technical and true).
 				This:LogInfo["Checking for Completion"]
-				This:InsertState["CombatMission", 4000]
+				This:InsertState["CombatMission", 4000,"${Math.Calc[${Cycles} + 1]}"]
 				This:InsertState["CheckForCompletion",5000]
 				return TRUE	
 			}
