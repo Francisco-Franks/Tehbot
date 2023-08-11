@@ -383,6 +383,12 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					GetOtherTableInfo:NextRow
 					continue
 				}
+				; Zeroth and a half up. If this is a MissionTarget AND we have more than 1 WeaponsTarget, we don't want to lock it
+				if (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} || (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} > 1))
+				{
+					GetOtherTableInfo:NextRow
+					continue				
+				}
 				; First up, do we NEED more locks? If we have as many locks as we reserve, or more, then...
 				if (${This.TableOwnedLocks[${TableName}]} >= ${This.TableReservedLocks[${TableName}]}) || (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} <= 1) || (${LockedHowMany} > ${Math.Calc[${This.TableReservedLocks[${TableName}]}+${This.TableOwnedLocks[${TableName}]}]})
 				{
