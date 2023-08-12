@@ -112,6 +112,8 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 	{
 		variable index:entity EntityIndex
 		variable iterator EntityIterator
+		variable index:entity EntityIndex2
+		variable iterator EntityIterator2
 		
 		; Could come up, I guess.
 		if !${Client.InSpace}
@@ -143,6 +145,22 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				PendingTransaction:Insert["insert into ${TableName} (EntityID, Distance, LockStatus, Priority,  PreferredAmmo, RowLastUpdate) values (${EntityIterator.Value.ID}, ${EntityIterator.Value.Distance}, 'Unlocked', 1, 'ACME', ${Time.Timestamp}) ON CONFLICT (EntityID) DO UPDATE SET Distance=excluded.Distance, RowLastUpdate=excluded.RowLastUpdate;"]
 			}
 			while ${EntityIterator:Next(exists)}
+		}
+		; I really need the mission target to end up in ActiveNPCs.
+
+		if ${TableName.Equal[ActiveNPCs]} && ${Mission.CurrentAgentDestroy.NotNULLOrEmpty}
+		{
+			EVE:QueryEntities[EntityIndex2, "Name == "${Mission.CurrentAgentDestroy}""]
+			EntityIndex2:GetIterator[EntityIterator2]
+			
+			if ${EntityIterator2:First(exists)}
+			{
+				do
+				{
+					PendingTransaction:Insert["insert into ${TableName} (EntityID, Distance, LockStatus, Priority,  PreferredAmmo, RowLastUpdate) values (${EntityIterator2.Value.ID}, ${EntityIterator2.Value.Distance}, 'Unlocked', 1, 'ACME', ${Time.Timestamp}) ON CONFLICT (EntityID) DO UPDATE SET Distance=excluded.Distance, RowLastUpdate=excluded.RowLastUpdate;"]
+				}
+				while ${EntityIterator2:Next(exists)}
+			}		
 		}
 		if ${PendingTransaction.Used} > 0
 		{
