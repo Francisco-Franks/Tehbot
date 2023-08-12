@@ -6,9 +6,10 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 	
 	; These queries will be for our tables, I don't know why I bother making two different queries, they all get finalized and re-used immediately.
 	variable sqlitequery GetPrimaryTableInfo
-	variable sqlitequery GetOtherTableInfo
+	variable sqlitequery GetOtherOtherTableInfo
 	; I lied, sometimes I might need to initiate a second query alongside the first one
 	variable sqlitequery GetMoreTableInfo
+	variable sqlitequery GetEvenMoreTableInfo
 	; Need to grab stuff from CombatComputer for the mission specific priority update.
 	variable sqlitequery GetCCInfo
 	; Need a query to grab a column from MTMDB
@@ -244,7 +245,6 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					;}
 					; Going to disable this relock shit for now. If we need to relock it, we will, later.
 					PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
-					GetMoreTableInfo:Finalize
 				}
 				; If it is still locked, see if it SHOULD still be locked. This will involve looking at Priorities, and probably other complicated things. Heck.
 				;;; ADDENDUM - Need two versions for this, one for lasers one for not.
@@ -433,21 +433,25 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 	{
 		variable int FinalValue
 		
-		GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Locked' OR LockStatus='Locking';"]}]
-		if ${GetMoreTableInfo.NumRows} > 0
+		GetEvenMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Locked' OR LockStatus='Locking';"]}]
+		if ${GetEvenMoreTableInfo.NumRows} > 0
 		{
 			; We have things that are supposedly locked and/or locking
 			do
 			{
-				if ${Entity[${GetMoreTableInfo.GetFieldValue["EntityID"]}].BeingTargeted} || ${Entity[${GetMoreTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget}
+				if ${Entity[${GetEvenMoreTableInfo.GetFieldValue["EntityID"]}].BeingTargeted} || ${Entity[${GetEvenMoreTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget}
 					FinalValue:Inc[1]
-				GetMoreTableInfo:NextRow
+				GetEvenMoreTableInfo:NextRow
 			}
-			while !${GetMoreTableInfo.LastRow}
+			while !${GetEvenMoreTableInfo.LastRow}
+			GetEvenMoreTableInfo:Finalize
 			return ${FinalValue}
 		}
 		else
+		{
+			GetEvenMoreTableInfo:Finalize
 			return 0
+		}
 	}
 	member:int TotalCurrentLocks()
 	{
@@ -458,10 +462,11 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 	{
 		variable int FinalValue = 0
 		
-		GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM Origin WHERE TableName='${TableName}';"]}]
-		if ${GetMoreTableInfo.NumRows} > 0
-			FinalValue:Inc[${GetMoreTableInfo.GetFieldValue["MinimumLocks"]}]
-			
+		GetEvenMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM Origin WHERE TableName='${TableName}';"]}]
+		if ${GetEvenMoreTableInfo.NumRows} > 0
+			FinalValue:Inc[${GetEvenMoreTableInfo.GetFieldValue["MinimumLocks"]}]
+		
+		GetEvenMoreTableInfo:Finalize
 		return ${FinalValue}
 		
 
@@ -507,9 +512,15 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		if ${GetPrimaryTableInfo.NumRows} > 0
 		{	
 			if ${NewQueryString.Escape.Equal[${GetPrimaryTableInfo.GetFieldValue["TableQueryString"].Escape}]}
+			{
+				GetPrimaryTableInfo:Finalize
 				DidItActuallyChange:Set[0]
+			}
 			else
+			{
+				GetPrimaryTableInfo:Finalize
 				DidItActuallyChange:Set[1]
+			}
 		}
 		TargetingDatabase:ExecDML["update Origin SET TableQueryString='${NewQueryString.ReplaceSubstring[','']}', QueryChanged=${DidItActuallyChange} WHERE TableName='${TableName}';"]
 	}
@@ -517,24 +528,24 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 	; This method will be used to populate the priorities of a given table, for Mission Target Manager specifically. I'll work on the others later.
 	method UpdateMissionTargetPriorities(string TableName)
 	{
-		GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName};"]}]
-		if ${GetOtherTableInfo.NumRows} > 0
+		GetOtherOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName};"]}]
+		if ${GetOtherOtherTableInfo.NumRows} > 0
 		{
 			do
 			{
-				GetCCInfo:Set[${CombatComputer.CombatData.ExecQuery["Select * FROM CurrentData WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]}]
+				GetCCInfo:Set[${CombatComputer.CombatData.ExecQuery["Select * FROM CurrentData WHERE EntityID=${GetOtherOtherTableInfo.GetFieldValue["EntityID"]};"]}]
 				if ${GetCCInfo.NumRows} > 0
 				{
-					PendingTransaction:Insert["update ${TableName} SET Priority=${GetCCInfo.GetFieldValue["ThreatLevel"]}, RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
-					echo PendingTransaction:Insert["update ${TableName} SET Priority=${GetCCInfo.GetFieldValue["ThreatLevel"]}, RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					PendingTransaction:Insert["update ${TableName} SET Priority=${GetCCInfo.GetFieldValue["ThreatLevel"]}, RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherOtherTableInfo.GetFieldValue["EntityID"]};"]
+					echo PendingTransaction:Insert["update ${TableName} SET Priority=${GetCCInfo.GetFieldValue["ThreatLevel"]}, RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherOtherTableInfo.GetFieldValue["EntityID"]};"]
 
 				}
 				GetCCInfo:Finalize
-				GetOtherTableInfo:NextRow
+				GetOtherOtherTableInfo:NextRow
 			}
-			while !${GetOtherTableInfo.LastRow}
+			while !${GetOtherOtherTableInfo.LastRow}
 		}
-		GetOtherTableInfo:Finalize
+		GetOtherOtherTableInfo:Finalize
 		; Lets get those updates through.
 		if ${PendingTransaction.Used} > 0
 		{
@@ -545,24 +556,24 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 	; This method will be used to place our PreferredAmmo for a given entity into our given Table 
 	method UpdateTargetAmmoPref(string TableName)
 	{
-		GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName};"]}]
-		if ${GetOtherTableInfo.NumRows} > 0
+		GetOtherOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName};"]}]
+		if ${GetOtherOtherTableInfo.NumRows} > 0
 		{
 			do
 			{
-				GetMTMDBInfo:Set[${MissionTargetManager.MTMDB.ExecQuery["Select * FROM Targeting WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]}]
+				GetMTMDBInfo:Set[${MissionTargetManager.MTMDB.ExecQuery["Select * FROM Targeting WHERE EntityID=${GetOtherOtherTableInfo.GetFieldValue["EntityID"]};"]}]
 				if ${GetMTMDBInfo.NumRows} > 0
 				{
-					PendingTransaction:Insert["update ${TableName} SET PreferredAmmo='${GetMTMDBInfo.GetFieldValue["OurNeededAmmo"]}', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
-					echo PendingTransaction:Insert["update ${TableName} SET PreferredAmmo='${GetMTMDBInfo.GetFieldValue["OurNeededAmmo"]}', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					PendingTransaction:Insert["update ${TableName} SET PreferredAmmo='${GetMTMDBInfo.GetFieldValue["OurNeededAmmo"]}', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherOtherTableInfo.GetFieldValue["EntityID"]};"]
+					echo PendingTransaction:Insert["update ${TableName} SET PreferredAmmo='${GetMTMDBInfo.GetFieldValue["OurNeededAmmo"]}', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherOtherTableInfo.GetFieldValue["EntityID"]};"]
 
 				}
 				GetMTMDBInfo:Finalize
-				GetOtherTableInfo:NextRow
+				GetOtherOtherTableInfo:NextRow
 			}
-			while !${GetOtherTableInfo.LastRow}
+			while !${GetOtherOtherTableInfo.LastRow}
 		}
-		GetOtherTableInfo:Finalize
+		GetOtherOtherTableInfo:Finalize
 		; Lets get those updates through.
 		if ${PendingTransaction.Used} > 0
 		{
@@ -575,19 +586,19 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 	; This method will be used to cleanup non-existent entities from the DB
 	method TargetListCleanup(string TableName)
 	{
-		GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName};"]}]
-		if ${GetOtherTableInfo.NumRows} > 0
+		GetOtherOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName};"]}]
+		if ${GetOtherOtherTableInfo.NumRows} > 0
 		{
 			do
 			{
-				if !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund}
-					TableDeletionQueue:Queue[${GetOtherTableInfo.GetFieldValue["EntityID"]}]
+				if !${Entity[${GetOtherOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || ${Entity[${GetOtherOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund}
+					TableDeletionQueue:Queue[${GetOtherOtherTableInfo.GetFieldValue["EntityID"]}]
 					
-				GetOtherTableInfo:NextRow
+				GetOtherOtherTableInfo:NextRow
 			}
-			while !${GetOtherTableInfo.LastRow}
+			while !${GetOtherOtherTableInfo.LastRow}
 		}
-		GetOtherTableInfo:Finalize
+		GetOtherOtherTableInfo:Finalize
 		if ${TableDeletionQueue.Peek}
 		{
 			do
