@@ -318,7 +318,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 						}
 					}
 					; If we have a locked target, and that target is the mission target, and there are things other than the mission target, please unlock this fucking mission target.
-					if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} > ${This.TableOwnedLocks[MissionTarget]}
+					if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${MissionTargetManager.TDBRowCount[WeaponTargets]} > ${MissionTargetManager.TDBRowCount[MissionTarget]}
 					{
 						PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 						Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
@@ -362,7 +362,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					continue
 				}
 				; Zeroth and a half up. If this is a MissionTarget AND we have more than 1 WeaponsTarget, we don't want to lock it
-				if (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} > ${This.TableOwnedLocks[MissionTarget]})
+				if (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${MissionTargetManager.TDBRowCount[WeaponTargets]} > ${MissionTargetManager.TDBRowCount[MissionTarget]})
 				{
 					GetOtherTableInfo:NextRow
 					continue				
