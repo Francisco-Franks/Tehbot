@@ -160,7 +160,6 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		variable int TotalReservation
 
 		; This will be how many targets we have available as extra which can be used by any targeting table, except for a DroneTargetingTable.
-		variable int SpareLocks
 		variable int LockedHowMany
 		; This will be how many locks we have attempted to begin this loop.
 		variable int InitiatedLocks
@@ -179,7 +178,6 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		echo TARGDAT CHECKPOINT 1 ${This.TableReservedLocks[${TableName}]} ${TableName}
 		; Lets check that Collection then. I don't know how this collection could feasibly end up empty but who knows.
 
-		SpareLocks:Set[${Math.Calc[${MaxTarget} - ${TotalReservation}]}]
 		; Where do we start with this? I guess we will go through our table and look at what is LOCKED or LOCKING. If a Locking target is Locked, we will update its entry. If a Locked target is no longer locked, but still exists
 		; (which it should, unless it died in the like 10 milliseconds between Cleanup in the last state and this one), we will mark it as Unlocked.
 		
@@ -223,34 +221,36 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				; If it is now unlocked, see if it should be relocked, priority, etc.
 				if !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget}
 				{
-					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority"]};"]}]
-					if ${GetMoreTableInfo.NumRows} > 0
-					{
-						; We have bigger fish to fry, apparently.
-						PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
-					}
-					else
-					{
-						; I want to always have a threshold of one extra lock, hence the greater than 1. If our max number of targets minus our current locks is greater than 1, then relock the target.
-						if ${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1 && ( !${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} || (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} == ${This.TableOwnedLocks[MissionTarget]}))
-						{
-							PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
-							;LockQueue:Queue[{GetOtherTableInfo.GetFieldValue["EntityID"]}]
-							Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:LockTarget
-						}
-						else
-						{
-							; Not sure how we end up at this contingency here but
-							PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
-						}
-					}
+					;GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority"]};"]}]
+					;if ${GetMoreTableInfo.NumRows} > 0
+					;{
+					;	; We have bigger fish to fry, apparently.
+					;	PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					;}
+					;else
+					;{
+					;	; I want to always have a threshold of one extra lock, hence the greater than 1. If our max number of targets minus our current locks is greater than 1, then relock the target.
+					;	if ${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1 && ( !${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} || (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} == ${This.TableOwnedLocks[MissionTarget]}))
+					;	{
+					;		PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					;		;LockQueue:Queue[{GetOtherTableInfo.GetFieldValue["EntityID"]}]
+					;		Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:LockTarget
+					;	}
+					;	else
+					;	{
+					;		; Not sure how we end up at this contingency here but
+					;		PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					;	}
+					;}
+					; Going to disable this relock shit for now. If we need to relock it, we will, later.
+					PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 					GetMoreTableInfo:Finalize
 				}
 				; If it is still locked, see if it SHOULD still be locked. This will involve looking at Priorities, and probably other complicated things. Heck.
 				;;; ADDENDUM - Need two versions for this, one for lasers one for not.
 				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]}
 				{
-					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
+					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND EntityID!=${GetOtherTableInfo.GetFieldValue["EntityID"]} AND PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
 					if ${GetMoreTableInfo.NumRows} > 0
 					{
 						; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
@@ -287,7 +287,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				}
 				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]} || ${TableName.Equal[DroneTargets]})
 				{
-					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
+					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND EntityID!=${GetOtherTableInfo.GetFieldValue["EntityID"]} AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
 					if ${GetMoreTableInfo.NumRows} > 0
 					{
 						; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
@@ -300,7 +300,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 						}
 					}
 					; If we have a locked target, and that target is the mission target, and there are things other than the mission target, please unlock this fucking mission target.
-					if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && ${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} > ${This.TableOwnedLocks[MissionTarget]}
+					if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} > ${This.TableOwnedLocks[MissionTarget]}))
 					{
 						PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 						Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
@@ -580,7 +580,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		{
 			do
 			{
-				if !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)}
+				if !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund}
 					TableDeletionQueue:Queue[${GetOtherTableInfo.GetFieldValue["EntityID"]}]
 					
 				GetOtherTableInfo:NextRow
