@@ -6,6 +6,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 	
 	; These queries will be for our tables, I don't know why I bother making two different queries, they all get finalized and re-used immediately.
 	variable sqlitequery GetPrimaryTableInfo
+	variable sqlitequery GetOtherTableInfo
 	variable sqlitequery GetOtherOtherTableInfo
 	; I lied, sometimes I might need to initiate a second query alongside the first one
 	variable sqlitequery GetMoreTableInfo
@@ -179,11 +180,11 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		variable int TotalReservation
 
 		; This will be how many targets we have available as extra which can be used by any targeting table, except for a DroneTargetingTable.
-		variable int LockedHowMany
+		variable int LockedHowMany = 0
 		; This will be how many locks we have attempted to begin this loop.
 		variable int InitiatedLocks
 		
-		variable int RecentlyUnlocked
+		variable int RecentlyUnlocked = 0
 
 		; Could come up, I guess.
 		if !${Client.InSpace}
@@ -266,9 +267,9 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				}
 				; If it is still locked, see if it SHOULD still be locked. This will involve looking at Priorities, and probably other complicated things. Heck.
 				;;; ADDENDUM - Need two versions for this, one for lasers one for not.
-				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]}
+				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${Ship.ModuleList_Lasers.Count} == 0
 				{
-					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND EntityID!=${GetOtherTableInfo.GetFieldValue["EntityID"]} AND PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
+					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
 					if ${GetMoreTableInfo.NumRows} > 0
 					{
 						; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
@@ -305,7 +306,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				}
 				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]} || ${TableName.Equal[DroneTargets]})
 				{
-					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND EntityID!=${GetOtherTableInfo.GetFieldValue["EntityID"]} AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
+					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
 					if ${GetMoreTableInfo.NumRows} > 0
 					{
 						; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
@@ -344,10 +345,10 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		}
 		; And now we get to the good stuff, Unlocked Targets.
 		;;; Addendum, still the same but now we need 2, one for laser ships and everything that isnt a WeaponTargets table, and then one for WeaponTargets table without lasers.
-		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]}
+		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${Ship.ModuleList_Lasers.Count} == 0
 		{
 			GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' ORDER BY Priority DESC;"]}]
-			
+			echo DEBUG DEBUG DEBUUUUG NON LASER TRIGGER 1
 		}
 		else
 			GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' ORDER BY Priority DESC;"]}]
@@ -355,6 +356,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		{
 			do
 			{
+				echo DEBUG DEBUG DEBUUUUUUUG UNLOCKED LOOP START
 				; Zeroth up, is this row's entity out of our lock range or dead? Skip this row.
 				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund} || !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || (${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} > ${Math.Calc[${MyShip.MaxTargetRange} * .95]})
 				{
@@ -365,6 +367,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				if (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${MissionTargetManager.TDBRowCount[WeaponTargets]} > ${MissionTargetManager.TDBRowCount[MissionTarget]})
 				{
 					GetOtherTableInfo:NextRow
+					echo DEBUG DEBUG DEEEBUUUUG CANT LOCK THE MISSION TARGET 2
 					continue				
 				}
 				; First up, do we NEED more locks? If we have as many locks as we reserve, or more, then...
@@ -386,15 +389,19 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 			while !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
 			GetOtherTableInfo:Finalize
 		}
-		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && !${Ship.ModuleList_Weapon.Type.Find["Laser"]} && (${LockedHowMany} <= ${This.TableReservedLocks[${TableName}]})
+		echo DEBUG DEBUG DEBUUUUG JUST BEFORE NONLASER (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${Ship.ModuleList_Lasers.Count} == 0 && (${LockedHowMany} <= ${This.TableReservedLocks[${TableName}]})
+		echo DEBUG DEBUG DEBUUUUUG Type ${Ship.ModuleList_Turret.Type} Name ${Ship.ModuleList_Turret.Name} ${Ship.ModuleList_Turret} ${Ship.ModuleList_Turret.Group} CHARGE TYPE ${Ship.ModuleList_Weapon.ChargeType} ${Ship.ModuleList_Turret.ChargeType}
+		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${Ship.ModuleList_Lasers.Count} == 0 && (${LockedHowMany} <= ${This.TableReservedLocks[${TableName}]})
 		{
 			GetOtherTableInfo:Finalize
+			echo DEBUG DEBUG DEBUUUUG NON LASER TRIGGER 2
 			GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' ORDER BY Priority DESC;"]}]
 		}
 		if ${GetOtherTableInfo.NumRows} > 0
 		{
 			do
 			{
+				echo DEBUG DEBUG DEBUUUUUUUG UNLOCKED LOOP START 2
 				; Zeroth up, is this row's entity out of our lock range or dead? Skip this row.
 				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund} || !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || (${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} > ${Math.Calc[${MyShip.MaxTargetRange} * .95]})
 				{
@@ -405,6 +412,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				if  (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${MissionTargetManager.TDBRowCount[WeaponTargets]} > ${MissionTargetManager.TDBRowCount[MissionTarget]})
 				{
 					GetOtherTableInfo:NextRow
+					echo DEBUG DEBUG DEEEBUUUUG CANT LOCK THE MISSION TARGET 2
 					continue				
 				}
 				; First up, do we NEED more locks? If we have as many locks as we reserve, or more, then...
@@ -449,7 +457,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 	; This member will return the number of locked targets that are in a given TableName.
 	member:int TableOwnedLocks(string TableName)
 	{
-		variable int FinalValue
+		variable int FinalValue = 0
 		
 		GetEvenMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Locked' OR LockStatus='Locking';"]}]
 		if ${GetEvenMoreTableInfo.NumRows} > 0

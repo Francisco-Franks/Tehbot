@@ -302,6 +302,11 @@ objectdef obj_ModuleList inherits obj_Logger
 	{
 		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].GroupID}
 	}
+	
+	member:string Group()
+	{
+		return ${Ship.RegisteredModule.Element[${ModuleID.Get[1]}].Group}
+	}
 
 	member:float OptimalRange()
 	{

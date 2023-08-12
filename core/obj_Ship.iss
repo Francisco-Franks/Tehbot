@@ -47,6 +47,7 @@ objectdef obj_Ship inherits obj_StateQueue
 		This:AddModuleList[MiningLaser, "ToItem.GroupID = GROUP_MININGLASER || ToItem.GroupID = GROUP_STRIPMINER || ToItem.GroupID = GROUP_FREQUENCYMININGLASER || ToItem.GroupID = GROUP_GASCLOUDHARVESTER	 || ToItem.GroupID = GROUP_GASCLOUDSCOOP || (ToItem.GroupID = GROUP_MININGLASER || ToItem.GroupID = GROUP_STRIPMINER) && Name =- Ice""]
 		This:AddModuleList[Weapon, "ToItem.GroupID = GROUP_VORTONWEAPON || ToItem.GroupID = GROUP_PRECURSORWEAPON || ToItem.GroupID = GROUP_ENERGYWEAPON || ToItem.GroupID = GROUP_PROJECTILEWEAPON || ToItem.GroupID = GROUP_HYBRIDWEAPON || ToItem.GroupID = GROUP_MISSILELAUNCHERRAPIDHEAVY || ToItem.GroupID = GROUP_MISSILELAUNCHER || ToItem.GroupID = GROUP_MISSILELAUNCHERASSAULT || ToItem.GroupID = GROUP_MISSILELAUNCHERBOMB || ToItem.GroupID = GROUP_MISSILELAUNCHERCITADEL || ToItem.GroupID = GROUP_MISSILELAUNCHERCRUISE || ToItem.GroupID = GROUP_MISSILELAUNCHERDEFENDER || ToItem.GroupID = GROUP_MISSILELAUNCHERHEAVY || ToItem.GroupID = GROUP_MISSILELAUNCHERHEAVYASSAULT || ToItem.GroupID = GROUP_MISSILELAUNCHERROCKET || ToItem.GroupID = GROUP_MISSILELAUNCHERTORPEDO || ToItem.GroupID = GROUP_MISSILELAUNCHERSTANDARD"]
 		This:AddModuleList[Turret, "ToItem.GroupID = GROUP_PRECURSORWEAPON || ToItem.GroupID = GROUP_ENERGYWEAPON || ToItem.GroupID = GROUP_PROJECTILEWEAPON || ToItem.GroupID = GROUP_HYBRIDWEAPON"]
+		This:AddModuleList[Lasers, "ToItem.GroupID = GROUP_ENERGYWEAPON"]
 		This:AddModuleList[VortonWeapon, "ToItem.GroupID = GROUP_VORTONWEAPON"]
 		This:AddModuleList[Disintegrator, "ToItem.GroupID = GROUP_PRECURSORWEAPON"]
 		This:AddModuleList[MissileLauncher, "ToItem.GroupID = GROUP_MISSILELAUNCHERRAPIDHEAVY || ToItem.GroupID = GROUP_MISSILELAUNCHER || ToItem.GroupID = GROUP_MISSILELAUNCHERASSAULT || ToItem.GroupID = GROUP_MISSILELAUNCHERBOMB || ToItem.GroupID = GROUP_MISSILELAUNCHERCITADEL || ToItem.GroupID = GROUP_MISSILELAUNCHERCRUISE || ToItem.GroupID = GROUP_MISSILELAUNCHERDEFENDER || ToItem.GroupID = GROUP_MISSILELAUNCHERHEAVY || ToItem.GroupID = GROUP_MISSILELAUNCHERHEAVYASSAULT || ToItem.GroupID = GROUP_MISSILELAUNCHERROCKET || ToItem.GroupID = GROUP_MISSILELAUNCHERTORPEDO || ToItem.GroupID = GROUP_MISSILELAUNCHERSTANDARD"]
@@ -200,7 +201,7 @@ objectdef obj_Ship inherits obj_StateQueue
 					; This:LogDebug[" inserting, group ${moduleListName}, query of which is ${ModuleListQueryID.CurrentValue}"]
 					if ${LavishScript.QueryEvaluate[${ModuleListQueryID.CurrentValue}, moduleIterator.Value]}
 					{
-						; This:LogDebug[" insert ${moduleIterator.Value.ID} ${moduleIterator.Value.Name} ${RegisteredModule.Element[${moduleIterator.Value.ID}].ModuleID} to group ${moduleListName}"]
+						 This:LogDebug[" insert ${moduleIterator.Value.ID} ${moduleIterator.Value.Name} ${RegisteredModule.Element[${moduleIterator.Value.ID}].ModuleID} to group ${moduleListName}"]
 						ModuleList_${moduleListName}:Insert[${moduleIterator.Value.ID}]
 					}
 				}
