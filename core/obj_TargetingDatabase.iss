@@ -181,8 +181,6 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 
 		; This will be how many targets we have available as extra which can be used by any targeting table, except for a DroneTargetingTable.
 		variable int LockedHowMany = 0
-		; This will be how many locks we have attempted to begin this loop.
-		variable int InitiatedLocks
 		
 		variable int RecentlyUnlocked = 0
 
@@ -231,6 +229,11 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		{
 			TargetingDatabase:ExecDMLTransaction[PendingTransaction]
 			PendingTransaction:Clear
+		}
+		; ActiveNPCs is a source list it should never be managing locks.
+		if ${TableName.Equal[ActiveNPCs]}
+		{
+			return TRUE
 		}
 		; Now lets verify our Locked status targets and update as needed.
 		GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Locked';"]}]
@@ -351,9 +354,12 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 			echo DEBUG DEBUG DEBUUUUG NON LASER TRIGGER 1
 		}
 		else
+		{
 			GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' ORDER BY Priority DESC;"]}]
+		}
 		if ${GetOtherTableInfo.NumRows} > 0
 		{
+			echo DEBUG DEBUG DEBUUUUG LASER LOCK LOOP !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
 			do
 			{
 				echo DEBUG DEBUG DEBUUUUUUUG UNLOCKED LOOP START
@@ -381,8 +387,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					; Well, this should have been sorted by Priority, so uh, we'll just lock these things up in order.
 					PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 					Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:LockTarget
-					LockedHowMany:Inc[1]
-					TotalCurrentLocks:Inc[1]					
+					LockedHowMany:Inc[1]					
 				}
 				GetOtherTableInfo:NextRow
 			}
@@ -391,7 +396,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		}
 		echo DEBUG DEBUG DEBUUUUG JUST BEFORE NONLASER (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${Ship.ModuleList_Lasers.Count} == 0 && (${LockedHowMany} <= ${This.TableReservedLocks[${TableName}]})
 		echo DEBUG DEBUG DEBUUUUUG Type ${Ship.ModuleList_Turret.Type} Name ${Ship.ModuleList_Turret.Name} ${Ship.ModuleList_Turret} ${Ship.ModuleList_Turret.Group} CHARGE TYPE ${Ship.ModuleList_Weapon.ChargeType} ${Ship.ModuleList_Turret.ChargeType}
-		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${Ship.ModuleList_Lasers.Count} == 0 && (${LockedHowMany} <= ${This.TableReservedLocks[${TableName}]})
+		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${Ship.ModuleList_Lasers.Count} == 0 && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
 		{
 			GetOtherTableInfo:Finalize
 			echo DEBUG DEBUG DEBUUUUG NON LASER TRIGGER 2
@@ -399,6 +404,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		}
 		if ${GetOtherTableInfo.NumRows} > 0
 		{
+			echo DEBUG DEBUG DEBUUUUG FALLTHROUGH LOCK LOOP !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
 			do
 			{
 				echo DEBUG DEBUG DEBUUUUUUUG UNLOCKED LOOP START 2
@@ -426,8 +432,57 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					; Well, this should have been sorted by Priority, so uh, we'll just lock these things up in order.
 					PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 					Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:LockTarget
-					LockedHowMany:Inc[1]
-					TotalCurrentLocks:Inc[1]					
+					LockedHowMany:Inc[1]					
+				}
+				GetOtherTableInfo:NextRow
+			}
+			while !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
+		}
+		GetOtherTableInfo:Finalize
+		; Lets get those updates through.
+		if ${PendingTransaction.Used} > 0
+		{
+			TargetingDatabase:ExecDMLTransaction[PendingTransaction]
+			PendingTransaction:Clear
+		}
+		; Another for drones specifically.
+		if ${TableName.Equal[DroneTargets]}  && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
+		{
+			GetOtherTableInfo:Finalize
+			echo DEBUG DEBUG DEBUUUUG DRONE TRIGGER
+			GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' ORDER BY Priority DESC;"]}]
+		}
+		if ${GetOtherTableInfo.NumRows} > 0
+		{
+			echo DEBUG DEBUG DEBUUUUG DRONE LOCK LOOP !${GetOtherTableInfo.LastRow} && (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1) && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
+			do
+			{
+				echo DEBUG DEBUG DEBUUUUUUUG UNLOCKED LOOP START 2
+				; Zeroth up, is this row's entity out of our lock range or dead? Skip this row.
+				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund} || !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || (${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} > ${Math.Calc[${MyShip.MaxTargetRange} * .95]})
+				{
+					GetOtherTableInfo:NextRow
+					continue
+				}
+				; Zeroth and a half up. If this is a MissionTarget AND we have more than 1 WeaponsTarget, we don't want to lock it
+				if  (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${MissionTargetManager.TDBRowCount[WeaponTargets]} > ${MissionTargetManager.TDBRowCount[MissionTarget]})
+				{
+					GetOtherTableInfo:NextRow
+					echo DEBUG DEBUG DEEEBUUUUG CANT LOCK THE MISSION TARGET 2
+					continue				
+				}
+				; First up, do we NEED more locks? If we have as many locks as we reserve, or more, then...
+				if (${This.TableOwnedLocks[${TableName}]} >= ${This.TableReservedLocks[${TableName}]}) || (${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} <= 1) || (${LockedHowMany} > ${Math.Calc[${This.TableReservedLocks[${TableName}]}+${This.TableOwnedLocks[${TableName}]}]})
+				{
+					; No locks for now. May as well exit the loop. In the future we may have a bypass for when we NEED A LOCK RIGHT NOW.
+					break
+				}
+				elseif (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && ${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1
+				{
+					; Well, this should have been sorted by Priority, so uh, we'll just lock these things up in order.
+					PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:LockTarget
+					LockedHowMany:Inc[1]					
 				}
 				GetOtherTableInfo:NextRow
 			}
