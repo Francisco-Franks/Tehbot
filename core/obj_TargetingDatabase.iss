@@ -27,7 +27,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 	variable collection:int TargetReservationCollection 
 	
 	; This is just so we can know what our nominal max number of locked targets is.
-	variable int MaxTarget = ${MyShip.MaxLockedTargets}
+	variable int MaxTarget 
 	
 	method Initialize()
 	{
@@ -63,6 +63,10 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 	member:bool TargetingHub()
 	{
 		; This is here in case you end up in one of them triglavian systems that eats your fucking max target count. Or if you have bad skills.
+		if ${MaxTarget} < ${MyShip.MaxLockedTargets}
+		{
+			MaxTarget:Set[${MyShip.MaxLockedTargets}]
+		}
 		if ${Me.MaxLockedTargets} < ${MyShip.MaxLockedTargets}
 		{
 			MaxTarget:Set[${Me.MaxLockedTargets}]
