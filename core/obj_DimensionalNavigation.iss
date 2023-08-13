@@ -123,7 +123,7 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 		MJDInvoked:Set[FALSE]
 		
 		; If we aren't in space, return. If the MJD isn't usable, return.
-		if !{$Client.InSpace} || ${MJDInProgress}
+		if !${Client.InSpace} || ${MJDInProgress}
 			return
 		if !${This.MJDUsable}
 		{
@@ -170,8 +170,30 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 	; This member will return whether our MJD is currently able to be used. Are we scrammed? Do we have enough cap? Is the MJD cooling down still? Are we bastioned? 
 	member:bool MJDUsable()
 	{
-	
-	
+		variable index:jammer attackers
+		variable iterator attackerIterator
+		Me:GetJammers[attackers]
+		attackers:GetIterator[attackerIterator]
+		if ${attackerIterator:First(exists)}
+		do
+		{
+			if ${jamsIterator.Value.Lower.Find["scram"]}
+			{
+				; We're being scrammed, no MJD
+				return FALSE
+			}
+		}
+		while ${attackerIterator:Next(exists)}
+		if ${Ship.RegisteredModule.Element[${Ship.ModuleList_Siege.ModuleID.Get[1]}].IsActive}
+		{
+			; We're bastioned, no MJD
+			return FALSE
+		}
+		if ${Ship.RegisteredModule.Element[${Ship.ModuleList_MJD.ModuleID.Get[1]}].IsActive}
+		{
+			; We're bastioned, no MJD
+			return FALSE
+		}		
 	}
 	
 	; This member will be used to tell whether we are aligned towards a specific target or coordinate (maybe).

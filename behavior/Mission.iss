@@ -1483,6 +1483,7 @@ objectdef obj_Mission inherits obj_StateQueue
 				}
 				if ${CurrentAgentLoot.NotNULLOrEmpty} && !${CurrentRunContainerLooted}
 				{
+					This:LogInfo["Accel Gate ${Entity[Type = "Acceleration Gate"](exists)} ${CurrentAgentMissionName}"]
 					; Fucking "In The Midst of Deadspace", bespoke bullshit stopgap solution here.
 					if ${Entity[Type = "Acceleration Gate"](exists)} && !${CurrentAgentMissionName.Equal[Worlds Collide]}
 					{
