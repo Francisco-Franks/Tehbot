@@ -307,6 +307,12 @@ objectdef obj_Move inherits obj_StateQueue
 		{
 			return FALSE
 		}
+		;; MJD usage, if the gate is further than 60k lets try to MJD to it
+		if (${Entity[${ID}].Distance} > 60000 && ${Ship.ModuleList_MJD.Count} > 0) && (${DimensionalNavigation.NextMJDTime} < ${LavishScript.RunningTime})
+		{
+			This:LogInfo["We are preparing for an MJD Activation"]
+			DimensionalNavigation:InvokeMJD[0, 0, 0, ${ID}, FALSE]
+		}
 		; We are too close to the gate, orbit it so we don't get stuck on it. This might have worked in the past? You can't get a negative distance anymore.
 		if ${Entity[${ID}].Distance} < -8000
 		{

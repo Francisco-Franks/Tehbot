@@ -143,13 +143,14 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		;;; So, if there are 5 ore more enemies within 20k, or all we have are drone targets, AND we can actually activate an MJD right now we will prepare for an MJD
 		if ${Ship.ModuleList_MJD.Count} > 0 
 		{
-			if (${This.TableWithinDistance[ActiveNPCs,20000]} > 5 || ((${This.TDBRowCount[ActiveNPCs]} > 0) && ${This.TDBRowCount[WeaponTargets]} == 0 && ${This.TDBRowCount[DroneTargets]} > 0)) && !${This.AmIScrammed} && (${DimensionalNavigation.NextMJDTime} < ${LavishScript.RunningTime})
+			if ((${This.TableWithinDistance[ActiveNPCs,20000]} > 5 || ((${This.TDBRowCount[ActiveNPCs]} > 0) && ${This.TDBRowCount[WeaponTargets]} == 0 && ${This.TDBRowCount[DroneTargets]} > 0)) && !${This.AmIScrammed} && (${DimensionalNavigation.NextMJDTime} < ${LavishScript.RunningTime}))
 			{
 				This:LogInfo["We are preparing for an MJD Activation"]
+				Drones:Recall
 				PreparingForMJD:Set[TRUE]
 			}
 			; We are preparing for MJD and it is ready to be used now, activate the method. This will just be a blind MJD to get away from where we are now, no other purpose.
-			if ${PreparingForMJD} && ${DimensionalNavigation.MJDUsable}
+			if ${PreparingForMJD} && ${DimensionalNavigation.MJDUsable} && !${DimensionalNavigation.MJDInProgress}
 			{
 				This:LogInfo["MJD Prep complete, Invoking unguided MJD activation."]
 				DimensionalNavigation:InvokeMJD[0, 0, 0, 0, FALSE]

@@ -4,6 +4,10 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 	variable bool MJDInProgress
 	; Going to store a timestamp for when we last used our MJD.
 	variable int64 LastMJDTime
+	; Going to store a timestamp for when we can next use our MJDActivate
+	variable int64 NextMJDTime
+	; Another timer, when did we begin our align>
+	variable int64 BeganAligning
 	; Bool indicates something has invoked an MJD use
 	variable bool MJDInvoked
 	; Bool indicates we have actually activated our MJDUsable
@@ -65,6 +69,7 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 	; This state is where we wait for our MJD alignment, active the MJD, wait for the spool up and landing, and leave when we are done.
 	member:bool UsingMJD()
 	{
+		echo DEBUG DEBUG DEBUG DIMENSIONAL USING MJD STATE START
 		MJDInvoked:Set[FALSE]
 		if !${Client.InSpace}
 		{
@@ -161,7 +166,10 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 			CurrentJumpCoordZ:Set[0]
 			CurrentJumpEntityID:Set[${EntityID}]
 			if !${JumpAway}
+			{
+				BeganAligning:Set[${Math.Calc[${Lavishscript.RunningTime} + 3000]}]
 				Entity[${EntityID}]:AlignTo
+			}
 			else
 				Entity[${EntityID}]:KeepAtRange[${Math.Calc[${Math.Rand[1000000]}+1000000]}]
 		}
@@ -206,9 +214,9 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 	member:bool AreWeAligned(float64 TargetX, float64 TargetY, float64 TargetZ, int64 EntityID)
 	{
 		if ${EntityID} != 0
-		{
-			
-		
+		{	
+			; This is going to be a little crude but maybe it will work.
+			if ${BeganAligning} < ${LavishScript.RunningTime}
 		}
 		elseif (${TargetX} != 0 && ${TargetY} != 0 && ${TargetZ} != 0)
 		{
