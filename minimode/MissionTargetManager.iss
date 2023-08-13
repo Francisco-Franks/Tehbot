@@ -207,7 +207,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_CommandBurst:DeactivateAll
 		}
-		if ((${This.DBRowCount[WeaponTargets]} > 0 || ${This.TDBRowCount[WeaponTargets]} > 0 || (${This.DBRowCount[WeaponTargets]} == 0 && ${This.TDBRowCount[MissionTarget]} > 0)) && (${This.TableWithinRange[WeaponTargets]} > 0 || ${This.TableWithinRange[ActiveNPCs]} > 0)) && !${PreparingForMJD}
+		if ((${This.DBRowCount[WeaponTargets]} > 0 || ${This.TDBRowCount[WeaponTargets]} > 0 || (${This.DBRowCount[WeaponTargets]} == 0 && ${This.TDBRowCount[MissionTarget]} > 0)) && (${This.TableWithinRange[WeaponTargets]} > 0 || ${This.TableWithinRange[ActiveNPCs]} > 0))
 		{
 			echo ALLOWING SIEGE ${This.TableWithinRange[WeaponTargets]} ${This.TableWithinRange[ActiveNPCs]}
 			AllowSiegeModule:Set[TRUE]
@@ -215,6 +215,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		if ${AllowSiegeModule} && \
 		${Ship.ModuleList_Siege.Allowed} && \
 		${Ship.ModuleList_Siege.Count} && \
+		!${PreparingForMJD} && \
 		!${Ship.RegisteredModule.Element[${Ship.ModuleList_Siege.ModuleID.Get[1]}].IsActive}
 		{
 			Ship.ModuleList_Siege:ActivateOne
