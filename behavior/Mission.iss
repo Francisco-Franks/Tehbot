@@ -106,12 +106,12 @@ objectdef obj_Configuration_Mission inherits obj_Configuration_Base
 	Setting(int64, TurretExtraAmmo4Amount, SetTurretExtraAmmo4Amount)	
 	
 	; Time to do this again but for drones. Extra drone type and amount respective.
-	Setting(string, ExtraDrone1, SetExtraDrone1)
-	Setting(int64, ExtraDrone1Amount, SetExtraDrone1Amount)
-	Setting(string, ExtraDrone2, SetExtraDrone2)
-	Setting(int64, ExtraDrone2Amount, SetExtraDrone2Amount)
-	Setting(string, ExtraDrone3, SetExtraDrone3)
-	Setting(int64, ExtraDrone3Amount, SetExtraDrone3Amount)
+	Setting(string, ExtraDroneType1, SetExtraDroneType1)
+	Setting(int64, ExtraDroneType1Amount, SetExtraDroneType1Amount)
+	Setting(string, ExtraDroneType2, SetExtraDroneType2)
+	Setting(int64, ExtraDroneType2Amount, SetExtraDroneType2Amount)
+	Setting(string, ExtraDroneType3, SetExtraDroneType3)
+	Setting(int64, ExtraDroneType3Amount, SetExtraDroneType3Amount)
 	
 	; Page 3 of the UI begins
 	; Storage and Misc
@@ -3956,12 +3956,12 @@ objectdef obj_Mission inherits obj_StateQueue
 		variable int ExtraAmmo3Amount = ${Config.TurretExtraAmmo3Amount}
 		variable int ExtraAmmo4Amount = ${Config.TurretExtraAmmo4Amount}
 		; These are for our extra configured drones.
-		variable string ExtraDrone1 = ${Config.TurretExtraDrone1}
-		variable string ExtraDrone2 = ${Config.TurretExtraDrone2}
-		variable string ExtraDrone3 = ${Config.TurretExtraDrone3}
-		variable int ExtraDrone1Amount = ${Config.TurretExtraDrone1Amount}
-		variable int ExtraDrone2Amount = ${Config.TurretExtraDrone2Amount}
-		variable int ExtraDrone3Amount = ${Config.TurretExtraDrone3Amount}
+		variable string ExtraDrone1 = ${Config.ExtraDroneType1}
+		variable string ExtraDrone2 = ${Config.ExtraDroneType2}
+		variable string ExtraDrone3 = ${Config.ExtraDroneType3}
+		variable int ExtraDrone1Amount = ${Config.ExtraDroneType1Amount}
+		variable int ExtraDrone2Amount = ${Config.ExtraDroneType2Amount}
+		variable int ExtraDrone3Amount = ${Config.ExtraDroneType3Amount}
 		variable int64 ExtraDrone1Volume = 0
 		variable int64 ExtraDrone2Volume = 0
 		variable int64 ExtraDrone3Volume = 0

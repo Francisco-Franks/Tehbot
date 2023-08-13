@@ -1611,7 +1611,7 @@
 						</OnMouseExit>
 					</Textentry>
 
-					<Text name='ExtraDrone1Title'>
+					<Text name='ExtraDroneType1Title'>
 						<X>51%</X>
 						<Y>63%</Y>
 						<Width>40%</Width>
@@ -1627,7 +1627,7 @@
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Text>
-					<Textentry Name="ExtraDrone1String">
+					<Textentry Name="ExtraDroneType1String">
 						<Font template='Information.Font' />
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
@@ -1637,10 +1637,10 @@
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<OnLoad>
-							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtraDrone1}]
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtraDroneType1}]
 						</OnLoad>
 						<OnChange>
-							Script[Tehbot].VariableScope.Mission.Config:SetExtraDrone1[${This.Text}]
+							Script[Tehbot].VariableScope.Mission.Config:SetExtraDroneType1[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["What is the Literal Name of your extra drones? Republic Fleet Warrior, Imperial Navy Acolyte, etc."]
@@ -1649,7 +1649,7 @@
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>					
-					<Textentry Name="ExtraDrone1Quantity">
+					<Textentry Name="ExtraDroneType1Quantity">
 						<Font template='Information.Font' />
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
@@ -1659,10 +1659,10 @@
 						<Width>9%</Width>
 						<Height>5%</Height>
 						<OnLoad>
-							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtraDrone1Amount}]
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtraDroneType1Amount}]
 						</OnLoad>
 						<OnChange>
-							Script[Tehbot].VariableScope.Mission.Config:SetExtraDrone1Amount[${This.Text}]
+							Script[Tehbot].VariableScope.Mission.Config:SetExtraDroneType1Amount[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["How many of this drone will you load? Do your math please, your main drone will take whatever space is left after these extras."]
@@ -1672,7 +1672,7 @@
 						</OnMouseExit>
 					</Textentry>						
 	
-					<Text name='ExtraDrone2Title'>
+					<Text name='ExtraDroneType2Title'>
 						<X>51%</X>
 						<Y>73%</Y>
 						<Width>40%</Width>
@@ -1688,7 +1688,7 @@
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Text>
-					<Textentry Name="ExtraDrone2String">
+					<Textentry Name="ExtraDroneType2String">
 						<Font template='Information.Font' />
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
@@ -1698,10 +1698,10 @@
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<OnLoad>
-							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtraDrone2}]
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtraDroneType2}]
 						</OnLoad>
 						<OnChange>
-							Script[Tehbot].VariableScope.Mission.Config:SetExtraDrone2[${This.Text}]
+							Script[Tehbot].VariableScope.Mission.Config:SetExtraDroneType2[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["What is the Literal Name of your extra drones? Republic Fleet Warrior, Imperial Navy Acolyte, etc."]
@@ -1710,7 +1710,7 @@
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>					
-					<Textentry Name="ExtraDrone2Quantity">
+					<Textentry Name="ExtraDroneType2Quantity">
 						<Font template='Information.Font' />
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
@@ -1720,10 +1720,10 @@
 						<Width>9%</Width>
 						<Height>5%</Height>
 						<OnLoad>
-							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtraDrone2Amount}]
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtraDroneType2Amount}]
 						</OnLoad>
 						<OnChange>
-							Script[Tehbot].VariableScope.Mission.Config:SetExtraDrone2Amount[${This.Text}]
+							Script[Tehbot].VariableScope.Mission.Config:SetExtraDroneType2Amount[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["How many of this drone will you load? Do your math please, your main drone will take whatever space is left after these extras."]
@@ -1733,7 +1733,7 @@
 						</OnMouseExit>
 					</Textentry>
 
-					<Text name='ExtraDrone3Title'>
+					<Text name='ExtraDroneType3Title'>
 						<X>51%</X>
 						<Y>82%</Y>
 						<Width>40%</Width>
@@ -1749,7 +1749,7 @@
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Text>
-					<Textentry Name="ExtraDrone3String">
+					<Textentry Name="ExtraDroneType3String">
 						<Font template='Information.Font' />
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
@@ -1759,10 +1759,10 @@
 						<Width>30%</Width>
 						<Height>5%</Height>
 						<OnLoad>
-							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtraDrone3}]
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtraDroneType3}]
 						</OnLoad>
 						<OnChange>
-							Script[Tehbot].VariableScope.Mission.Config:SetExtraDrone3[${This.Text}]
+							Script[Tehbot].VariableScope.Mission.Config:SetExtraDroneType3[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["What is the Literal Name of your extra drones? Republic Fleet Warrior, Imperial Navy Acolyte, etc."]
@@ -1771,7 +1771,7 @@
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText[""]
 						</OnMouseExit>
 					</Textentry>					
-					<Textentry Name="ExtraDrone3Quantity">
+					<Textentry Name="ExtraDroneType3Quantity">
 						<Font template='Information.Font' />
 						<BackgroundColor>FF000000</BackgroundColor>
 						<Border>1</Border>
@@ -1781,10 +1781,10 @@
 						<Width>9%</Width>
 						<Height>5%</Height>
 						<OnLoad>
-							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtraDrone3Amount}]
+							This:SetText[${Script[Tehbot].VariableScope.Mission.Config.ExtraDroneType3Amount}]
 						</OnLoad>
 						<OnChange>
-							Script[Tehbot].VariableScope.Mission.Config:SetExtraDrone3Amount[${This.Text}]
+							Script[Tehbot].VariableScope.Mission.Config:SetExtraDroneType3Amount[${This.Text}]
 						</OnChange>
 						<OnMouseEnter>
 							UIElement[Information@InformationFrame@Ammunition/Drones@MissionTabs@Tehbot_CombatMissions_Frame@Tehbot_CombatMissions]:SetText["How many of this drone will you load? Do your math please, your main drone will take whatever space is left after these extras."]
