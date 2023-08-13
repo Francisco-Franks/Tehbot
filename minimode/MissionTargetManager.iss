@@ -149,7 +149,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				PreparingForMJD:Set[TRUE]
 			}
 			; We are preparing for MJD and it is ready to be used now, activate the method. This will just be a blind MJD to get away from where we are now, no other purpose.
-			if ${PreparingForMJD} && ${MissionTargetManager.MJDUsable}
+			if ${PreparingForMJD} && ${DimensionalNavigation.MJDUsable}
 			{
 				This:LogInfo["MJD Prep complete, Invoking unguided MJD activation."]
 				DimensionalNavigation:InvokeMJD[0, 0, 0, 0, FALSE]
@@ -207,7 +207,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_CommandBurst:DeactivateAll
 		}
-		if (${This.DBRowCount[WeaponTargets]} > 0 || ${This.TDBRowCount[WeaponTargets]} > 0 || (${This.DBRowCount[WeaponTargets]} == 0 && ${This.TDBRowCount[MissionTarget]} > 0)) && (${This.TableWithinRange[WeaponTargets]} > 0 || ${This.TableWithinRange[ActiveNPCs]} > 0)
+		if ((${This.DBRowCount[WeaponTargets]} > 0 || ${This.TDBRowCount[WeaponTargets]} > 0 || (${This.DBRowCount[WeaponTargets]} == 0 && ${This.TDBRowCount[MissionTarget]} > 0)) && (${This.TableWithinRange[WeaponTargets]} > 0 || ${This.TableWithinRange[ActiveNPCs]} > 0)) && !${PreparingForMJD}
 		{
 			echo ALLOWING SIEGE ${This.TableWithinRange[WeaponTargets]} ${This.TableWithinRange[ActiveNPCs]}
 			AllowSiegeModule:Set[TRUE]
