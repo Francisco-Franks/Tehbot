@@ -73,7 +73,6 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 	member:bool UsingMJD()
 	{
 		echo DEBUG DEBUG DEBUG DIMENSIONAL USING MJD STATE START
-		MJDInvoked:Set[FALSE]
 		if !${Client.InSpace}
 		{
 			; I have absolutely no idea what set of circumstances could get you here but whatever.
@@ -110,7 +109,6 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 		{
 			echo DEBUG DEBUG DIMENSIONAL DOES JUMPCOMPLETED EVEN TRIGGER
 			; Jump is complete.
-			EVE:Execute[CmdStopShip]
 			MJDInProgress:Set[FALSE]
 			CurrentJumpCoordX:Set[0]
 			CurrentJumpCoordY:Set[0]
