@@ -143,7 +143,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		;;; So, if there are 5 ore more enemies within 20k, or all we have are drone targets, AND we can actually activate an MJD right now we will prepare for an MJD
 		if ${Ship.ModuleList_MJD.Count} > 0 
 		{
-			if (${This.TableWithinDistance[ActiveNPCs,20000]} > 5 || ((${This.TDBRowCount[ActiveNPCs]} > 0) && ${This.TDBRowCount[ActiveNPCs]} == ${This.TDBRowCount[DroneTargets]})) && !${This.AmIScrammed} && (${DimensionalNavigation.NextMJDTime} < ${LavishScript.RunningTime})
+			if (${This.TableWithinDistance[ActiveNPCs,20000]} > 5 || ((${This.TDBRowCount[ActiveNPCs]} > 0) && ${This.TDBRowCount[WeaponTargets]} == 0 && ${This.TDBRowCount[DroneTargets]} > 0)) && !${This.AmIScrammed} && (${DimensionalNavigation.NextMJDTime} < ${LavishScript.RunningTime})
 			{
 				This:LogInfo["We are preparing for an MJD Activation"]
 				PreparingForMJD:Set[TRUE]
@@ -961,8 +961,8 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	member:int TableWithinDistance(string TableName, float64 DistanceCheck)
 	{
 		variable int FinalValue
-		variable float64 LockRange
-		LockRange:Set[${Math.Calc[${MyShip.MaxTargetRange} * .95]}]
+
+
 		echo TABLEWITHINRANGE ${DistanceCheck}
 		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} WHERE Distance < ${DistanceCheck};"]}]
 		if ${GetActiveNPCs.NumRows} > 0
