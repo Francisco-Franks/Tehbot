@@ -197,7 +197,9 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 		{
 			; The MJD is on cooldown or whatever
 			return FALSE
-		}		
+		}	
+		; Otherwise its true.
+		return TRUE
 	}
 	
 	; This member will be used to tell whether we are aligned towards a specific target or coordinate (maybe).
