@@ -65,6 +65,7 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 	; This state is where we wait for our MJD alignment, active the MJD, wait for the spool up and landing, and leave when we are done.
 	member:bool UsingMJD()
 	{
+		MJDInvoked:Set[FALSE]
 		if !${Client.InSpace}
 		{
 			; I have absolutely no idea what set of circumstances could get you here but whatever.
@@ -105,6 +106,8 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 			CurrentJumpCoordY:Set[0]
 			CurrentJumpCoordZ:Set[0]
 			CurrentJumpEntityID:Set[0]
+			JumpCompleted:Set[FALSE]
+			MJDActivate:Set[FALSE]
 			This:InsertState["DimensionHub",5000]
 			return TRUE	
 		}
@@ -160,7 +163,7 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 			if !${JumpAway}
 				Entity[${EntityID}]:AlignTo
 			else
-				Entity[${EntityID}]:KeepAtRange[${Math.Calc[${Math.Rand[1000000]}+1000000]
+				Entity[${EntityID}]:KeepAtRange[${Math.Calc[${Math.Rand[1000000]}+1000000]}]
 		}
 		
 		MJDInvoked:Set[TRUE]
@@ -189,9 +192,10 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 			; We're bastioned, no MJD
 			return FALSE
 		}
-		if ${Ship.RegisteredModule.Element[${Ship.ModuleList_MJD.ModuleID.Get[1]}].IsActive}
+		; I don't know if this is the correct member. Might just make sure we don't call the method more than once every minute.
+		if ${Ship.RegisteredModule.Element[${Ship.ModuleList_MJD.ModuleID.Get[1]}].IsReloading}
 		{
-			; We're bastioned, no MJD
+			; The MJD is on cooldown or whatever
 			return FALSE
 		}		
 	}

@@ -1524,6 +1524,16 @@ objectdef obj_Mission inherits obj_StateQueue
 			; Lets just check for completion eh?
 			if ${CurrentAgentLoot.NotNULLOrEmpty} && !${CurrentRunContainerLooted}
 			{
+				This:LogInfo["Accel Gate ${Entity[Type = "Acceleration Gate"](exists)} ${CurrentAgentMissionName}"]
+				; Fucking "In The Midst of Deadspace", bespoke bullshit stopgap solution here.
+				if ${Entity[Type = "Acceleration Gate"](exists)} && !${CurrentAgentMissionName.Equal[Worlds Collide]}
+				{
+					This:LogInfo["In the Midst of Deadspace 1 Bypass"]
+					This:LogInfo["Gate Detected"]
+					This:InsertState["CombatMissionTransition",4000]
+					This:InsertState["CheckForCompletion",5000]
+					return TRUE							
+				}
 				; If we have a target to Loot and it hasn't already been looted. Look for it in this room.
 				This:LogInfo["Checking room for ${CurrentAgentLoot} to Loot."]
 				if ${Entity[Name == \"${CurrentAgentLoot.Escape}\"](exists)}
