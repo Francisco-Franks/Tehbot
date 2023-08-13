@@ -120,7 +120,7 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 	; This will entail : Checking to see that we actually have an MJD. Making sure it is actually usable at this moment. Recording the position we had before activation, recording the position we have after activation (to ensure we actually moved).
 	; We will have arguments, a set of 3d coordinates that we are trying to reach (or a 0,0,0 coord indicates we aren't trying to reach anything specific).
 	; An entity ID will indicate we are trying to MJD towards a specific entity. A bool to indicate whether we want to go TOWARDS a thing or AWAY from it, which will be ignored for coordinate specific jumps.
-	method InvokeMJD(TargetX float64, TargetY float64, TargetZ float64, EntityID int64, JumpAway bool)
+	method InvokeMJD(float64 TargetX, float64 TargetY, float64 TargetZ, int64 EntityID, bool JumpAway)
 	{
 		MJDActivated:Set[FALSE]
 		MJDInvoked:Set[FALSE]
@@ -203,7 +203,7 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 	}
 	
 	; This member will be used to tell whether we are aligned towards a specific target or coordinate (maybe).
-	member:bool AreWeAligned(TargetX float64, TargetY float64, TargetZ float64, EntityID int64)
+	member:bool AreWeAligned(float64 TargetX, float64 TargetY, float64 TargetZ, int64 EntityID)
 	{
 		if ${EntityID} != 0
 		{
