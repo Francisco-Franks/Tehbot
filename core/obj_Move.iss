@@ -307,12 +307,6 @@ objectdef obj_Move inherits obj_StateQueue
 		{
 			return FALSE
 		}
-		;; MJD usage, if the gate is further than 60k lets try to MJD to it
-		if (${Entity[${ID}].Distance} > 60000 && ${Ship.ModuleList_MJD.Count} > 0) && (${DimensionalNavigation.NextMJDTime} < ${LavishScript.RunningTime})
-		{
-			This:LogInfo["We are preparing for an MJD Activation"]
-			DimensionalNavigation:InvokeMJD[0, 0, 0, ${ID}, FALSE]
-		}
 		; We are too close to the gate, orbit it so we don't get stuck on it. This might have worked in the past? You can't get a negative distance anymore.
 		if ${Entity[${ID}].Distance} < -8000
 		{
@@ -962,7 +956,7 @@ objectdef obj_Approach inherits obj_StateQueue
 
 	member:bool CheckApproach(int64 ID, int distance)
 	{
-		ApproachModuleCounter:Inc[1]
+		;ApproachModuleCounter:Inc[1]
 		Logger:Log["Move", "DEBUG - We are in the approach state - Iteration Number ${ApproachModuleCounter}"]
 		;	Clear approach if we're in warp or the entity no longer exists
 		if ${Me.ToEntity.Mode} == MOVE_WARPING || !${Entity[${ID}](exists)}
@@ -970,16 +964,23 @@ objectdef obj_Approach inherits obj_StateQueue
 			return TRUE
 			Logger:Log["Move", "This thing we are approaching doesn't exist"]
 		}
-
-		;	We seem to have been approaching for a long time, lets stop the ship and exit the approach.
-		if ${ApproachModuleCounter} > 30
+		
+		;; MJD usage, if the gate is further than 60k lets try to MJD to it
+		if (${Entity[${ID}].Distance} > 60000 && ${Ship.ModuleList_MJD.Count} > 0) && (${DimensionalNavigation.InvokeTimer} < ${LavishScript.RunningTime}) && !${DimensionalNavigation.MJDInProgress}
 		{
-			Logger:Log["Move", "Approaching for too long, abort]
-			EVE:Execute[CmdStopShip]
-			ApproachModuleCounter:Set[0]
-			return TRUE
-			
+			This:LogInfo["We are preparing for an MJD Activation"]
+			DimensionalNavigation:InvokeMJD[0, 0, 0, ${ID}, FALSE]
 		}
+		
+		;	We seem to have been approaching for a long time, lets stop the ship and exit the approach.
+		;if ${ApproachModuleCounter} > 30
+		;{
+		;	Logger:Log["Move", "Approaching for too long, abort]
+		;	EVE:Execute[CmdStopShip]
+		;	ApproachModuleCounter:Set[0]
+		;	return TRUE
+			
+		;}
 		;	Find out if we need to approach the target
 		if ${Entity[${ID}].Distance} >= ${distance} && ${Me.ToEntity.Mode} != MOVE_APPROACHING
 		{

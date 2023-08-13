@@ -146,7 +146,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			if ((${This.TableWithinDistance[ActiveNPCs,20000]} > 5 || ((${This.TDBRowCount[ActiveNPCs]} > 0) && ${This.TDBRowCount[WeaponTargets]} == 0 && ${This.TDBRowCount[DroneTargets]} > 0)) && !${This.AmIScrammed} && (${DimensionalNavigation.NextMJDTime} < ${LavishScript.RunningTime}))
 			{
 				This:LogInfo["We are preparing for an MJD Activation"]
-				Drones:Recall
+				Drones:RecallAll
 				PreparingForMJD:Set[TRUE]
 			}
 			; We are preparing for MJD and it is ready to be used now, activate the method. This will just be a blind MJD to get away from where we are now, no other purpose.
@@ -274,7 +274,12 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
 			This:LogInfo["Approaching out of range target: \ar${Entity[${This.GetClosestEntity[ActiveNPCs]}].Name}"]
-			Entity[${This.GetClosestEntity[ActiveNPCs]}]:Approach		
+			if ${Entity[${This.GetClosestEntity[ActiveNPCs]}].Distance} > 60000
+			{
+				Move:Approach[${This.GetClosestEntity[ActiveNPCs]},50000]
+			}
+			else
+				Entity[${This.GetClosestEntity[ActiveNPCs]}]:Approach		
 		}
 		; Well, if all that is left are drone targets, may as well approach our mission objective or orbit the next gate or something.
 		if (${This.DBRowCount[ActiveNPCs]} > 0 && ${This.DBRowCount[WeaponTargets]} < 1 && ${This.DBRowCount[DroneTargets]} > 1) && !${Move.Traveling} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING && ${MyShip.ToEntity.Mode} != MOVE_ORBITING

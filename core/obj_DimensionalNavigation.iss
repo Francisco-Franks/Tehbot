@@ -8,6 +8,8 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 	variable int64 NextMJDTime
 	; Another timer, when did we begin our align>
 	variable int64 BeganAligning
+	; Another timer, when did we invoke an MJD
+	variable int64 InvokeTimer
 	; Bool indicates something has invoked an MJD use
 	variable bool MJDInvoked
 	; Bool indicates we have actually activated our MJDUsable
@@ -58,7 +60,8 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 		if ${MJDInvoked} && ${This.MJDUsable}
 		{
 			; Something has invoked an MJD usage. If it can be used and the alignment method was used, we will go to our MJD use state.
-			This:InsertState["UsingMJD",5000]
+			This:InsertState["UsingMJD",1000]
+			MJDInvoked:Set[FALSE]
 			return TRUE
 		}
 			
@@ -87,25 +90,25 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 			PreJumpCoordY:Set[${MyShip.ToEntity.Y}]
 			PreJumpCoordZ:Set[${MyShip.ToEntity.Z}]
 			
-			Ship.ModuleList_MJD:ActivateAll
+			;Ship.ModuleList_MJD:ActivateAll
+			MyShip.Module[${Ship.ModuleList_MJD.ModuleID.Get[1]}]:Activate
+
 			MJDActivated:Set[TRUE]
 		}
-		else
-			return FALSE
 			
 		if ${MJDActivated} && !${JumpCompleted}
 		{
 			; If we are now further than 80km from our starting coords, then we have jumped.
+			echo [${PreJumpCoordX}, ${PreJumpCoordY}, ${PreJumpCoordZ}, ${MyShip.ToEntity.X}, ${MyShip.ToEntity.Y}, ${MyShip.ToEntity.Z} ${Math.Distance[${PreJumpCoordX}, ${PreJumpCoordY}, ${PreJumpCoordZ}, ${MyShip.ToEntity.X}, ${MyShip.ToEntity.Y}, ${MyShip.ToEntity.Z}]}
 			if ${Math.Distance[${PreJumpCoordX}, ${PreJumpCoordY}, ${PreJumpCoordZ}, ${MyShip.ToEntity.X}, ${MyShip.ToEntity.Y}, ${MyShip.ToEntity.Z}]} > 80000
 			{
 				JumpCompleted:Set[TRUE]
 			}
-			else
-				return FALSE
 		}
 		
 		if ${JumpCompleted}
 		{
+			echo DEBUG DEBUG DIMENSIONAL DOES JUMPCOMPLETED EVEN TRIGGER
 			; Jump is complete.
 			EVE:Execute[CmdStopShip]
 			MJDInProgress:Set[FALSE]
@@ -113,12 +116,23 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 			CurrentJumpCoordY:Set[0]
 			CurrentJumpCoordZ:Set[0]
 			CurrentJumpEntityID:Set[0]
-			MJDActivate:Set[FALSE]
+			MJDActivated:Set[FALSE]
 			This:InsertState["DimensionHub",5000]
 			return TRUE	
 		}
-		else
-			return FALSE
+		; If it has been 75 seconds and we haven't completed the jump, something has probably gone wrong.
+		if ${Math.Calc[${LavishScript.RunningTime}-${LastMJDTime}]} > 75000
+		{
+			MJDInProgress:Set[FALSE]
+			CurrentJumpCoordX:Set[0]
+			CurrentJumpCoordY:Set[0]
+			CurrentJumpCoordZ:Set[0]
+			CurrentJumpEntityID:Set[0]
+			MJDActivated:Set[FALSE]
+			This:InsertState["DimensionHub",5000]
+			return TRUE			
+		}
+		return FALSE
 	}
 	
 	; This method will be called from mainmodes/minimodes to invoke the usage of a MJD.
@@ -127,18 +141,13 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 	; An entity ID will indicate we are trying to MJD towards a specific entity. A bool to indicate whether we want to go TOWARDS a thing or AWAY from it, which will be ignored for coordinate specific jumps.
 	method InvokeMJD(float64 TargetX, float64 TargetY, float64 TargetZ, int64 EntityID, bool JumpAway)
 	{
-		MJDActivated:Set[FALSE]
-		MJDInvoked:Set[FALSE]
-		
 		; If we aren't in space, return. If the MJD isn't usable, return.
 		if !${Client.InSpace} || ${MJDInProgress}
 			return
-		if !${This.MJDUsable}
-		{
-			MJDInProgress:Set[FALSE]
-			return
-		}
+			
 		MJDInProgress:Set[TRUE]
+		; 100 seconds is about as long as this entire process can ever take.
+		InvokeTimer:Set[${Math.Calc[${LavishScript.RunningTime}+10000]}]
 		; Ok what are we jumping towards? If anything?
 		if (${TargetX} == 0 && ${TargetY} == 0 && ${TargetZ} == 0) && ${EntityID} == 0
 		{
