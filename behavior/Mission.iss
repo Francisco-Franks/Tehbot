@@ -95,7 +95,7 @@ objectdef obj_Configuration_Mission inherits obj_Configuration_Base
 	Setting(int64, MissileHighDamageVariantAmount, SetMissileHighDamageVariantAmount)
 	Setting(int64, MissilePrecisionVariantAmount, SetMissilePrecisionVariantAmount)
 	
-	;These will be for Turret Ammo Extras, and their amounts. 
+	; These will be for Turret Ammo Extras, and their amounts. 
 	Setting(string, TurretExtraAmmo1, SetTurretExtraAmmo1)
 	Setting(int64, TurretExtraAmmo1Amount, SetTurretExtraAmmo1Amount)
 	Setting(string, TurretExtraAmmo2, SetTurretExtraAmmo2)
@@ -105,6 +105,13 @@ objectdef obj_Configuration_Mission inherits obj_Configuration_Base
 	Setting(string, TurretExtraAmmo4, SetTurretExtraAmmo4)
 	Setting(int64, TurretExtraAmmo4Amount, SetTurretExtraAmmo4Amount)	
 	
+	; Time to do this again but for drones. Extra drone type and amount respective.
+	Setting(string, ExtraDrone1, SetExtraDrone1)
+	Setting(int64, ExtraDrone1Amount, SetExtraDrone1Amount)
+	Setting(string, ExtraDrone2, SetExtraDrone2)
+	Setting(int64, ExtraDrone2Amount, SetExtraDrone2Amount)
+	Setting(string, ExtraDrone3, SetExtraDrone3)
+	Setting(int64, ExtraDrone3Amount, SetExtraDrone3Amount)
 	
 	; Page 3 of the UI begins
 	; Storage and Misc
@@ -3937,6 +3944,19 @@ objectdef obj_Mission inherits obj_StateQueue
 		variable int ExtraAmmo2Amount = ${Config.TurretExtraAmmo2Amount}
 		variable int ExtraAmmo3Amount = ${Config.TurretExtraAmmo3Amount}
 		variable int ExtraAmmo4Amount = ${Config.TurretExtraAmmo4Amount}
+		; These are for our extra configured drones.
+		variable string ExtraDrone1 = ${Config.TurretExtraDrone1}
+		variable string ExtraDrone2 = ${Config.TurretExtraDrone2}
+		variable string ExtraDrone3 = ${Config.TurretExtraDrone3}
+		variable int ExtraDrone1Amount = ${Config.TurretExtraDrone1Amount}
+		variable int ExtraDrone2Amount = ${Config.TurretExtraDrone2Amount}
+		variable int ExtraDrone3Amount = ${Config.TurretExtraDrone3Amount}
+		variable int64 ExtraDrone1Volume = 0
+		variable int64 ExtraDrone2Volume = 0
+		variable int64 ExtraDrone3Volume = 0
+		variable int64 specifiedExtraDrone1Volume = 0
+		variable int64 specifiedExtraDrone2Volume = 0
+		variable int64 specifiedExtraDrone3Volume = 0		
 		; These are for missiles.
 		variable int PrecisionAmmoAmount = ${Config.MissilePrecisionVariantAmount}
 		variable int HighDamageAmmoAmount = ${Config.MissileHighDamageVariantAmount}
@@ -3963,6 +3983,20 @@ objectdef obj_Mission inherits obj_StateQueue
 			}
 
 			variable int64 specifiedDroneVolume = ${Drones.Data.GetVolume[${Config.DroneType}]}
+
+			if ${ExtraDrone1.NotNULLOrEmpty}
+			{
+				specifiedExtraDrone1Volume:Set[${Drones.Data.GetVolume[${ExtraDrone1}]}]
+			}
+			if ${ExtraDrone2.NotNULLOrEmpty}
+			{
+				specifiedExtraDrone1Volume:Set[${Drones.Data.GetVolume[${ExtraDrone2}]}]
+			}
+			if ${ExtraDrone3.NotNULLOrEmpty}
+			{
+				specifiedExtraDrone1Volume:Set[${Drones.Data.GetVolume[${ExtraDrone3}]}]
+			}
+			
 			preferredDroneType:Set[${Config.DroneType}]
 			if !${preferredDroneType.Equal[${Config.DroneType}]}
 			{
@@ -3993,7 +4027,7 @@ objectdef obj_Mission inherits obj_StateQueue
 							return FALSE
 						}
 
-						if !${itemIterator.Value.Name.Equal[${preferredDroneType}]}
+						if (!${itemIterator.Value.Name.Equal[${preferredDroneType}]}) && (!${itemIterator.Value.Name.Equal[${ExtraDrone1}]} || !${ExtraDrone1.NotNULLOrEmpty})  && (!${itemIterator.Value.Name.Equal[${ExtraDrone2}]} || !${ExtraDrone2.NotNULLOrEmpty})  && (!${itemIterator.Value.Name.Equal[${ExtraDrone3}]} || !${ExtraDrone3.NotNULLOrEmpty})
 						{
 							itemIterator.Value:MoveTo[MyStationCorporateHangar, StationCorporateHangar, ${itemIterator.Value.Quantity}, ${This.CorporationFolder}]
 							return FALSE
@@ -4008,8 +4042,8 @@ objectdef obj_Mission inherits obj_StateQueue
 							return FALSE
 						}
 
-						if !${itemIterator.Value.Name.Equal[${preferredDroneType}]} && \
-							(!${itemIterator.Value.Name.Equal[${fallbackDroneType}]} || !${isLoadingFallbackDrones})
+
+						if (!${itemIterator.Value.Name.Equal[${preferredDroneType}]}) && (!${itemIterator.Value.Name.Equal[${ExtraDrone1}]} || !${ExtraDrone1.NotNULLOrEmpty})  && (!${itemIterator.Value.Name.Equal[${ExtraDrone2}]} || !${ExtraDrone2.NotNULLOrEmpty})  && (!${itemIterator.Value.Name.Equal[${ExtraDrone3}]} || !${ExtraDrone3.NotNULLOrEmpty})
 						{
 							itemIterator.Value:MoveTo[MyStationHangar, Hangar]
 							return FALSE
@@ -4021,7 +4055,28 @@ objectdef obj_Mission inherits obj_StateQueue
 			}
 
 			variable int64 remainingDroneSpace = ${Math.Calc[${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay].Capacity} - ${EVEWindow[Inventory].ChildWindow[${Me.ShipID}, ShipDroneBay].UsedCapacity}]}
+			ExtraDrone1Amount:Dec[${This.InventoryItemQuantity[${ExtraDrone1}, ${Me.ShipID}, "ShipDroneBay"]}]
+			ExtraDrone2Amount:Dec[${This.InventoryItemQuantity[${ExtraDrone2}, ${Me.ShipID}, "ShipDroneBay"]}]
+			ExtraDrone3Amount:Dec[${This.InventoryItemQuantity[${ExtraDrone3}, ${Me.ShipID}, "ShipDroneBay"]}]
+			
+			ExtraDrone1Volume:Set[${Math.Calc[${ExtraDrone1Amount}*${specifiedExtraDrone1Volume}]}]
+			if ${ExtraDrone1Volume} < 0
+			{
+				ExtraDrone1Volume:Set[0]
+			}
+			ExtraDrone2Volume:Set[${Math.Calc[${ExtraDrone2Amount}*${specifiedExtraDrone2Volume}]}]
+			if ${ExtraDrone2Volume} < 0
+			{
+				ExtraDrone2Volume:Set[0]
+			}
+			ExtraDrone3Volume:Set[${Math.Calc[${ExtraDrone3Amount}*${specifiedExtraDrone3Volume}]}]
+			if ${ExtraDrone3Volume} < 0
+			{
+				ExtraDrone3Volume:Set[0]
+			}
 
+			remainingDroneSpace:Set[${Math.Calc[${remainingDroneSpace} - ( ${ExtraDrone1Volume} + ${ExtraDrone2Volume} + ${ExtraDrone3Volume})]}]
+			
 			if ${specifiedDroneVolume} > 0
 			{
 				droneAmountToLoad:Set[${Math.Calc[${remainingDroneSpace} / ${specifiedDroneVolume}].Int}]
@@ -4034,6 +4089,9 @@ objectdef obj_Mission inherits obj_StateQueue
 			Client:Wait[500]
 			return FALSE
 		}
+		
+
+		
 		ExtraAmmo1Amount:Dec[${This.InventoryItemQuantity[${ExtraAmmo1}, ${Me.ShipID}, "ShipCargo"]}]
 		ExtraAmmo2Amount:Dec[${This.InventoryItemQuantity[${ExtraAmmo2}, ${Me.ShipID}, "ShipCargo"]}]
 		ExtraAmmo3Amount:Dec[${This.InventoryItemQuantity[${ExtraAmmo3}, ${Me.ShipID}, "ShipCargo"]}]
@@ -4330,7 +4388,7 @@ objectdef obj_Mission inherits obj_StateQueue
 
 		; Load preferred type of drones
 		items:GetIterator[itemIterator]
-		if ${droneAmountToLoad} > 0 && ${itemIterator:First(exists)}
+		if (${droneAmountToLoad} > 0 || ${ExtraDrone1Amount} > 0 || ${ExtraDrone2Amount} > 0 || ${ExtraDrone3Amount} > 0) && ${itemIterator:First(exists)}
 		{
 			do
 			{
@@ -4344,6 +4402,45 @@ objectdef obj_Mission inherits obj_StateQueue
 					This:LogInfo["Loading ${loadingDroneNumber} \ao${preferredDroneType}\aws."]
 					itemIterator.Value:MoveTo[${MyShip.ID}, DroneBay, ${loadingDroneNumber}]
 					droneAmountToLoad:Dec[${loadingDroneNumber}]
+					return FALSE
+				}
+				
+				if ${ExtraDrone1Amount} > 0 && ${itemIterator.Value.Name.Equal[${ExtraDrone1}]}
+				{
+					loadingDroneNumber:Set[${ExtraDrone1Amount}]
+					if ${itemIterator.Value.Quantity} < ${ExtraDrone1Amount}
+					{
+						loadingDroneNumber:Set[${itemIterator.Value.Quantity}]
+					}
+					This:LogInfo["Loading ${loadingDroneNumber} \ao${ExtraDrone1Amount}\aws."]
+					itemIterator.Value:MoveTo[${MyShip.ID}, DroneBay, ${loadingDroneNumber}]
+					ExtraDrone1Amount:Dec[${loadingDroneNumber}]
+					return FALSE
+				}
+				
+				if ${ExtraDrone2Amount} > 0 && ${itemIterator.Value.Name.Equal[${ExtraDrone2}]}
+				{
+					loadingDroneNumber:Set[${ExtraDrone2Amount}]
+					if ${itemIterator.Value.Quantity} < ${ExtraDrone2Amount}
+					{
+						loadingDroneNumber:Set[${itemIterator.Value.Quantity}]
+					}
+					This:LogInfo["Loading ${loadingDroneNumber} \ao${ExtraDrone2Amount}\aws."]
+					itemIterator.Value:MoveTo[${MyShip.ID}, DroneBay, ${loadingDroneNumber}]
+					ExtraDrone2Amount:Dec[${loadingDroneNumber}]
+					return FALSE
+				}
+				
+				if ${ExtraDrone3Amount} > 0 && ${itemIterator.Value.Name.Equal[${ExtraDrone3}]}
+				{
+					loadingDroneNumber:Set[${ExtraDrone3Amount}]
+					if ${itemIterator.Value.Quantity} < ${ExtraDrone3Amount}
+					{
+						loadingDroneNumber:Set[${itemIterator.Value.Quantity}]
+					}
+					This:LogInfo["Loading ${loadingDroneNumber} \ao${ExtraDrone3Amount}\aws."]
+					itemIterator.Value:MoveTo[${MyShip.ID}, DroneBay, ${loadingDroneNumber}]
+					ExtraDrone3Amount:Dec[${loadingDroneNumber}]
 					return FALSE
 				}
 			}

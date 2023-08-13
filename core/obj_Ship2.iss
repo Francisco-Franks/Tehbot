@@ -33,25 +33,6 @@ objectdef obj_Ship2
 		
 		MyShipInfo:Set[${SQLite.OpenDB["${Me.Name}ShipDB","${Script.CurrentDirectory}/Data/${Me.Name}ShipDB.sqlite3"]}]
 
-		;;; These are where we will store our modules and pertinent information about each module. A module can be in more than one table.
-		; General modules, and general information. Generally speaking.
-		;if !${MyShipInfo.TableExists["ShipGeneralModuleTable"]}
-		;{
-		;	echo DEBUG - Ship2 - Creating ShipGeneralModuleTable
-		;	MyShipInfo:ExecDML["create table ShipGeneralModuleTable;"]
-		;}
-		; Weapons, specifically. Damage types, damage modifiers, range, falloff, explosion velocity, explosion radius, etc.
-		;if !${MyShipInfo.TableExists["ShipWeaponsModuleTable"]}
-		;{
-		;	echo DEBUG - Ship2 - Creating ShipWeaponsModuleTable
-		;	MyShipInfo:ExecDML["create table ShipWeaponsModuleTable;"]
-		;}
-		; Defenses, hardeners and reps, etc. 
-		;if !${MyShipInfo.TableExists["ShipDefensiveModuleTable"]}
-		;{
-		;;	echo DEBUG - Ship2 - Creating ShipDefensiveModuleTable
-		;	MyShipInfo:ExecDML["create table ShipDefensiveModuleTable;"]
-		;}
 		
 		
 		; Ammunition table for turrets.
@@ -70,27 +51,6 @@ objectdef obj_Ship2
 			MyShipInfo:ExecDML["create table ShipAmmunitionMissile (AmmoTypeID INTEGER PRIMARY KEY, AmmoType TEXT, ShipType TEXT, LauncherType TEXT, EMDamage REAL, ExpDamage REAL, KinDamage REAL, ThermDamage REAL, ExpRadius REAL, ExpVel REAL, FlightRange REAL);"]
 		}
 
-		
-		;;; This is where we will store our baseline stats about the actual ship itself. Basically our ships parameters AFTER skills but BEFORE any modules are activated.
-		; How fast does our ship go, whats our sensor range, whats our sig radius, general information that might be of use, at some point. Doesn't really change much for target manager tbh.
-		;if !${MyShipInfo.TableExists["ShipBaselineParameters"]}
-		;{
-		;	echo DEBUG - Ship2 - Creating ShipBaselineParameters
-		;	MyShipInfo:ExecDML["create table ShipBaselineParameters;"]
-		;}
-		;;; This is where we will store our Expanded Paramteres. After skills, after modules, after ammo swaps, what is the max we can push any given parameter in any direction with what we have available.
-		; This is where most of our work will live. We will keep track of our different hypothetical shipstates.
-		; Ship state 1 - Golem, with Bastion On, with Torpedo Launchers, with 2 guidance computers, with 2 range scripts, with javelin ammunition.
-		; Ship state 2 - Golem, with Bastion on, with Torpedo Launchers, with 2 guidance computers, with 2 precision scripts, with rage ammunition.
-		; Ship state 3 - Golem, with Bastion on, with Torpedo Launchers, with 2 guidance computers, with 2 precision scripts, with t1 ammunition.
-		; Record the parameters of those 3 states, in the table.
-		; We encounter an enemy with x y z characteristics, which ship state will be able to apply damage best? Will switching states be Expensive 
-		; (waste too much time? reset a weapon spoolup on a disintegrator? not make any effective difference whatsoever?)
-		;if !${MyShipInfo.TableExists["ShipExpandedParameters"]}
-		;{
-		;	echo DEBUG - Ship2 - Creating ShipExpandedParameters
-		;	MyShipInfo:ExecDML["create table ShipExpandedParameters;"]
-		;}		
 	}
 
 	method Shutdown()
