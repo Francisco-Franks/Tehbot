@@ -217,6 +217,7 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 		{	
 			; This is going to be a little crude but maybe it will work.
 			if ${BeganAligning} < ${LavishScript.RunningTime}
+				return TRUE
 		}
 		elseif (${TargetX} != 0 && ${TargetY} != 0 && ${TargetZ} != 0)
 		{
