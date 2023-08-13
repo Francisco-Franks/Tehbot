@@ -1055,6 +1055,10 @@ objectdef obj_DroneControl inherits obj_StateQueue
 
 		if ${CurrentTarget} != 0
 		{
+			;;; MJD Inhibition signal from MissionTargetManager
+			if ${MissionTargetManager.PreparingForMJD}
+				return FALSE
+				
 			if ${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0 && \
 			   ${Entity[${CurrentTarget}].Distance} < ${Me.DroneControlDistance}
 			{
@@ -1090,6 +1094,12 @@ objectdef obj_DroneControl inherits obj_StateQueue
 		; Not sure if combat ships will ever be able to use this correctly the way I have things set but whatever.
 		if ((((${CurrentTarget} == 0 || !${Entity[${CurrentTarget}](exists)}) && ${Mission.DroneTargets.TargetList.Used} == 0) || ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}) && (${Salvage.WrecksToLock.TargetList.Used} > 0 && ${This.HaveSalvageDrones} > 0) && ${Entity[Name =- "Wreck"](exists)})
 		{
+			if ${MissionTargetManager.PreparingForMJD} && ((${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]} > 0) || (${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0))
+			{
+				This:LogInfo["Recalling Drones for MJD Use"]
+				Drones:RecallAll
+				return FALSE
+			}
 			; I don't want to issue salvage commands constantly to these things. You can make a drone salvage all in the area by telling it to salvage nothing, or telling it to salvage something that can't be salvaged.
 			if ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}
 			{
@@ -1135,6 +1145,13 @@ objectdef obj_DroneControl inherits obj_StateQueue
 		}
 		elseif ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
 		{
+			if ${MissionTargetManager.PreparingForMJD} && ((${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]} > 0) || (${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SCOUT_DRONE || ToEntity.GroupID = GROUP_COMBAT_DRONE"]} > 0))
+			{
+				This:LogInfo["Recalling Drones for MJD Use"]
+				Drones:RecallAll
+				return FALSE
+			}
+			
 			if ((${Drones.ActiveDroneCount["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]} > 0) && ${Salvage.WrecksToLock.TargetList.Used} == 0) && ${MissionTargetManager.TDBRowCount[DroneTargets]} > 0
 			{
 				Drones:Recall["ToEntity.GroupID = GROUP_SALVAGE_DRONE"]

@@ -72,9 +72,11 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 			This:InsertState["DimensionHub",5000]
 			return TRUE	
 		}
-		if ${This.AreWeAligned} && !${MJDActivated}
+		if ${This.AreWeAligned[${CurrentJumpCoordX},${CurrentJumpCoordY},${CurrentJumpCoordZ},${CurrentJumpEntityID}]} && !${MJDActivated}
 		{
-			LastMJDTime:Set[${Time.Timestamp}]
+			LastMJDTime:Set[${Lavishscript.RunningTime}]
+			; I think this is a 40 secondish cooldown? Activation + cooldown thing if your skills aren't horrendous.
+			NextMJDTime:Set[${Math.Calc[${Lavishscript.RunningTime} + 45000]}]
 			; At this point either our aligning is complete or we don't need to align to anything.
 			PreJumpCoordX:Set[${MyShip.ToEntity.X}]
 			PreJumpCoordY:Set[${MyShip.ToEntity.Y}]
@@ -106,7 +108,6 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 			CurrentJumpCoordY:Set[0]
 			CurrentJumpCoordZ:Set[0]
 			CurrentJumpEntityID:Set[0]
-			JumpCompleted:Set[FALSE]
 			MJDActivate:Set[FALSE]
 			This:InsertState["DimensionHub",5000]
 			return TRUE	
@@ -122,7 +123,6 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 	method InvokeMJD(TargetX float64, TargetY float64, TargetZ float64, EntityID int64, JumpAway bool)
 	{
 		MJDActivated:Set[FALSE]
-		JumpCompleted:Set[FALSE]
 		MJDInvoked:Set[FALSE]
 		
 		; If we aren't in space, return. If the MJD isn't usable, return.
@@ -170,7 +170,7 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 	}
 	
 	
-	; This member will return whether our MJD is currently able to be used. Are we scrammed? Do we have enough cap? Is the MJD cooling down still? Are we bastioned? 
+	; This member will return whether our MJD is currently able to be used. Are we scrammed? Is the MJD cooling down still? Are we bastioned? 
 	member:bool MJDUsable()
 	{
 		variable index:jammer attackers

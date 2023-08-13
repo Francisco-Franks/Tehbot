@@ -60,6 +60,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	variable int ValidMissionTargets
 	variable int ValidIgnoreTargets
 	
+	; About to do an MJD, disable and inhibit bastion. Recall drones and inhibit drone launch.
+	variable bool PreparingForMJD = FALSE
+	
 	; Going to need this for constructing our Query.
 	variable string DBQueryString
 
@@ -133,9 +136,41 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			CurrentOffenseTarget:Set[0]
 		; This will kick off a series of events which will populate a table in a DB object attached to this mode.
 		This:TargetListPreManagement
-		
 		This:TargetListCleanup
 		
+		;;; Going to do some MJD stuff testing here. Basically if we have many enemies within a short distance (15km for now) we will inhibit our bastion, recall our drones, inhibit bastion and drone launch.
+		;;; Then we will use the MJD activation method. When we see that the jump is complete we will remove bastion and drone launch inhibition.
+		;;; So, if there are 5 ore more enemies within 20k, or all we have are drone targets, AND we can actually activate an MJD right now we will prepare for an MJD
+		if ${Ship.ModuleList_MJD.Count} > 0 
+		{
+			if (${This.TableWithinDistance[ActiveNPCs,20000]} > 5 || (${This.TDBRowCount[ActiveNPCs]} == ${This.TDBRowCount[DroneTargets]})) && !${This.AmIScrammed} && (${DimensionalNavigation.NextMJDTime} < ${LavishScript.RunningTime})
+			{
+				This:LogInfo["We are preparing for an MJD Activation"]
+				PreparingForMJD:Set[TRUE]
+			}
+			; We are preparing for MJD and it is ready to be used now, activate the method. This will just be a blind MJD to get away from where we are now, no other purpose.
+			if ${PreparingForMJD} && ${MissionTargetManager.MJDUsable}
+			{
+				This:LogInfo["MJD Prep complete, Invoking unguided MJD activation."]
+				DimensionalNavigation:InvokeMJD[0, 0, 0, 0, FALSE]
+			}
+			; We were preparing for MJD but then became warp SCRAMBLED, fuck! Disable preparing for MJD for now.
+			if ${PerparingForMJD} && ${This.AmIScrammed}
+			{
+				This:LogInfo["MJD Preparation interrupted."]
+				PreparingForMJD:Set[FALSE]
+			}
+			; We were preparing for an MJD, and DimensionalNavigation reports it was completed successfully. Set the bool to false
+			if ${PreparingForMJD} && ${DimensionalNavigation.JumpCompleted}
+			{
+				This:LogInfo["MJD reported as completing successfully, returning to normal"]
+				DimensionalNavigation.JumpCompleted:Set[FALSE]
+				PreparingForMJD:Set[FALSE]
+			}
+		}
+		;;; I'll figure out where to put this. This is basically "if all we have a mission target, and it is far, we are going to MJD at it"
+		; ((${Entity[${This.GetClosestEntity[MissionTarget]}].Distance} > 70000) && (${This.TDBRowCount[ActiveNPCs]} == ${This.TDBRowCount[MissionTarget]}))
+		;;;
 		; Combat Computer will take those entities returned (if any) and databasify them. 
 		if ${LavishScript.RunningTime} >= ${CombatComputerTimer}
 		{
@@ -166,7 +201,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			This:LockManagement
 			
 		
-		if ((${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${This.DBRowCount[ActiveNPCs]} < 1 && ${This.DBRowCount[WeaponTargets]} < 1) || (${This.TableWithinRange[WeaponTargets]} == 0 || ${This.TableWithinRange[ActiveNPCs]} == 0)
+		if (((${CurrentOffenseTarget} < 1 || !${Entity[${CurrentOffenseTarget}](exists)}) && ${This.DBRowCount[ActiveNPCs]} < 1 && ${This.DBRowCount[WeaponTargets]} < 1) || (${This.TableWithinRange[WeaponTargets]} == 0 || ${This.TableWithinRange[ActiveNPCs]} == 0) || ${PreparingForMJD})
 		{
 			echo DEBUG MTM TARGET DEAD DEACTIVATE SIEGE
 			AllowSiegeModule:Set[FALSE]
@@ -184,7 +219,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			Ship.ModuleList_Siege:ActivateOne
 		}
-		if !${AllowSiegeModule}
+		if !${AllowSiegeModule} || ${PreparingForMJD}
 		{
 			Ship.ModuleList_Siege:DeactivateAll
 		}
@@ -915,6 +950,25 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		return ${FinalValue}			
 	
 	}
+	; This member will return how many valid targets in a given table are within our a given distance
+	member:int TableWithinDistance(string TableName, float64 DistanceCheck)
+	{
+		variable int FinalValue
+		variable float64 LockRange
+		LockRange:Set[${Math.Calc[${MyShip.MaxTargetRange} * .95]}]
+		echo TABLEWITHINRANGE ${DistanceCheck}
+		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} WHERE Distance < ${DistanceCheck};"]}]
+		if ${GetActiveNPCs.NumRows} > 0
+		{
+			FinalValue:Set[${GetActiveNPCs.NumRows}]
+		}
+		else
+			FinalValue:Set[0]
+		echo TABLEWITHINRANGE ${TableName} ${FinalValue}
+		GetActiveNPCs:Finalize
+		return ${FinalValue}			
+	
+	}
 	; This member will return the closest entity from a given table
 	member:int64 GetClosestEntity(string TableName)
 	{
@@ -932,10 +986,24 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		return ${FinalValue}			
 	
 	}
-	; This member will return how many targets in a given table are within our ship's longest range weapon.
-	member:int TableWithinWeaponRange(string TableName)
+	; This member will return if we are presently WARP SCRAMBLED, not disrupted. Need to know if MWDs and MJDs will work
+	member:bool AmIScrammed()
 	{
-	
-	
+		variable index:jammer attackers
+		variable iterator attackerIterator
+		Me:GetJammers[attackers]
+		attackers:GetIterator[attackerIterator]
+		if ${attackerIterator:First(exists)}
+		do
+		{
+			if ${jamsIterator.Value.Lower.Find["scram"]}
+			{
+				; We're being scrammed, no MJD
+				return TRUE
+			}
+		}
+		while ${attackerIterator:Next(exists)}	
+		
+		return FALSE
 	}
 }
