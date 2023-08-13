@@ -143,7 +143,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		;;; So, if there are 5 ore more enemies within 20k, or all we have are drone targets, AND we can actually activate an MJD right now we will prepare for an MJD
 		if ${Ship.ModuleList_MJD.Count} > 0 
 		{
-			if (${This.TableWithinDistance[ActiveNPCs,20000]} > 5 || (${This.TDBRowCount[ActiveNPCs]} == ${This.TDBRowCount[DroneTargets]})) && !${This.AmIScrammed} && (${DimensionalNavigation.NextMJDTime} < ${LavishScript.RunningTime})
+			if (${This.TableWithinDistance[ActiveNPCs,20000]} > 5 || ((${This.TDBRowCount[ActiveNPCs]} > 0) && ${This.TDBRowCount[ActiveNPCs]} == ${This.TDBRowCount[DroneTargets]})) && !${This.AmIScrammed} && (${DimensionalNavigation.NextMJDTime} < ${LavishScript.RunningTime})
 			{
 				This:LogInfo["We are preparing for an MJD Activation"]
 				PreparingForMJD:Set[TRUE]
