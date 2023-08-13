@@ -167,6 +167,12 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				DimensionalNavigation.JumpCompleted:Set[FALSE]
 				PreparingForMJD:Set[FALSE]
 			}
+			; Everything is gone, in the middle of us preparing for MJD?
+			if ${PreparingForMJD} && ${This.TDBRowCount[ActiveNPCs]} == 0
+			{
+				This:LogInfo["Preparations for MJD cancelled, enemies gone."]
+				PreparingForMJD:Set[FALSE]
+			}
 		}
 		;;; I'll figure out where to put this. This is basically "if all we have a mission target, and it is far, we are going to MJD at it"
 		; ((${Entity[${This.GetClosestEntity[MissionTarget]}].Distance} > 70000) && (${This.TDBRowCount[ActiveNPCs]} == ${This.TDBRowCount[MissionTarget]}))
