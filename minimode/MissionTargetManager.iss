@@ -149,8 +149,15 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				Drones:RecallAll
 				PreparingForMJD:Set[TRUE]
 			}
+			; We were preparing for an MJD, and DimensionalNavigation reports it was completed successfully. Set the bool to false
+			if ${PreparingForMJD} && ${DimensionalNavigation.JumpCompleted}
+			{
+				This:LogInfo["MJD reported as completing successfully, returning to normal"]
+				DimensionalNavigation.JumpCompleted:Set[FALSE]
+				
+			}
 			; We are preparing for MJD and it is ready to be used now, activate the method. This will just be a blind MJD to get away from where we are now, no other purpose.
-			if ${PreparingForMJD} && ${DimensionalNavigation.MJDUsable} && !${DimensionalNavigation.MJDInProgress}
+			if ${PreparingForMJD} && ${DimensionalNavigation.MJDUsable} && !${DimensionalNavigation.MJDInProgress} && (${DimensionalNavigation.NextMJDTime} < ${LavishScript.RunningTime})
 			{
 				This:LogInfo["MJD Prep complete, Invoking unguided MJD activation."]
 				DimensionalNavigation:InvokeMJD[0, 0, 0, 0, FALSE]
@@ -159,13 +166,6 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			if ${PerparingForMJD} && ${This.AmIScrammed}
 			{
 				This:LogInfo["MJD Preparation interrupted."]
-				PreparingForMJD:Set[FALSE]
-			}
-			; We were preparing for an MJD, and DimensionalNavigation reports it was completed successfully. Set the bool to false
-			if ${PreparingForMJD} && ${DimensionalNavigation.JumpCompleted}
-			{
-				This:LogInfo["MJD reported as completing successfully, returning to normal"]
-				DimensionalNavigation.JumpCompleted:Set[FALSE]
 				PreparingForMJD:Set[FALSE]
 			}
 			; Everything is gone, in the middle of us preparing for MJD?
@@ -274,9 +274,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
 			This:LogInfo["Approaching out of range target: \ar${Entity[${This.GetClosestEntity[ActiveNPCs]}].Name}"]
-			if ${Entity[${This.GetClosestEntity[ActiveNPCs]}].Distance} > 60000
+			if ${Entity[${This.GetClosestEntity[ActiveNPCs]}].Distance} > 95000
 			{
-				Move:Approach[${This.GetClosestEntity[ActiveNPCs]},50000]
+				Move:Approach[${This.GetClosestEntity[ActiveNPCs]},90000]
 			}
 			else
 				Entity[${This.GetClosestEntity[ActiveNPCs]}]:Approach		

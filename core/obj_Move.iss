@@ -957,7 +957,7 @@ objectdef obj_Approach inherits obj_StateQueue
 	member:bool CheckApproach(int64 ID, int distance)
 	{
 		;ApproachModuleCounter:Inc[1]
-		Logger:Log["Move", "DEBUG - We are in the approach state - Iteration Number ${ApproachModuleCounter}"]
+		;Logger:Log["Move", "DEBUG - We are in the approach state - Iteration Number ${ApproachModuleCounter}"]
 		;	Clear approach if we're in warp or the entity no longer exists
 		if ${Me.ToEntity.Mode} == MOVE_WARPING || !${Entity[${ID}](exists)}
 		{

@@ -91,20 +91,21 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 			
 			;Ship.ModuleList_MJD:ActivateAll
 			MyShip.Module[${Ship.ModuleList_MJD.ModuleID.Get[1]}]:Activate
-
-			MJDActivated:Set[TRUE]
-		}
 			
-		if ${MJDActivated} && !${JumpCompleted}
-		{
-			; If we are now further than 80km from our starting coords, then we have jumped.
-			echo [${PreJumpCoordX}, ${PreJumpCoordY}, ${PreJumpCoordZ}, ${MyShip.ToEntity.X}, ${MyShip.ToEntity.Y}, ${MyShip.ToEntity.Z} ${Math.Distance[${PreJumpCoordX}, ${PreJumpCoordY}, ${PreJumpCoordZ}, ${MyShip.ToEntity.X}, ${MyShip.ToEntity.Y}, ${MyShip.ToEntity.Z}]}
-			if ${Math.Distance[${PreJumpCoordX}, ${PreJumpCoordY}, ${PreJumpCoordZ}, ${MyShip.ToEntity.X}, ${MyShip.ToEntity.Y}, ${MyShip.ToEntity.Z}]} > 80000
-			{
-				JumpCompleted:Set[TRUE]
-			}
+			This:InsertState["SpoolupWait",2000]
+			return TRUE
 		}
-		
+		return FALSE
+	}
+	
+	; Need to make another state for the wait and cleanup after activation
+	member:bool SpoolupWait()
+	{
+		if ${Ship.ModuleList_MJD.ActiveCount} > 0
+			return FALSE
+		else
+			JumpCompleted:Set[TRUE]
+
 		if ${JumpCompleted}
 		{
 			echo DEBUG DEBUG DIMENSIONAL DOES JUMPCOMPLETED EVEN TRIGGER
@@ -129,7 +130,7 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 			MJDActivated:Set[FALSE]
 			This:InsertState["DimensionHub",5000]
 			return TRUE			
-		}
+		}	
 		return FALSE
 	}
 	
