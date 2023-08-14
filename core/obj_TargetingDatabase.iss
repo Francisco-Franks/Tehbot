@@ -75,6 +75,10 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		; Nothing to target in a station, nor while in warp.
 		if !${Client.InSpace} || ${Me.ToEntity.Mode} == MOVE_WARPING
 			return FALSE
+		; If we are in Salvage mainmode we want to return FALSE, salvage mainmode doesn't utilize any of this yet.
+		if ${CommonConfig.Tehbot_Mode.Equal["Salvager"]}
+			return FALSE
+		
 		This:UpdateMissionTargetPriorities[WeaponTargets]
 		This:UpdateTargetAmmoPref[WeaponTargets]
 		; Prep for Targeting Table Maintenance. We need to see if any of our tables need to be updated (are we after the interval), and see if the Query has changed.
@@ -215,13 +219,13 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				echo TARGDAT CHECKPOINT 2
 				; If it is still being targeted, just skip it.
 				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].BeingTargeted}
-					PendingTransaction:Insert["update ${TableName} SET RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					PendingTransaction:Insert["update ${TableName} SET RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 				; We completed locking the target, reflect that.
 				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget}
-					PendingTransaction:Insert["update ${TableName} SET LockStatus='Locked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					PendingTransaction:Insert["update ${TableName} SET LockStatus='Locked', RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 				; We lost the target, ECM / damps / whatever, reflect that.
 				if !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].BeingTargeted}
-					PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 					
 				GetOtherTableInfo:NextRow
 			}
@@ -252,25 +256,25 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					;if ${GetMoreTableInfo.NumRows} > 0
 					;{
 					;	; We have bigger fish to fry, apparently.
-					;	PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					;	PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 					;}
 					;else
 					;{
 					;	; I want to always have a threshold of one extra lock, hence the greater than 1. If our max number of targets minus our current locks is greater than 1, then relock the target.
 					;	if ${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1 && ( !${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} || (${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${This.TableOwnedLocks[WeaponTargets]} == ${This.TableOwnedLocks[MissionTarget]}))
 					;	{
-					;		PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					;		PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 					;		;LockQueue:Queue[{GetOtherTableInfo.GetFieldValue["EntityID"]}]
 					;		Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:LockTarget
 					;	}
 					;	else
 					;	{
 					;		; Not sure how we end up at this contingency here but
-					;		PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					;		PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 					;	}
 					;}
 					; Going to disable this relock shit for now. If we need to relock it, we will, later.
-					PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 				}
 				; If it is still locked, see if it SHOULD still be locked. This will involve looking at Priorities, and probably other complicated things. Heck.
 				;;; ADDENDUM - Need two versions for this, one for lasers one for not.
@@ -283,7 +287,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 						if ${Math.Calc[(${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} < 1
 						{
 							; If we have less than 1 available lock right now, drop this target.
-							PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+							PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 							Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
 							RecentlyUnlocked:Inc[1]
 						}
@@ -298,7 +302,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 							if ${Math.Calc[(${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} < 1
 							{
 								; If we have less than 1 available lock right now, drop this target.
-								PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+								PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 								Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
 								RecentlyUnlocked:Inc[1]
 							}
@@ -306,7 +310,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 						else
 						{
 							; Nope no need to change course on this one. Just update its last update time and continue.
-							PendingTransaction:Insert["update ${TableName} SET RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+							PendingTransaction:Insert["update ${TableName} SET RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 						}
 						GetMoreTableInfo:Finalize
 					}
@@ -320,7 +324,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 						if ${Math.Calc[(${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]})+${RecentlyUnlocked}]} < 1
 						{
 							; If we have less than 1 available lock right now, drop this target.
-							PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+							PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 							Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
 							RecentlyUnlocked:Inc[1]
 						}
@@ -328,14 +332,14 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 					; If we have a locked target, and that target is the mission target, and there are things other than the mission target, please unlock this fucking mission target.
 					if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${MissionTargetManager.PresentInTable[MissionTarget,${GetOtherTableInfo.GetFieldValue["EntityID"]}]} && ${MissionTargetManager.TDBRowCount[WeaponTargets]} > ${MissionTargetManager.TDBRowCount[MissionTarget]}
 					{
-						PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+						PendingTransaction:Insert["update ${TableName} SET LockStatus='Unlocked', RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 						Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:UnlockTarget
 						RecentlyUnlocked:Inc[1]				
 					}
 					else
 					{
 						; Nope no need to change course on this one. Just update its last update time and continue.
-						PendingTransaction:Insert["update ${TableName} SET RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+						PendingTransaction:Insert["update ${TableName} SET RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 					}
 					GetMoreTableInfo:Finalize					
 				}
@@ -389,7 +393,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				elseif (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && ${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1
 				{
 					; Well, this should have been sorted by Priority, so uh, we'll just lock these things up in order.
-					PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 					Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:LockTarget
 					LockedHowMany:Inc[1]					
 				}
@@ -434,7 +438,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				elseif (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && ${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1
 				{
 					; Well, this should have been sorted by Priority, so uh, we'll just lock these things up in order.
-					PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 					Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:LockTarget
 					LockedHowMany:Inc[1]					
 				}
@@ -484,7 +488,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				elseif (${This.TableOwnedLocks[${TableName}]} < ${This.TableReservedLocks[${TableName}]}) && ${Math.Calc[${MaxTarget}-${This.TotalCurrentLocks}]} > 1
 				{
 					; Well, this should have been sorted by Priority, so uh, we'll just lock these things up in order.
-					PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
+					PendingTransaction:Insert["update ${TableName} SET LockStatus='Locking', RowLastUpdate=${Time.Timestamp}, Distance=${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} WHERE EntityID=${GetOtherTableInfo.GetFieldValue["EntityID"]};"]
 					Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}]:LockTarget
 					LockedHowMany:Inc[1]					
 				}
@@ -579,13 +583,6 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		TargetReservationCollection:Set[${TableName},${MinimumLocks}]
 	}
 	
-	; This method will be used to change a given field's value, for a given entity, within a given table.
-	; Not sure why I made this yet. Maybe will prove useful.
-	method ModifyTargetingTableFieldValue(string TableName, string FieldName, int64 EntityID, string Input)
-	{
-		
-	
-	}
 	
 	; This method will be used to update the QueryString for a given table, in our primary table (which will then be reflected to the given table after the next update)
 	method UpdateTargetingTableQueryString(string TableName, string NewQueryString)

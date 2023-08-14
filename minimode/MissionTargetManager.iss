@@ -268,7 +268,12 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			AllowSiegeModule:Set[FALSE]
 			Ship.ModuleList_Siege:DeactivateAll
 			This:LogInfo["Approaching out of range target: \ar${Entity[${This.GetClosestEntity[ActiveNPCs]}].Name}"]
-			Entity[${This.GetClosestEntity[ActiveNPCs]}]:Approach		
+			if ${Entity[${This.GetClosestEntity[ActiveNPCs]}].Distance} > 95000
+			{
+				Move:Approach[${This.GetClosestEntity[ActiveNPCs]},90000]
+			}
+			else
+				Entity[${This.GetClosestEntity[ActiveNPCs]}]:Approach	
 		}
 		if (!${Move.Traveling} && !${MyShip.ToEntity.Approaching.ID.Equal[${This.GetClosestEntity[ActiveNPCs]}]}) && ${Entity[${This.GetClosestEntity[ActiveNPCs]}](exists)} && ((${This.DBRowCount[IgnoreTarget]} > 0) && (${This.TDBRowCount[WeaponTargets]} == 0)) && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING
 		{
@@ -955,7 +960,14 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} WHERE Distance < ${LockRange};"]}]
 		if ${GetActiveNPCs.NumRows} > 0
 		{
-			FinalValue:Set[${GetActiveNPCs.NumRows}]
+			do
+			{
+				if ${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}].Distance} < ${LockRange}
+					FinalValue:Inc[1]
+				
+				GetActiveNPCs:NextRow
+			}
+			while !${GetActiveNPCs.LastRow}
 		}
 		else
 			FinalValue:Set[0]
@@ -971,13 +983,21 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 
 
 		echo TABLEWITHINRANGE ${DistanceCheck}
-		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName} WHERE Distance < ${DistanceCheck};"]}]
+		GetActiveNPCs:Set[${ActiveNPCDB.TargetingDatabase.ExecQuery["SELECT * From ${TableName};"]}]
 		if ${GetActiveNPCs.NumRows} > 0
 		{
-			FinalValue:Set[${GetActiveNPCs.NumRows}]
+			do
+			{
+				if ${Entity[${GetActiveNPCs.GetFieldValue["EntityID"]}].Distance} < ${DistanceCheck}
+					FinalValue:Inc[1]
+				
+				GetActiveNPCs:NextRow
+			}
+			while !${GetActiveNPCs.LastRow}
 		}
 		else
 			FinalValue:Set[0]
+			
 		echo TABLEWITHINRANGE ${TableName} ${FinalValue}
 		GetActiveNPCs:Finalize
 		return ${FinalValue}			
