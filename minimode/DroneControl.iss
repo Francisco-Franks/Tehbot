@@ -103,12 +103,15 @@ objectdef obj_DroneControl inherits obj_StateQueue
 					return ${DroneType}
 				}
 
-				DroneType:Set[${Drones.Data.FindType["Medium Scout Drones"]}]
-				if ${DroneType} != -1
+				if ${MyShip.ToEntity.Type.Find[Gila]}
 				{
-					return ${DroneType}
-				}				
-
+					DroneType:Set[${Drones.Data.FindType["Medium Scout Drones"]}]
+					if ${DroneType} != -1
+					{
+						return ${DroneType}
+					}				
+				}
+				
 			case Cruiser
 			case BattleCruiser
 				if ${MyShip.ToEntity.Type.Find[Rattlesnake]} || ${MyShip.ToEntity.Type.Find[Ishtar]}
