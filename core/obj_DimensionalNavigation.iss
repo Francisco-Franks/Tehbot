@@ -81,9 +81,9 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 		}
 		if ${This.AreWeAligned[${CurrentJumpCoordX},${CurrentJumpCoordY},${CurrentJumpCoordZ},${CurrentJumpEntityID}]} && !${MJDActivated}
 		{
-			LastMJDTime:Set[${Lavishscript.RunningTime}]
+			LastMJDTime:Set[${LavishScript.RunningTime}]
 			; I think this is a 40 secondish cooldown? Activation + cooldown thing if your skills aren't horrendous.
-			NextMJDTime:Set[${Math.Calc[${Lavishscript.RunningTime} + 45000]}]
+			NextMJDTime:Set[${Math.Calc[${LavishScript.RunningTime} + 45000]}]
 			; At this point either our aligning is complete or we don't need to align to anything.
 			PreJumpCoordX:Set[${MyShip.ToEntity.X}]
 			PreJumpCoordY:Set[${MyShip.ToEntity.Y}]
@@ -175,7 +175,7 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 			CurrentJumpEntityID:Set[${EntityID}]
 			if !${JumpAway}
 			{
-				BeganAligning:Set[${Math.Calc[${Lavishscript.RunningTime} + 3000]}]
+				BeganAligning:Set[${Math.Calc[${LavishScript.RunningTime} + 3000]}]
 				Entity[${EntityID}]:AlignTo
 			}
 			else

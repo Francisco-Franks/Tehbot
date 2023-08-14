@@ -966,7 +966,7 @@ objectdef obj_Approach inherits obj_StateQueue
 		}
 		
 		;; MJD usage, if the gate is further than 60k lets try to MJD to it
-		if (${Entity[${ID}].Distance} > 60000 && ${Ship.ModuleList_MJD.Count} > 0) && (${DimensionalNavigation.InvokeTimer} < ${LavishScript.RunningTime}) && !${DimensionalNavigation.MJDInProgress}
+		if (${Entity[${ID}].Distance} > 60000 && ${Ship.ModuleList_MJD.Count} > 0) && (${DimensionalNavigation.InvokeTimer} < ${LavishScript.RunningTime}) && !${DimensionalNavigation.MJDInProgress} && ${DimensionalNavigation.MJDUsable}
 		{
 			This:LogInfo["We are preparing for an MJD Activation - MOVE "]
 			DimensionalNavigation:InvokeMJD[0, 0, 0, ${ID}, FALSE]
