@@ -54,7 +54,7 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 	
 	member:bool DimensionHub()
 	{
-		if !${Client.InSpace}
+		if !${Client.InSpace} || ${MyShip.ToEntity.Mode} == MOVE_WARPING
 			return FALSE
 		
 		if ${MJDInvoked} && ${This.MJDUsable}
