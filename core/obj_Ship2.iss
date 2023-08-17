@@ -30,9 +30,14 @@ objectdef obj_Ship2
 	{
 
 		; We shouldnt need WAL on this, it is a DB intended to be accessed by a singular client.
+		;;; Addendum, lies, lies, everything is a lie.
 		
 		MyShipInfo:Set[${SQLite.OpenDB["${Me.Name}ShipDB","${Script.CurrentDirectory}/Data/${Me.Name}ShipDB.sqlite3"]}]
-
+		MyShipInfo:ExecDML["PRAGMA journal_mode=WAL;"]
+		MyShipInfo:ExecDML["PRAGMA main.mmap_size=64000000"]
+		MyShipInfo:ExecDML["PRAGMA main.cache_size=-64000;"]
+		MyShipInfo:ExecDML["PRAGMA synchronous = normal;"]
+		MyShipInfo:ExecDML["PRAGMA temp_store = memory;"]		
 		
 		
 		; Ammunition table for turrets.

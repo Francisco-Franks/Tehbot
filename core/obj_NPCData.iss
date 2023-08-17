@@ -28,9 +28,11 @@ objectdef obj_NPCData
 		Logger:Log["Configuration", " ${This.SetName}: Initialized", "-g"]
 		
 		NPCInfoDB:Set[${SQLite.OpenDB["NPCInfoDB","${Script.CurrentDirectory}/Data/NPCInfoDB.sqlite"]}]
+		NPCInfoDB:ExecDML["PRAGMA journal_mode=WAL;"]
 		NPCInfoDB:ExecDML["PRAGMA main.mmap_size=64000000"]
 		NPCInfoDB:ExecDML["PRAGMA main.cache_size=-64000;"]
-		
+		NPCInfoDB:ExecDML["PRAGMA synchronous = normal;"]
+		NPCInfoDB:ExecDML["PRAGMA temp_store = memory;"]		
 		
 	}
 

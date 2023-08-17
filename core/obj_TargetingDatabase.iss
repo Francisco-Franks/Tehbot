@@ -38,6 +38,9 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		TargetingDatabase:ExecDML["PRAGMA journal_mode=WAL;"]
 		TargetingDatabase:ExecDML["PRAGMA main.mmap_size=64000000"]
 		TargetingDatabase:ExecDML["PRAGMA main.cache_size=-64000;"]
+		TargetingDatabase:ExecDML["PRAGMA synchronous = normal;"]
+		TargetingDatabase:ExecDML["PRAGMA temp_store = memory;"]
+		
 		PulseFrequency:Set[750]
 		;This.NonGameTiedPulse:Set[FALSE]
 		RandomDelta:Set[250]		

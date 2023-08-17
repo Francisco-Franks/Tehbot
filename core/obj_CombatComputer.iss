@@ -6,10 +6,14 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	variable sqlitequery GetCurrentData
 	; Need another query for our Ship2 DB
 	variable sqlitequery GetShipInfo
+	; Another query, for Cache generation
+	variable sqlitequery GetTypeCache
 	; Index for CurrentData Transactions
 	variable index:string CurrentDataTransactionIndex
 	; Index for AmmoTable Transactions
-	variable index:string AmmoTableTransactionIndex	
+	variable index:string AmmoTableTransactionIndex
+	; Index for Cache Generation Transactions
+	variable index:string CacheTransactionIndex
 	
 	; This will be a collection containing the available Ammo Type IDs, Key will be the Ammo Name, Value will be Type ID of the ammo
 	variable collection:int64 AmmoCollection
@@ -30,12 +34,12 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	; This int will not be configurable by the user, but just here to make my life simpler.
 	; We use this to decide how many rows to update at a time, doing all of them simultaneously is a real performance killer dontchaknow.
 	; We will start with 10 entities at a time.
-	variable int UpdateBatchSize = 6	
+	variable int UpdateBatchSize = 4	
 	
 	method Initialize()
 	{
 		This[parent]:Initialize
-		PulseFrequency:Set[2000]
+		This.PulseFrequency:Set[1000]
 		;This.NonGameTiedPulse:Set[TRUE]
 		;CombatData:Set[${SQLite.OpenDB["CombatData",":memory:"]}]
 		;;; Going to try making this DB reside in memory instead. We are going to be writing and reading to this fucker a gazillion times a second probably. Also the information is meant to be destroyed at the end
@@ -56,7 +60,13 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 			echo DEBUG - CombatComputer - Creating AmmoTable
 			CombatData:ExecDML["create table AmmoTable (EntityID INTEGER NOT NULL, AmmoTypeID INTEGER NOT NULL, AmmoName TEXT, ExpectedShotDmg REAL, ShotsToKill REAL, TimeToKill REAL, OurDamageEff REAL, ChangeTime REAL, LastUpdate INTEGER, PRIMARY KEY(EntityID, AmmoTypeID));"]
 		}
-		This:QueueState["CombatComputerHub"]
+		; This table will store cached information about NPC types that generally remains static so that we can soften the blow on some of this horseshit.
+		if !${CombatData.TableExists["TypeCache"]}
+		{
+			echo DEBUG - CombatComputer - Creating NPCTypeCache Table
+			CombatData:ExecDML["create table TypeCache (NPCTypeID INTEGER PRIMARY KEY, NPCName TEXT, NeutRng REAL, NeutStr REAL, EWARType TEXT, EWARStr REAL, EWARRng REAL, WebRng REAL, WrpDisRng REAL, WrpScrRng REAL, LastUpdate INTEGER);"]
+		}
+		This:QueueState["CombatComputerHub", 1000]
 	}
  
 	method Shutdown()
@@ -113,7 +123,9 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 					ActiveNPCQueue:Dequeue
 					continue
 				}
-				CurrentDataTransactionIndex:Insert["insert into CurrentData (EntityID, NPCName, NPCTypeID, CurDist, FtrDist, CurVel, MaxVel, CruiseVel, NeutRng, NeutStr, EWARType, EWARStr, EWARRng, WebRng, WrpDisRng, WrpScrRng, EffNPCDPS, ThreatLevel, LastUpdate, UpdateType) values (${ActiveNPCQueue.Peek}, '${This.NPCName[${ActiveNPCQueue.Peek}].ReplaceSubstring[','']}', ${This.NPCTypeID[${ActiveNPCQueue.Peek}]}, ${This.NPCCurrentDist[${ActiveNPCQueue.Peek}]}, ${This.NPCFutureDist[${ActiveNPCQueue.Peek}]}, ${This.NPCCurrentVel[${ActiveNPCQueue.Peek}]}, ${This.NPCMaximumVel[${ActiveNPCQueue.Peek}]}, ${This.NPCCruiseVel[${ActiveNPCQueue.Peek}]}, ${This.NPCNeutRange[${ActiveNPCQueue.Peek}]}, ${This.NPCNeutAmount[${ActiveNPCQueue.Peek}]}, '${This.NPCEWARType[${ActiveNPCQueue.Peek}]}', ${This.NPCEWARStrength[${ActiveNPCQueue.Peek}]}, ${This.NPCEWARRange[${ActiveNPCQueue.Peek}]}, ${This.NPCWebRange[${ActiveNPCQueue.Peek}]}, ${This.NPCDisruptRange[${ActiveNPCQueue.Peek}]}, ${This.NPCScramRange[${ActiveNPCQueue.Peek}]}, ${This.NPCDPSOutput[${ActiveNPCQueue.Peek}]}, ${This.NPCThreatLevel[${ActiveNPCQueue.Peek}]}, ${Time.Timestamp}, 'Maintain') ON CONFLICT (EntityID) DO UPDATE SET CurDist=excluded.CurDist, CurVel=excluded.CurVel, EffNPCDps=excluded.EffNPCDPS, ThreatLevel=excluded.ThreatLevel, LastUpdate=excluded.LastUpdate, UpdateType=excluded.UpdateType;"]
+				This:GenerateTypeCache[${ActiveNPCQueue.Peek}]
+				
+				CurrentDataTransactionIndex:Insert["insert into CurrentData (EntityID, NPCName, NPCTypeID, CurDist, FtrDist, CurVel, MaxVel, CruiseVel, NeutRng, NeutStr, EWARType, EWARStr, EWARRng, WebRng, WrpDisRng, WrpScrRng, EffNPCDPS, ThreatLevel, LastUpdate, UpdateType) values (${ActiveNPCQueue.Peek}, '${This.NPCName[${ActiveNPCQueue.Peek}].ReplaceSubstring[','']}', ${This.NPCTypeID[${ActiveNPCQueue.Peek}]}, ${This.NPCCurrentDist[${ActiveNPCQueue.Peek}]}, 0, ${This.NPCCurrentVel[${ActiveNPCQueue.Peek}]}, 0, 0, ${This.NPCNeutRange[${ActiveNPCQueue.Peek}]}, ${This.NPCNeutAmount[${ActiveNPCQueue.Peek}]}, '${This.NPCEWARType[${ActiveNPCQueue.Peek}]}', ${This.NPCEWARStrength[${ActiveNPCQueue.Peek}]}, ${This.NPCEWARRange[${ActiveNPCQueue.Peek}]}, ${This.NPCWebRange[${ActiveNPCQueue.Peek}]}, ${This.NPCDisruptRange[${ActiveNPCQueue.Peek}]}, ${This.NPCScramRange[${ActiveNPCQueue.Peek}]}, ${This.NPCDPSOutput[${ActiveNPCQueue.Peek}]}, ${This.NPCThreatLevel[${ActiveNPCQueue.Peek}]}, ${Time.Timestamp}, 'Maintain') ON CONFLICT (EntityID) DO UPDATE SET CurDist=excluded.CurDist, CurVel=excluded.CurVel, EffNPCDps=excluded.EffNPCDPS, ThreatLevel=excluded.ThreatLevel, LastUpdate=excluded.LastUpdate, UpdateType=excluded.UpdateType;"]
 				AmmoTableQueue:Queue[${ActiveNPCQueue.Peek}]
 				ActiveNPCQueue:Dequeue
 				ProcessedCount:Inc[1]
@@ -229,6 +241,32 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 			while ${CleanupQueue.Peek}
 		}
 	}
+	; One more Method. I need to be able to populate that cache of values that are always going to be the same so we can maybe speed this crap up a little.
+	method GenerateTypeCache(int64 EntityID)
+	{
+		if !${This.NPCTypeIsCached[${EntityID}]}
+		{
+			echo DEBUGDEBUGDEBUG Generate Type CACHED
+			echo ["insert into TypeCache (NPCTypeID, NPCName, NeutRng, NeutStr, EWARType, EWARStr, EWARRng, WebRng, WrpDisRng, WrpScrRng, LastUpdate) values (${This.NPCTypeID[${EntityID}]}, '${This.NPCName[${EntityID}].ReplaceSubstring[','']}', ${This.NPCNeutRange[${EntityID}]}, ${This.NPCNeutAmount[${EntityID}]}, '${This.NPCEWARType[${EntityID}]}', ${This.NPCEWARStrength[${EntityID}]}, ${This.NPCEWARRange[${EntityID}]}, ${This.NPCWebRange[${EntityID}]}, ${This.NPCDisruptRange[${EntityID}]}, ${This.NPCScramRange[${EntityID}]}, ${Time.Timestamp}) ON CONFLICT (NPCTypeID) DO UPDATE SET LastUpdate=excluded.LastUpdate;"]
+			CombatData:ExecDML["insert into TypeCache (NPCTypeID, NPCName, NeutRng, NeutStr, EWARType, EWARStr, EWARRng, WebRng, WrpDisRng, WrpScrRng, LastUpdate) values (${This.NPCTypeID[${EntityID}]}, '${This.NPCName[${EntityID}].ReplaceSubstring[','']}', ${This.NPCNeutRange[${EntityID}]}, ${This.NPCNeutAmount[${EntityID}]}, '${This.NPCEWARType[${EntityID}]}', ${This.NPCEWARStrength[${EntityID}]}, ${This.NPCEWARRange[${EntityID}]}, ${This.NPCWebRange[${EntityID}]}, ${This.NPCDisruptRange[${EntityID}]}, ${This.NPCScramRange[${EntityID}]}, ${Time.Timestamp}) ON CONFLICT (NPCTypeID) DO UPDATE SET LastUpdate=excluded.LastUpdate;"]	
+		}
+		else
+			echo DEBUG DEBUG DEBUG COMBAT COMPUTER ITS ALREADY CACHED 
+	}
+	; This member will tell me if the NPCType is cached or not for a given ENTITY ID
+	member:bool NPCTypeIsCached(int64 EntityID)
+	{
+		GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+		if ${GetTypeCache.NumRows} > 0
+		{
+			; It is present in the cache
+			GetTypeCache:Finalize
+			return TRUE
+		}	
+		else
+			return FALSE
+	
+	}
 	; This member will return the Name of the given enemy.
 	member:string NPCName(int64 EntityID)
 	{
@@ -297,8 +335,14 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	member:float64 NPCNeutRange(int64 EntityID)
 	{
 		variable float64 FinalValue
-		
-		FinalValue:Set[${NPCData.EnemyEnergyNeutRange[${This.NPCTypeID[${EntityID}]}]}]
+		if !${This.NPCTypeIsCached[${EntityID}]}
+			FinalValue:Set[${NPCData.EnemyEnergyNeutRange[${This.NPCTypeID[${EntityID}]}]}]
+		else
+		{
+			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			FinalValue:Set[${GetTypeCache.GetFieldValue["NeutRng"]}]
+			GetTypeCache:Finalize
+		}
 		return ${FinalValue}
 	}
 	
@@ -306,8 +350,14 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	member:float64 NPCNeutAmount(int64 EntityID)
 	{
 		variable float64 FinalValue
-		
-		FinalValue:Set[${NPCData.EnemyEnergyNeutPerSecond[${This.NPCTypeID[${EntityID}]}]}]
+		if !${This.NPCTypeIsCached[${EntityID}]}
+			FinalValue:Set[${NPCData.EnemyEnergyNeutPerSecond[${This.NPCTypeID[${EntityID}]}]}]
+		else
+		{
+			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			FinalValue:Set[${GetTypeCache.GetFieldValue["NeutStr"]}]
+			GetTypeCache:Finalize
+		}
 		return ${FinalValue}
 	}
 	
@@ -315,32 +365,48 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	member:string NPCEWARType(int64 EntityID)
 	{
 		variable string FinalValue
-		
-		if ${NPCData.EnemyUsesECM[${This.NPCTypeID[${EntityID}]}]}
-			FinalValue:Concat["ECM"]
-		if ${NPCData.EnemyUsesPainters[${This.NPCTypeID[${EntityID}]}]}
-			FinalValue:Concat["Painter"]
-		if ${NPCData.EnemyUsesGuidanceDisruption[${This.NPCTypeID[${EntityID}]}]} && ${Ship.ModuleList_MissileLauncher.Count} > 0
-			FinalValue:Concat["Guidance"]
-		if ${NPCData.EnemyUsesTrackingDisruption[${This.NPCTypeID[${EntityID}]}]} && ${Ship.ModuleList_Turret.Count} > 0
-			FinalValue:Concat["Tracking"]
-		if ${NPCData.EnemySensorDampRange[${This.NPCTypeID[${EntityID}]}]} > 0
-			FinalValue:Concat["Damp"]
-		if !${FinalValue.NotNULLOrEmpty}
-			return NONE
+		if !${This.NPCTypeIsCached[${EntityID}]}
+		{
+			if ${NPCData.EnemyUsesECM[${This.NPCTypeID[${EntityID}]}]}
+				FinalValue:Concat["ECM"]
+			if ${NPCData.EnemyUsesPainters[${This.NPCTypeID[${EntityID}]}]}
+				FinalValue:Concat["Painter"]
+			if ${NPCData.EnemyUsesGuidanceDisruption[${This.NPCTypeID[${EntityID}]}]} && ${Ship.ModuleList_MissileLauncher.Count} > 0
+				FinalValue:Concat["Guidance"]
+			if ${NPCData.EnemyUsesTrackingDisruption[${This.NPCTypeID[${EntityID}]}]} && ${Ship.ModuleList_Turret.Count} > 0
+				FinalValue:Concat["Tracking"]
+			if ${NPCData.EnemySensorDampRange[${This.NPCTypeID[${EntityID}]}]} > 0
+				FinalValue:Concat["Damp"]
+			if !${FinalValue.NotNULLOrEmpty}
+				return NONE
+		}
 		else
-			return "${FinalValue}"
+		{
+			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			FinalValue:Set[${GetTypeCache.GetFieldValue["EWARType"]}]
+			GetTypeCache:Finalize
+		}
+		
+		return "${FinalValue}"
 	}
 
 	; This member will return the EWAR Strength of a given enemy.
 	member:float64 NPCEWARStrength(int64 EntityID)
 	{
 		variable float64 FinalValue
-		
-		if ${NPCData.EnemySensorDampRange[${This.NPCTypeID[${EntityID}]}]} > 0
-			FinalValue:Set[${NPCData.EnemySensorDampStrength[${This.NPCTypeID[${EntityID}]}]}]
+		if !${This.NPCTypeIsCached[${EntityID}]}
+		{
+			if ${NPCData.EnemySensorDampRange[${This.NPCTypeID[${EntityID}]}]} > 0
+				FinalValue:Set[${NPCData.EnemySensorDampStrength[${This.NPCTypeID[${EntityID}]}]}]
+			else
+				FinalValue:Set[0]
+		}
 		else
-			FinalValue:Set[0]
+		{
+			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			FinalValue:Set[${GetTypeCache.GetFieldValue["EWARStr"]}]
+			GetTypeCache:Finalize
+		}
 		return ${FinalValue}		
 	}
 	
@@ -348,11 +414,19 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	member:float64 NPCEWARRange(int64 EntityID)
 	{
 		variable float64 FinalValue
-		
-		if ${NPCData.EnemySensorDampRange[${This.NPCTypeID[${EntityID}]}]} > 0
-			FinalValue:Set[${NPCData.EnemySensorDampRange[${This.NPCTypeID[${EntityID}]}]}]
+		if !${This.NPCTypeIsCached[${EntityID}]}
+		{
+			if ${NPCData.EnemySensorDampRange[${This.NPCTypeID[${EntityID}]}]} > 0
+				FinalValue:Set[${NPCData.EnemySensorDampRange[${This.NPCTypeID[${EntityID}]}]}]
+			else
+				FinalValue:Set[0]
+		}
 		else
-			FinalValue:Set[0]
+		{
+			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			FinalValue:Set[${GetTypeCache.GetFieldValue["EWARRng"]}]
+			GetTypeCache:Finalize
+		}
 		return ${FinalValue}
 	}
 	
@@ -360,8 +434,14 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	member:float64 NPCWebRange(int64 EntityID)
 	{
 		variable float64 FinalValue
-		
-		FinalValue:Set[${NPCData.EnemyStasisWebRange[${This.NPCTypeID[${EntityID}]}]}]
+		if !${This.NPCTypeIsCached[${EntityID}]}
+			FinalValue:Set[${NPCData.EnemyStasisWebRange[${This.NPCTypeID[${EntityID}]}]}]
+		else
+		{
+			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			FinalValue:Set[${GetTypeCache.GetFieldValue["WebRng"]}]
+			GetTypeCache:Finalize
+		}
 		return ${FinalValue}	
 	}
 	
@@ -369,8 +449,14 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	member:float64 NPCDisruptRange(int64 EntityID)
 	{
 		variable float64 FinalValue
-		
-		FinalValue:Set[${NPCData.EnemyWarpDisruptorRange[${This.NPCTypeID[${EntityID}]}]}]
+		if !${This.NPCTypeIsCached[${EntityID}]}
+			FinalValue:Set[${NPCData.EnemyWarpDisruptorRange[${This.NPCTypeID[${EntityID}]}]}]
+		else
+		{
+			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			FinalValue:Set[${GetTypeCache.GetFieldValue["WrpDisRng"]}]
+			GetTypeCache:Finalize
+		}
 		return ${FinalValue}		
 	}
 	
@@ -378,8 +464,14 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	member:float64 NPCScramRange(int64 EntityID)
 	{
 		variable float64 FinalValue
-		
-		FinalValue:Set[${NPCData.EnemyWarpScramblerRange[${This.NPCTypeID[${EntityID}]}]}]
+		if !${This.NPCTypeIsCached[${EntityID}]}
+			FinalValue:Set[${NPCData.EnemyWarpScramblerRange[${This.NPCTypeID[${EntityID}]}]}]
+		else
+		{
+			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			FinalValue:Set[${GetTypeCache.GetFieldValue["WrpScrRng"]}]
+			GetTypeCache:Finalize
+		}
 		return ${FinalValue}		
 	}
 	
@@ -1098,25 +1190,25 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		; You know, missiles never ever come with multiple damage types so lets just divide it by fucking 50 and call it a god damn day.
 		if ${Missl}
 		{
-			LowestDmgNmbr:Set[50]
+			LowestDmgNmbr:Set[10]
 		}
 		; Our decrement number will be made larger so that ExpectedShotDmg will take fewer loops. We maintain the proportionality, we just apply a larger slice of our damage per iteration now.
 		if ${Missl} || (${TurretDmgMod} > 0.01)
 		{
 			variable float64 EMDec
-			EMDec:Set[${Math.Calc[${AmmoDmgEMPM}/(${LowestDmgNmbr}/10)]}]
+			EMDec:Set[${Math.Calc[${AmmoDmgEMPM}/(${LowestDmgNmbr}/5)]}]
 			variable float64 EMDecTurbo
 			EMDecTurbo:Set[${AmmoDmgEMPM}]
 			variable float64 ExpDec 
-			ExpDec:Set[${Math.Calc[${AmmoDmgExpPM}/(${LowestDmgNmbr}/10)]}]
+			ExpDec:Set[${Math.Calc[${AmmoDmgExpPM}/(${LowestDmgNmbr}/5)]}]
 			variable float64 ExpDecTurbo
 			ExpDecTurbo:Set[${AmmoDmgExpPM}]
 			variable float64 KinDec 
-			KinDec:Set[${Math.Calc[${AmmoDmgKinPM}/(${LowestDmgNmbr}/10)]}]
+			KinDec:Set[${Math.Calc[${AmmoDmgKinPM}/(${LowestDmgNmbr}/5)]}]
 			variable float64 KinDecTurbo
 			KinDecTurbo:Set[${AmmoDmgKinPM}]
 			variable float64 ThermDec 
-			ThermDec:Set[${Math.Calc[${AmmoDmgThermPM}/(${LowestDmgNmbr}/10)]}]
+			ThermDec:Set[${Math.Calc[${AmmoDmgThermPM}/(${LowestDmgNmbr}/5)]}]
 			variable float64 ThermDecTurbo
 			ThermDecTurbo:Set[${AmmoDmgThermPM}]
 		}

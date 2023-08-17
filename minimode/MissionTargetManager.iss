@@ -83,6 +83,8 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		MTMDB:ExecDML["PRAGMA journal_mode=WAL;"]
 		MTMDB:ExecDML["PRAGMA main.mmap_size=64000000"]
 		MTMDB:ExecDML["PRAGMA main.cache_size=-64000;"]
+		MTMDB:ExecDML["PRAGMA synchronous = normal;"]
+		MTMDB:ExecDML["PRAGMA temp_store = memory;"]	
 		if !${MTMDB.TableExists["Targeting"]}
 		{
 			echo DEBUG - MissionTargetManager - Creating Targeting Table
@@ -196,7 +198,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 					TempEntID:Set[${GetActiveNPCs.GetFieldValue["EntityID"]}]
 					if ${TempEntID} > 0
 						CombatComputer.ActiveNPCQueue:Queue[${TempEntID}]
-					CombatComputerTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 20000]}]
+					CombatComputerTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 10000]}]
 					GetActiveNPCs:NextRow
 				}
 				while !${GetActiveNPCs.LastRow}
