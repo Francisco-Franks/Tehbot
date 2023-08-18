@@ -263,7 +263,8 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			if ${Entity[${This.GetFirstRowEntity[DroneTargets]}].Distance} <= 140000
 			{
 				Ship.ModuleList_TargetPainter:ActivateAll[${This.GetFirstRowEntity[DroneTargets]}]
-			}		
+			}
+			Ship.ModuleList_TrackingComputer:ActivateFor[${This.GetFirstRowEntity[DroneTargets]}]
 		}
 		if ${ValidDroneTargets} > 0 && ${DroneControl.CurrentTarget} == 0
 			DroneControl.CurrentTarget:Set[${This.GetFirstRowEntity[DroneTargets]}]
