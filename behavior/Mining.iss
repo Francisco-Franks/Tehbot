@@ -1871,8 +1871,8 @@ objectdef obj_Mining inherits obj_StateQueue
 				; Move fallback drones together(to station hanger) before moving them to drone bay to ensure preferred type is loaded before fallback type.
 				; Also move ammos not in use to release cargo space.
 				if ((${Ship.ModuleList_MiningLaser.Count} && \
-					!${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackAmmo}]} && \
-					!${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackLongRangeAmmo}]} && \
+					!${itemIterator.Value.Name.Equal[${Ship.${WeaponSwitch}.FallbackAmmo}]} && \
+					!${itemIterator.Value.Name.Equal[${Ship.${WeaponSwitch}.FallbackLongRangeAmmo}]} && \
 					!${itemIterator.Value.Name.Equal[${ammo}]} && \
 					!${itemIterator.Value.Name.Equal[${secondaryAmmo}]}) && \
 					(${itemIterator.Value.Name.Equal[${Config.KineticAmmo}]} || \
@@ -2723,7 +2723,7 @@ objectdef obj_Mining inherits obj_StateQueue
 
 				if ${ammo.NotNULLOrEmpty}
 				{
-					Ship.ModuleList_Weapon:ConfigureAmmo[${ammo}, ${secondaryAmmo}, ${tertiaryAmmo}]
+					Ship.${WeaponSwitch}:ConfigureAmmo[${ammo}, ${secondaryAmmo}, ${tertiaryAmmo}]
 				}
 
 				if ${Config.BatteryToBring.NotNULLOrEmpty}
@@ -2731,7 +2731,7 @@ objectdef obj_Mining inherits obj_StateQueue
 					Ship.ModuleList_Ancillary_Shield_Booster:ConfigureAmmo[${Config.BatteryToBring}]
 				}
 
-				Ship.ModuleList_Weapon:ReloadDefaultAmmo
+				Ship.${WeaponSwitch}:ReloadDefaultAmmo
 
 				if ${Ship.ModuleList_Regen_Shield.InactiveCount} && ((${MyShip.ShieldPct.Int} < 100 && ${MyShip.CapacitorPct.Int} > ${AutoModule.Config.ActiveShieldCap}) || ${AutoModule.Config.AlwaysShieldBoost})
 				{

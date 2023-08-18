@@ -429,7 +429,7 @@ objectdef obj_CombatAnoms inherits obj_StateQueue
 		}
 
 		;You know, I don't think this actually does anything... Well maybe it does.
-		Ship.ModuleList_Weapon:ConfigureAmmo[${ammo}, ${secondaryAmmo}, ${tertiaryAmmo}]
+		Ship.${WeaponSwitch}:ConfigureAmmo[${ammo}, ${secondaryAmmo}, ${tertiaryAmmo}]
 		;Ship.ModuleList_Ancillary_Shield_Booster:ConfigureAmmo[${Config.BatteryToBring}]
 		
 		; We are running CombatAnoms, our weapons are vortons (edencom), we should set up for overheat.
@@ -1508,8 +1508,8 @@ objectdef obj_CombatAnoms inherits obj_StateQueue
 				if !${itemIterator.Value.Name.Equal[${Config.SRAmmo}]} && \
 				   !${itemIterator.Value.Name.Equal[${Config.LRAmmo}]} && \
 				   !${itemIterator.Value.Name.Equal[${Config.XLRAmmo}]} && \
-				   !${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackAmmo}]} && \
-				   !${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackLongRangeAmmo}]} && \
+				   !${itemIterator.Value.Name.Equal[${Ship.${WeaponSwitch}.FallbackAmmo}]} && \
+				   !${itemIterator.Value.Name.Equal[${Ship.${WeaponSwitch}.FallbackLongRangeAmmo}]} && \
 				   !${itemIterator.Value.Name.Equal[${Config.BatteryToBring}]} && \
 				   !${itemIterator.Value.Name.Equal[${Config.FilamentType}]} && \
 				   !${itemIterator.Value.Name.Equal["Nanite Repair Paste"]} && \
@@ -1750,9 +1750,9 @@ objectdef obj_CombatAnoms inherits obj_StateQueue
 
 				; Move fallback drones together(to station hanger) before moving them to drone bay to ensure preferred type is loaded before fallback type.
 				; Also move ammos not in use to release cargo space.
-				if ((${Ship.ModuleList_Weapon.Count} && \
-					!${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackAmmo}]} && \
-					!${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackLongRangeAmmo}]} && \
+				if ((${Ship.${WeaponSwitch}.Count} && \
+					!${itemIterator.Value.Name.Equal[${Ship.${WeaponSwitch}.FallbackAmmo}]} && \
+					!${itemIterator.Value.Name.Equal[${Ship.${WeaponSwitch}.FallbackLongRangeAmmo}]} && \
 					!${itemIterator.Value.Name.Equal[${ammo}]} && \
 					!${itemIterator.Value.Name.Equal[${secondaryAmmo}]} && \
 					!${itemIterator.Value.Name.Equal[${tertiaryAmmo}]} && \
@@ -2138,7 +2138,7 @@ objectdef obj_CombatAnoms inherits obj_StateQueue
 
 				if ${ammo.NotNULLOrEmpty}
 				{
-					Ship.ModuleList_Weapon:ConfigureAmmo[${ammo}, ${secondaryAmmo}, ${tertiaryAmmo}]
+					Ship.${WeaponSwitch}:ConfigureAmmo[${ammo}, ${secondaryAmmo}, ${tertiaryAmmo}]
 				}
 
 				if ${Config.BatteryToBring.NotNULLOrEmpty}
@@ -2146,7 +2146,7 @@ objectdef obj_CombatAnoms inherits obj_StateQueue
 					Ship.ModuleList_Ancillary_Shield_Booster:ConfigureAmmo[${Config.BatteryToBring}]
 				}
 
-				Ship.ModuleList_Weapon:ReloadDefaultAmmo
+				Ship.${WeaponSwitch}:ReloadDefaultAmmo
 
 				if ${Ship.ModuleList_Regen_Shield.InactiveCount} && ((${MyShip.ShieldPct.Int} < 100 && ${MyShip.CapacitorPct.Int} > ${AutoModule.Config.ActiveShieldCap}) || ${AutoModule.Config.AlwaysShieldBoost})
 				{

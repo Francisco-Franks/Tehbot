@@ -247,7 +247,7 @@ objectdef obj_Ship inherits obj_StateQueue
 
 	member:bool IsHardToDealWithTarget(int64 targetID)
 	{
-		if ${This.ModuleList_Weapon.DamageEfficiency[${targetID}]} <= 0.1
+		if ${This.${WeaponSwitch}.DamageEfficiency[${targetID}]} <= 0.1
 		{
 			return TRUE
 

@@ -249,7 +249,7 @@ objectdef obj_FightOrFlight inherits obj_StateQueue
 		{
 			This:UnlockNPCsAndLockPCs
 			; Disable this until we can reload weapon and ancillary repairers seperately.
-			; Ship.ModuleList_Weapon:ReloadDefaultAmmo
+			; Ship.${WeaponSwitch}:ReloadDefaultAmmo
 		}
 		else
 		{
@@ -325,7 +325,7 @@ objectdef obj_FightOrFlight inherits obj_StateQueue
 		IsEngagingGankers:Set[TRUE]
 
 		; Overload modules.
-		Ship.ModuleList_Weapon:SetOverloadHPThreshold[50]
+		Ship.${WeaponSwitch}:SetOverloadHPThreshold[50]
 		Ship.ModuleList_ActiveResists:SetOverloadHPThreshold[50]
 		Ship.ModuleList_Regen_Shield:SetOverloadHPThreshold[50]
 		Ship.ModuleList_Ancillary_Shield_Booster:SetOverloadHPThreshold[50]
@@ -441,17 +441,17 @@ objectdef obj_FightOrFlight inherits obj_StateQueue
 					currentTarget:Set[${CapsuleTarget}]
 				}
 			}
-			This:LogInfo["Primary target: \ar${Entity[${currentTarget}].Name}, effciency ${Math.Calc[${Ship.ModuleList_Weapon.DamageEfficiency[${currentTarget}]} * 100].Deci}%."]
+			This:LogInfo["Primary target: \ar${Entity[${currentTarget}].Name}, effciency ${Math.Calc[${Ship.${WeaponSwitch}.DamageEfficiency[${currentTarget}]} * 100].Deci}%."]
 		}
 
 		;;;;;;;;;;;;;;;;;;;;Shoot;;;;;;;;;;;;;;;;;;;;;
 		if ${currentTarget} != 0 && ${Entity[${currentTarget}]} && !${Entity[${currentTarget}].IsMoribund}
 		{
 			Ship.ModuleList_Siege:ActivateOne
-			if ${Ship.ModuleList_Weapon.Range} > ${Entity[${currentTarget}].Distance}
+			if ${Ship.${WeaponSwitch}.Range} > ${Entity[${currentTarget}].Distance}
 			{
 				; This:LogDebug["Pew Pew: \ar${Entity[${currentTarget}].Name}"]
-				Ship.ModuleList_Weapon:ActivateAll[${currentTarget}]
+				Ship.${WeaponSwitch}:ActivateAll[${currentTarget}]
 				Ship.ModuleList_TrackingComputer:ActivateFor[${currentTarget}]
 			}
 			if ${Entity[${currentTarget}].Distance} <= ${Ship.ModuleList_TargetPainter.Range}
@@ -480,7 +480,7 @@ objectdef obj_FightOrFlight inherits obj_StateQueue
 		if ${allowResume}
 		{
 			; Reset overload.
-			Ship.ModuleList_Weapon:SetOverloadHPThreshold[100]
+			Ship.${WeaponSwitch}:SetOverloadHPThreshold[100]
 			Ship.ModuleList_ActiveResists:SetOverloadHPThreshold[100]
 			Ship.ModuleList_Regen_Shield:SetOverloadHPThreshold[100]
 			Ship.ModuleList_Ancillary_Shield_Booster:SetOverloadHPThreshold[100]

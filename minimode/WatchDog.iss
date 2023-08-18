@@ -413,7 +413,7 @@ objectdef obj_WatchDog inherits obj_StateQueue
 			SittingInSpaceBeginsTimestamp:Set[0]
 			return 0
 		}
-		if ${MyShip.ToEntity.Velocity} >= 1 || ${Ship.ModuleList_Weapon.ActiveCount} >= 1
+		if ${MyShip.ToEntity.Velocity} >= 1 || ${Ship.${WeaponSwitch}.ActiveCount} >= 1
 		{
 			SittingInSpaceBeginsTimestamp:Set[0]
 			return 0

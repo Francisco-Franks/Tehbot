@@ -1115,12 +1115,12 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		; Need these for ROF kinda stuff. We have a Bastion Module and it is On, or we don't have one at all, use the current ROF.
 		if ${Ship.ModuleList_Siege.ActiveCount} > 0 || ${Ship.ModuleList_Siege.Count} == 0
 		{
-			TimeBetweenShots:Set[${Ship.ModuleList_Weapon.RateOfFire}]
+			TimeBetweenShots:Set[${Ship.${WeaponSwitch}.RateOfFire}]
 		}
 		; We have a bastion module and it is off. Pretend it is on. It is supposedly stacking penalized but from the numbers I'm looking at it doesn't seem to be. ROF Cuts in half.
 		if ${Ship.ModuleList_Siege.ActiveCount} == 0 && ${Ship.ModuleList_Siege.Count} > 0
 			{
-				TimeBetweenShots:Set[${Math.Calc[${Ship.ModuleList_Weapon.RateOfFire} * 0.5]}]
+				TimeBetweenShots:Set[${Math.Calc[${Ship.${WeaponSwitch}.RateOfFire} * 0.5]}]
 			}
 		; Need to calculate how much rep/s an NPC can do and for what layer.
 		variable float64 NPCShieldRep 

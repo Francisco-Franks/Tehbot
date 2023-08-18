@@ -3879,8 +3879,8 @@ objectdef obj_Mission inherits obj_StateQueue
 				   !${itemIterator.Value.Name.Equal[${Config.ThermalAmmoSecondary}]} && \
 				   !${itemIterator.Value.Name.Equal[${Config.EMAmmoSecondary}]} && \
 				   !${itemIterator.Value.Name.Equal[${Config.ExplosiveAmmoSecondary}]} && \
-				   !${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackAmmo}]} && \
-				   !${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackLongRangeAmmo}]} && \
+				   !${itemIterator.Value.Name.Equal[${Ship.${WeaponSwitch}.FallbackAmmo}]} && \
+				   !${itemIterator.Value.Name.Equal[${Ship.${WeaponSwitch}.FallbackLongRangeAmmo}]} && \
 				   !${itemIterator.Value.Name.Equal[${Config.BatteryToBring}]} && \
 				   !${itemIterator.Value.Name.Equal[${Config.TurretExtraAmmo1}]} && \
 				   !${itemIterator.Value.Name.Equal[${Config.TurretExtraAmmo2}]} && \
@@ -4154,9 +4154,9 @@ objectdef obj_Mission inherits obj_StateQueue
 
 				; Move fallback drones together(to station hanger) before moving them to drone bay to ensure preferred type is loaded before fallback type.
 				; Also move ammos not in use to release cargo space.
-				if ((${Ship.ModuleList_Weapon.Count} && \
-					!${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackAmmo}]} && \
-					!${itemIterator.Value.Name.Equal[${Ship.ModuleList_Weapon.FallbackLongRangeAmmo}]} && \
+				if ((${Ship.${WeaponSwitch}.Count} && \
+					!${itemIterator.Value.Name.Equal[${Ship.${WeaponSwitch}.FallbackAmmo}]} && \
+					!${itemIterator.Value.Name.Equal[${Ship.${WeaponSwitch}.FallbackLongRangeAmmo}]} && \
 					!${itemIterator.Value.Name.Equal[${ammo}]} && \
 					!${itemIterator.Value.Name.Equal[${secondaryAmmo}]}) && \
 				   (!${itemIterator.Value.Name.Find[${PrecisionAmmo}]} && ${PrecisionAmmo.NotNULLOrEmpty}) && \
@@ -4536,7 +4536,7 @@ objectdef obj_Mission inherits obj_StateQueue
 
 				if ${ammo.NotNULLOrEmpty}
 				{
-					Ship.ModuleList_Weapon:ConfigureAmmo[${ammo}, ${secondaryAmmo}]
+					Ship.${WeaponSwitch}:ConfigureAmmo[${ammo}, ${secondaryAmmo}]
 				}
 
 				if ${Config.BatteryToBring.NotNULLOrEmpty}
@@ -4544,7 +4544,7 @@ objectdef obj_Mission inherits obj_StateQueue
 					Ship.ModuleList_Ancillary_Shield_Booster:ConfigureAmmo[${Config.BatteryToBring}]
 				}
 
-				Ship.ModuleList_Weapon:ReloadDefaultAmmo
+				Ship.${WeaponSwitch}:ReloadDefaultAmmo
 
 				if ${Ship.ModuleList_Regen_Shield.InactiveCount} && ((${MyShip.ShieldPct.Int} < 100 && ${MyShip.CapacitorPct.Int} > ${AutoModule.Config.ActiveShieldCap}) || ${AutoModule.Config.AlwaysShieldBoost})
 				{

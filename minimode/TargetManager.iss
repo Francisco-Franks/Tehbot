@@ -763,13 +763,13 @@ objectdef obj_TargetManager inherits obj_StateQueue
 					}
 				}
 			}
-			This:LogInfo["Primary target: \ar${Entity[${CurrentOffenseTarget}].Name}, effciency ${Math.Calc[${Ship.ModuleList_Weapon.DamageEfficiency[${CurrentOffenseTarget}]} * 100].Deci}%."]
+			This:LogInfo["Primary target: \ar${Entity[${CurrentOffenseTarget}].Name}, effciency ${Math.Calc[${Ship.${WeaponSwitch}.DamageEfficiency[${CurrentOffenseTarget}]} * 100].Deci}%."]
 		}
 		;echo ${CurrentOffenseTarget} Current Offense Target
 		; Nothing is locked.
 		if ${ActiveNPCs.TargetList.Used} && \
 			${CurrentOffenseTarget.Equal[0]} && \
-		 	${ActiveNPCs.TargetList.Get[1].Distance} > ${Math.Calc[${Ship.ModuleList_Weapon.Range} * 0.95]} && \
+		 	${ActiveNPCs.TargetList.Get[1].Distance} > ${Math.Calc[${Ship.${WeaponSwitch}.Range} * 0.95]} && \
 			!${MyShip.ToEntity.Approaching.ID.Equal[${ActiveNPCs.TargetList.Get[1].ID}]} && \
 			!${Move.Traveling}
 		{
@@ -797,47 +797,47 @@ objectdef obj_TargetManager inherits obj_StateQueue
 			;	DroneControl:Recall
 			;}
 
-			;echo ${Ship.ModuleList_Weapon.Range} weapon range
-			if (${Ship.ModuleList_Weapon.Range} > ${Entity[${CurrentOffenseTarget}].Distance}) 
+			;echo ${Ship.${WeaponSwitch}.Range} weapon range
+			if (${Ship.${WeaponSwitch}.Range} > ${Entity[${CurrentOffenseTarget}].Distance}) 
 			{
-				Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget}]
+				Ship.${WeaponSwitch}:ActivateAll[${CurrentOffenseTarget}]
 				Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]
 				if ${AllowSiegeModule}
 				{
 					Ship.ModuleList_Siege:ActivateOne
 				}
 			}
-			elseif !${Ship.ModuleList_Weapon.IsUsingLongRangeAmmo} && ( ${Abyssal.Config.UseSecondaryAmmo} || ${Mission.Config.UseSecondaryAmmo})
+			elseif !${Ship.${WeaponSwitch}.IsUsingLongRangeAmmo} && ( ${Abyssal.Config.UseSecondaryAmmo} || ${Mission.Config.UseSecondaryAmmo})
 			{
 				This:LogDebug["Far switch ammo to long"]
 				; Activate weapon to switch ammo to long.
-				Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget}]
+				Ship.${WeaponSwitch}:ActivateAll[${CurrentOffenseTarget}]
 				Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]
 			}
 			elseif ${AllowSiegeModule} && \
 				${Ship.ModuleList_Siege.Allowed} && \
 				${Ship.ModuleList_Siege.Count} && \
 				!${Ship.RegisteredModule.Element[${Ship.ModuleList_Siege.ModuleID.Get[1]}].IsActive} && \
-			 	(${Math.Calc[${Entity[${CurrentOffenseTarget}].Distance} / (${Ship.ModuleList_Weapon.Range} + 1)]} < 1.2)
+			 	(${Math.Calc[${Entity[${CurrentOffenseTarget}].Distance} / (${Ship.${WeaponSwitch}.Range} + 1)]} < 1.2)
 			{
 				This:LogDebug["Far need siege"]
 				; Using long range ammo and within range if siege module is on.
 				Ship.ModuleList_Siege:ActivateOne
 				; Switch target
-				Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget}]
+				Ship.${WeaponSwitch}:ActivateAll[${CurrentOffenseTarget}]
 				Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]
 			}
 			;elseif !${Entity[${CurrentOffenseTarget}].IsTargetingMe}
 			;{
 			;	This:LogDebug["Far trigger"]
 				; Shoot at out of range target to trigger them.
-			;	Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget}]
+			;	Ship.${WeaponSwitch}:ActivateAll[${CurrentOffenseTarget}]
 			;	Ship.ModuleList_TrackingComputer:ActivateFor[${CurrentOffenseTarget}]
 			;}
 			else
 			{
 				This:LogDebug["Far approach"]
-				Ship.ModuleList_Weapon:DeactivateAll[${CurrentOffenseTarget}]
+				Ship.${WeaponSwitch}:DeactivateAll[${CurrentOffenseTarget}]
 				Ship.ModuleList_Siege:DeactivateAll
 
 				if !${MyShip.ToEntity.Approaching.ID.Equal[${CurrentOffenseTarget}]} && !${Move.Traveling}
@@ -869,7 +869,7 @@ objectdef obj_TargetManager inherits obj_StateQueue
 
 		if ${NPCs.TargetList.Used}
 		{
-			if ${NPCs.TargetList.Get[1].Distance} > ${Math.Calc[${Ship.ModuleList_Weapon.Range} * .95]} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING && !${Move.Traveling}
+			if ${NPCs.TargetList.Get[1].Distance} > ${Math.Calc[${Ship.${WeaponSwitch}.Range} * .95]} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING && !${Move.Traveling}
 			{
 				if ${Ship.ModuleList_Siege.ActiveCount}
 				{
@@ -893,7 +893,7 @@ objectdef obj_TargetManager inherits obj_StateQueue
 		}
 		if ${Entity[${targetToDestroy}]}
 		{
-			if ${Entity[${targetToDestroy}].Distance} > ${Math.Calc[${Ship.ModuleList_Weapon.Range} * .95]} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING && !${Move.Traveling}
+			if ${Entity[${targetToDestroy}].Distance} > ${Math.Calc[${Ship.${WeaponSwitch}.Range} * .95]} && ${MyShip.ToEntity.Mode} != MOVE_APPROACHING && !${Move.Traveling}
 			{
 				if ${Ship.ModuleList_Siege.ActiveCount}
 				{
@@ -912,9 +912,9 @@ objectdef obj_TargetManager inherits obj_StateQueue
 				This:LogInfo[" ${Entity[${targetToDestroy}].Name}", "o"]
 				Entity[${targetToDestroy}]:LockTarget
 			}
-			elseif ${Entity[${targetToDestroy}].IsLockedTarget} && (${Entity[${targetToDestroy}].Distance} < ${Math.Calc[${Ship.ModuleList_Weapon.Range} * .95]})
+			elseif ${Entity[${targetToDestroy}].IsLockedTarget} && (${Entity[${targetToDestroy}].Distance} < ${Math.Calc[${Ship.${WeaponSwitch}.Range} * .95]})
 			{
-				Ship.ModuleList_Weapon:ActivateAll[${Entity[${targetToDestroy}].ID}]
+				Ship.${WeaponSwitch}:ActivateAll[${Entity[${targetToDestroy}].ID}]
 				if ${AutoModule.Config.TrackingComputers}
 				{
 					Ship.ModuleList_TrackingComputer:ActivateAll[${CurrentOffenseTarget}]
@@ -927,7 +927,7 @@ objectdef obj_TargetManager inherits obj_StateQueue
 
 	method RegisterCurrentPrimaryWeaponRange()
 	{
-		CurrentOffenseRange:Set[${Math.Calc[${Ship.ModuleList_Weapon.Range} * .95]}]
+		CurrentOffenseRange:Set[${Math.Calc[${Ship.${WeaponSwitch}.Range} * .95]}]
 	}
 	
 	member:bool TargetManager()
