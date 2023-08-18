@@ -37,6 +37,7 @@ objectdef obj_StateQueue inherits obj_Logger
 
 	method Initialize()
 	{
+		Turbo 1000000
 		CurState:Set["Idle", 100, ""]
 		IsIdle:Set[TRUE]
 		Event[ISXEVE_onFrame]:AttachAtom[This:Pulse]

@@ -34,10 +34,11 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	; This int will not be configurable by the user, but just here to make my life simpler.
 	; We use this to decide how many rows to update at a time, doing all of them simultaneously is a real performance killer dontchaknow.
 	; We will start with 10 entities at a time.
-	variable int UpdateBatchSize = 4	
+	variable int UpdateBatchSize = 6	
 	
 	method Initialize()
 	{
+		Turbo 5000
 		This[parent]:Initialize
 		This.PulseFrequency:Set[1000]
 		;This.NonGameTiedPulse:Set[TRUE]
@@ -74,7 +75,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
  
 	method Shutdown()
 	{
-	
+		CombatData:ExecDML["Vacuum;"]	
 		CombatData:Close
 	}
 	

@@ -16,6 +16,7 @@ objectdef obj_NPCData
 	
 	method Initialize()
 	{
+		Turbo 5000
 		LavishSettings[NPCData]:Clear
 		LavishSettings:AddSet[NPCData]
 
@@ -33,12 +34,12 @@ objectdef obj_NPCData
 		NPCInfoDB:ExecDML["PRAGMA main.cache_size=-64000;"]
 		NPCInfoDB:ExecDML["PRAGMA synchronous = normal;"]
 		NPCInfoDB:ExecDML["PRAGMA temp_store = memory;"]		
-		
 	}
 
 	method Shutdown()
 	{
 		LavishSettings[NPCData]:Clear
+		NPCInfoDB:ExecDML["Vacuum;"]	
 		NPCInfoDB:Close
 	}
 

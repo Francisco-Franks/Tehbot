@@ -31,7 +31,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 	
 	method Initialize()
 	{
-		
+		Turbo 5000
 		This[parent]:Initialize
 		;TargetingDatabase:Set[${SQLite.OpenDB["TargetingDatabase",":memory:"]}]
 		TargetingDatabase:Set[${SQLite.OpenDB["${Me.Name}TargetingDatabase","${Script.CurrentDirectory}/Data/${Me.Name}TDBTEST.sqlite3"]}]
@@ -375,7 +375,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 			{
 				echo DEBUG DEBUG DEBUUUUUUUG UNLOCKED LOOP START
 				; Zeroth up, is this row's entity out of our lock range or dead? Skip this row.
-				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund} || !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || (${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} > ${Math.Calc[${MyShip.MaxTargetRange} * .95]})
+				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund} || !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || (${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} > ${Math.Calc[${MyShip.MaxTargetRange} * .98]})
 				{
 					GetOtherTableInfo:NextRow
 					continue
@@ -420,7 +420,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 			{
 				echo DEBUG DEBUG DEBUUUUUUUG UNLOCKED LOOP START 2
 				; Zeroth up, is this row's entity out of our lock range or dead? Skip this row.
-				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund} || !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || (${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} > ${Math.Calc[${MyShip.MaxTargetRange} * .95]})
+				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund} || !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || (${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} > ${Math.Calc[${MyShip.MaxTargetRange} * .98]})
 				{
 					GetOtherTableInfo:NextRow
 					continue
@@ -470,7 +470,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 			{
 				echo DEBUG DEBUG DEBUUUUUUUG UNLOCKED LOOP START 2
 				; Zeroth up, is this row's entity out of our lock range or dead? Skip this row.
-				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund} || !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || (${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} > ${Math.Calc[${MyShip.MaxTargetRange} * .95]})
+				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsMoribund} || !${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}](exists)} || (${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].Distance} > ${Math.Calc[${MyShip.MaxTargetRange} * .98]})
 				{
 					GetOtherTableInfo:NextRow
 					continue

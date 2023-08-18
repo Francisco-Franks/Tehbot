@@ -92,7 +92,7 @@ function main(string Character="")
 	ext -require isxSQLite
 
 	echo "${Time} Tehbot: Starting"
-	Turbo 450
+	Turbo 5000
 
 	declarevariable ConfigManager obj_Configuration_Manager script
 	declarevariable CommonConfig obj_Configuration_Common script

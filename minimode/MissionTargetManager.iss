@@ -74,6 +74,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 
 	method Initialize()
 	{
+		Turbo 5000
 		This[parent]:Initialize
 
 		DynamicAddMiniMode("MissionTargetManager", "MissionTargetManager")
@@ -122,7 +123,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	method Shutdown()
 	{
 		MTMDB:Close
+		MTMDB:ExecDML["Vacuum;"]
 		ActiveNPCDB.TargetingDatabase:Close
+		ActiveNPCDB.TargetingDatabase:ExecDML["Vacuum;"]
 	}
 	
 	; This member is the primary loop for the minimode.
