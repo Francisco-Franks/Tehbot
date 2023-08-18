@@ -226,7 +226,7 @@ objectdef obj_Module inherits obj_StateQueue
 			_lastDeactivationTimestamp:Set[0]
 
 			optimalAmmo:Set[${This._pickOptimalAmmo[${targetID}]}]
-			if ${optimalAmmo.NotNULLOrEmpty} && !${optimalAmmo.Equal[${This.Charge.Type}]}
+			if ${optimalAmmo.NotNULLOrEmpty} && !${optimalAmmo.Equal[${This.Charge.Type}]} && (${LavishScript.RunningTime} > ${LastAmmoChange}) || (${Ship.ModuleList_Lasers.Count} > 0)
 			{
 				This:_findAndChangeAmmo[${optimalAmmo}]
 				return
