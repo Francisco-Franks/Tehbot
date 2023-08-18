@@ -1412,7 +1412,7 @@ objectdef obj_Mission inherits obj_StateQueue
 	; This state will be the start of Primary Logic for Combat Missions.Basically this state here will be our hub for combat missions.
 	member:bool CombatMission(int Cycles)
 	{
-
+		WeaponSwitch:Set[${Ship.WeaponSwitch}]
 		variable index:bookmark BookmarkIndex
 		variable index:bookmark BookmarkIndex2
 		variable iterator		BookmarkIterator2

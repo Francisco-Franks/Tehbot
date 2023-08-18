@@ -200,7 +200,7 @@ objectdef obj_Module inherits obj_StateQueue
 			if ${targetID} != TARGET_NA
 			{
 				optimalAmmo:Set[${This._pickOptimalAmmo[${targetID}]}]
-				if ${optimalAmmo.NotNULLOrEmpty} && !${This.Charge.Type.Equal[${optimalAmmo}]} && (${LavishScript.RunningTime} > ${LastAmmoChange}) || (${Ship.ModuleList_Lasers.Count} > 0)
+				if ${optimalAmmo.NotNULLOrEmpty} && !${This.Charge.Type.Equal[${optimalAmmo}]} && ((${LavishScript.RunningTime} > ${LastAmmoChange}) || (${Ship.ModuleList_Lasers.Count} > 0))
 				{
 					This:LogDebug["${This.Name} optimalAmmo is ${optimalAmmo} for ${Entity[${targetID}].Name} distance ${Entity[${targetID}].Distance}"]
 					This:LogDebug["Deactivating ${This.Name} to change ammo to ${optimalAmmo}."]
@@ -226,7 +226,7 @@ objectdef obj_Module inherits obj_StateQueue
 			_lastDeactivationTimestamp:Set[0]
 
 			optimalAmmo:Set[${This._pickOptimalAmmo[${targetID}]}]
-			if ${optimalAmmo.NotNULLOrEmpty} && !${optimalAmmo.Equal[${This.Charge.Type}]} && (${LavishScript.RunningTime} > ${LastAmmoChange}) || (${Ship.ModuleList_Lasers.Count} > 0)
+			if ${optimalAmmo.NotNULLOrEmpty} && !${optimalAmmo.Equal[${This.Charge.Type}]} && ((${LavishScript.RunningTime} > ${LastAmmoChange}) || (${Ship.ModuleList_Lasers.Count} > 0))
 			{
 				This:_findAndChangeAmmo[${optimalAmmo}]
 				LastAmmoChange:Set[${Math.Calc[${LavishScript.RunningTime} + 30000]}]

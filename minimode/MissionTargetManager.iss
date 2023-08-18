@@ -720,7 +720,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				if ${GetMTMInfo.NumRows} > 0
 				{
 					; If we have lasers, OR our weapons are NOT CURRENTLY ACTIVE OR we HAVE been shooting this target for at least 30 seconds, an ammo change is authorized.
-					if ((${Ship.ModuleList_Lasers.Count} > 0) || (${Ship.${WeaponSwitch}.ActiveCount} == 0) || ((${CurrentOffenseTarget} == ${AmmoSwapInhibitEntity})  && (${LavishScript.RunningTime} > ${AmmoSwapInhibitTimer}))) && !${Ship.${WeaponSwitch}.IsReloadingAmmo}
+					if ((${Ship.ModuleList_Lasers.Count} > 0) || (${Ship.${WeaponSwitch}.ActiveCount} == 0) || ((${CurrentOffenseTarget} == ${AmmoSwapInhibitEntity})  && (${LavishScript.RunningTime} > ${AmmoSwapInhibitTimer})))
 					{
 						AmmoSwapInhibitTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 30000]}]
 						AmmoSwapInhibitEntity:Set[${CurrentOffenseTarget}]
@@ -763,7 +763,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			if ${GetMTMInfo.NumRows} > 0
 			{
 				; If we have lasers, OR our weapons are NOT CURRENTLY ACTIVE OR we HAVE been shooting this target for at least 30 seconds, an ammo change is authorized.
-				if ((${Ship.ModuleList_Lasers.Count} > 0) || (${Ship.${WeaponSwitch}.ActiveCount} == 0) || ((${CurrentOffenseTarget} == ${AmmoSwapInhibitEntity}) && (${LavishScript.RunningTime} > ${AmmoSwapInhibitTimer}))) && !${Ship.${WeaponSwitch}.IsReloadingAmmo}
+				if ((${Ship.ModuleList_Lasers.Count} > 0) || (${Ship.${WeaponSwitch}.ActiveCount} == 0) || ((${CurrentOffenseTarget} == ${AmmoSwapInhibitEntity}) && (${LavishScript.RunningTime} > ${AmmoSwapInhibitTimer})))
 				{
 					AmmoSwapInhibitTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 30000]}]
 					AmmoSwapInhibitEntity:Set[${CurrentOffenseTarget}]
