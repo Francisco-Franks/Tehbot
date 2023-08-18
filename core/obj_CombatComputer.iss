@@ -49,6 +49,9 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		CombatData:ExecDML["PRAGMA journal_mode=WAL;"]
 		CombatData:ExecDML["PRAGMA main.mmap_size=64000000"]
 		CombatData:ExecDML["PRAGMA main.cache_size=-64000;"]
+		CombatData:ExecDML["PRAGMA synchronous = normal;"]
+		CombatData:ExecDML["PRAGMA temp_store = memory;"]	
+		
 		if !${CombatData.TableExists["CurrentData"]}
 		{
 			echo DEBUG - CombatComputer - Creating CurrentData Table

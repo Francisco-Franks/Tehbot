@@ -65,6 +65,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	
 	; Going to need this for constructing our Query.
 	variable string DBQueryString
+	
+	; Need a timer
+	variable int64 AmmoSwapInhibitTimer
 
 	method Initialize()
 	{
@@ -712,8 +715,13 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE EntityID=${CurrentOffenseTarget};"]}]
 				if ${GetMTMInfo.NumRows} > 0
 				{
+					; If we have lasers, OR our weapons are NOT CURRENTLY ACTIVE OR we HAVE been shooting this target for at least 30 seconds, an ammo change is authorized.
+					if (${Ship.ModuleList_Lasers.Count} > 0) || (${Ship.ModuleList_Weapon.ActiveCount} == 0) || ((${Ship.ModuleList_Weapon.ActiveCount} > 0) && (${LavishScript.RunningTime} > ${AmmoSwapInhibitTimer}))
+					{
+						AmmoSwapInhibitTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 30000]}]
 						AmmoOverride:Set[${GetMTMInfo.GetFieldValue["OurNeededAmmo"]}]
 						This:LogInfo["Setting AmmoOverride to ${AmmoOverride} for ${Entity[${CurrentOffenseTarget}].Name}"]
+					}
 				}
 				GetMTMInfo:Finalize
 				GetATInfo:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM AmmoTable WHERE EntityID=${CurrentOffenseTarget} AND AmmoTypeID=${NPCData.TypeIDByName[${AmmoOverride}]};"]}]
