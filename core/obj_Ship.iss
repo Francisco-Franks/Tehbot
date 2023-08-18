@@ -45,9 +45,11 @@ objectdef obj_Ship inherits obj_StateQueue
 		This:AddModuleList[ArmorProjectors, "ToItem.GroupID = GROUP_ARMOR_PROJECTOR || ToItem.GroupID = GROUP_MUTADAPTIVE_PROJECTOR"]
 		This:AddModuleList[ShieldTransporters, "ToItem.GroupID = GROUP_SHIELD_TRANSPORTER"]
 		This:AddModuleList[MiningLaser, "ToItem.GroupID = GROUP_MININGLASER || ToItem.GroupID = GROUP_STRIPMINER || ToItem.GroupID = GROUP_FREQUENCYMININGLASER || ToItem.GroupID = GROUP_GASCLOUDHARVESTER	 || ToItem.GroupID = GROUP_GASCLOUDSCOOP || (ToItem.GroupID = GROUP_MININGLASER || ToItem.GroupID = GROUP_STRIPMINER) && Name =- Ice""]
-		This:AddModuleList[Weapon, "ToItem.GroupID = GROUP_VORTONWEAPON || ToItem.GroupID = GROUP_PRECURSORWEAPON || ToItem.GroupID = GROUP_ENERGYWEAPON || ToItem.GroupID = GROUP_PROJECTILEWEAPON || ToItem.GroupID = GROUP_HYBRIDWEAPON || ToItem.GroupID = GROUP_MISSILELAUNCHERRAPIDHEAVY || ToItem.GroupID = GROUP_MISSILELAUNCHER || ToItem.GroupID = GROUP_MISSILELAUNCHERASSAULT || ToItem.GroupID = GROUP_MISSILELAUNCHERBOMB || ToItem.GroupID = GROUP_MISSILELAUNCHERCITADEL || ToItem.GroupID = GROUP_MISSILELAUNCHERCRUISE || ToItem.GroupID = GROUP_MISSILELAUNCHERDEFENDER || ToItem.GroupID = GROUP_MISSILELAUNCHERHEAVY || ToItem.GroupID = GROUP_MISSILELAUNCHERHEAVYASSAULT || ToItem.GroupID = GROUP_MISSILELAUNCHERROCKET || ToItem.GroupID = GROUP_MISSILELAUNCHERTORPEDO || ToItem.GroupID = GROUP_MISSILELAUNCHERSTANDARD"]
-		This:AddModuleList[Turret, "ToItem.GroupID = GROUP_PRECURSORWEAPON || ToItem.GroupID = GROUP_ENERGYWEAPON || ToItem.GroupID = GROUP_PROJECTILEWEAPON || ToItem.GroupID = GROUP_HYBRIDWEAPON"]
+		;This:AddModuleList[Weapon, "ToItem.GroupID = GROUP_VORTONWEAPON || ToItem.GroupID = GROUP_PRECURSORWEAPON || ToItem.GroupID = GROUP_ENERGYWEAPON || ToItem.GroupID = GROUP_PROJECTILEWEAPON || ToItem.GroupID = GROUP_HYBRIDWEAPON || ToItem.GroupID = GROUP_MISSILELAUNCHERRAPIDHEAVY || ToItem.GroupID = GROUP_MISSILELAUNCHER || ToItem.GroupID = GROUP_MISSILELAUNCHERASSAULT || ToItem.GroupID = GROUP_MISSILELAUNCHERBOMB || ToItem.GroupID = GROUP_MISSILELAUNCHERCITADEL || ToItem.GroupID = GROUP_MISSILELAUNCHERCRUISE || ToItem.GroupID = GROUP_MISSILELAUNCHERDEFENDER || ToItem.GroupID = GROUP_MISSILELAUNCHERHEAVY || ToItem.GroupID = GROUP_MISSILELAUNCHERHEAVYASSAULT || ToItem.GroupID = GROUP_MISSILELAUNCHERROCKET || ToItem.GroupID = GROUP_MISSILELAUNCHERTORPEDO || ToItem.GroupID = GROUP_MISSILELAUNCHERSTANDARD"]
+		;This:AddModuleList[Turret, "ToItem.GroupID = GROUP_PRECURSORWEAPON || ToItem.GroupID = GROUP_ENERGYWEAPON || ToItem.GroupID = GROUP_PROJECTILEWEAPON || ToItem.GroupID = GROUP_HYBRIDWEAPON"]
 		This:AddModuleList[Lasers, "ToItem.GroupID = GROUP_ENERGYWEAPON"]
+		This:AddModuleList[Projectiles, "ToItem.GroupID = GROUP_PROJECTILEWEAPON"]
+		This:AddModuleList[Hybrids, "ToItem.GroupID = GROUP_HYBRIDWEAPON "]
 		This:AddModuleList[VortonWeapon, "ToItem.GroupID = GROUP_VORTONWEAPON"]
 		This:AddModuleList[Disintegrator, "ToItem.GroupID = GROUP_PRECURSORWEAPON"]
 		This:AddModuleList[MissileLauncher, "ToItem.GroupID = GROUP_MISSILELAUNCHERRAPIDHEAVY || ToItem.GroupID = GROUP_MISSILELAUNCHER || ToItem.GroupID = GROUP_MISSILELAUNCHERASSAULT || ToItem.GroupID = GROUP_MISSILELAUNCHERBOMB || ToItem.GroupID = GROUP_MISSILELAUNCHERCITADEL || ToItem.GroupID = GROUP_MISSILELAUNCHERCRUISE || ToItem.GroupID = GROUP_MISSILELAUNCHERDEFENDER || ToItem.GroupID = GROUP_MISSILELAUNCHERHEAVY || ToItem.GroupID = GROUP_MISSILELAUNCHERHEAVYASSAULT || ToItem.GroupID = GROUP_MISSILELAUNCHERROCKET || ToItem.GroupID = GROUP_MISSILELAUNCHERTORPEDO || ToItem.GroupID = GROUP_MISSILELAUNCHERSTANDARD"]
@@ -411,5 +413,29 @@ objectdef obj_Ship inherits obj_StateQueue
 			return TRUE
 		}
 		return FALSE
+	}
+	
+	member:string JustReturnMyLoadedCharges()
+	{
+		if ${Ship.ModuleList_MissileLauncher.Count} > 0
+			return "${Ship.ModuleList_MissileLauncher.ChargeType}"
+		if ${Ship.ModuleList_Lasers.Count} > 0
+			return "${Ship.ModuleList_Lasers.ChargeType}"
+		if ${Ship.ModuleList_Hybrids.Count} > 0
+			return "${Ship.ModuleList_Hybrids.ChargeType}"
+		if ${Ship.ModuleList_Projectiles.Count} > 0
+			return "${Ship.ModuleList_Projectiles.ChargeType}"	
+	}
+	
+	member:string WeaponSwitch()
+	{
+		if ${Ship.ModuleList_MissileLauncher.Count} > 0
+			return "ModuleList_MissileLauncher"
+		if ${Ship.ModuleList_Lasers.Count} > 0
+			return "ModuleList_Lasers"
+		if ${Ship.ModuleList_Hybrids.Count} > 0
+			return "$ModuleList_Hybrids"
+		if ${Ship.ModuleList_Projectiles.Count} > 0
+			return "ModuleList_Projectiles"		
 	}
 }

@@ -75,11 +75,12 @@ objectdef obj_Ship2
 	; This method will be responsible for the whole ammo info dump thing.
 	method GetAmmoInformation()
 	{
+		WeaponSwitch:Set[${Ship.WeaponSwitch}]
 		; This can only be done correctly in a ship, in space.
 		if !${Client.InSpace}
 			return FALSE
 		; No pacifists plz
-		if ${Ship.ModuleList_Weapon.Count} <= 0
+		if ${Ship.${WeaponSwitch}.Count} <= 0
 			return FALSE
 		This:SetMinimumAmmoAmount
 		; Turrets. We want the four damage types/amounts, tracking, optimal, and falloff with the ammo. I think thats all.
@@ -186,27 +187,30 @@ objectdef obj_Ship2
 		if ${Ship.ModuleList_MissileLauncher.Count} > 0
 			CombatComputer.MinAmmoAmount:Set[301]
 
-		if ${Ship.ModuleList_Turret.Count} > 0
+		if ${Ship.ModuleList_Projectiles.Count} > 0 || ${Ship.ModuleList_Hybrids.Count} > 0
 			CombatComputer.MinAmmoAmount:Set[301]
 		; Energy Weapons specifically, 4 or more crystals.
-		if ${Ship.ModuleList_Turret.GroupID} == 53
+		if ${Ship.ModuleList_Lasers.Count} > 0
 			CombatComputer.MinAmmoAmount:Set[4]	
+
+			
 	}
 	; This method will set the Reload Time for our weapon.
 	method GetReloadTime()
 	{
-		CombatComputer.ChangeTime:Set[${NPCData.PlayerReloadTime[${Ship.ModuleList_Weapon.TypeID}]}]
-		echo DEBUG - Ship 2 - Change Ammo Time ${NPCData.PlayerReloadTime[${Ship.ModuleList_Weapon.TypeID}]}
+		CombatComputer.ChangeTime:Set[${NPCData.PlayerReloadTime[${Ship.${WeaponSwitch}.TypeID}]}]
+		echo DEBUG - Ship 2 - Change Ammo Time ${NPCData.PlayerReloadTime[${Ship.${WeaponSwitch}.TypeID}]}
 	}
 	; This method will clean up the Ammo Table.
 	method CleanupAmmoTable()
 	{
+		WeaponSwitch:Set[${Ship.WeaponSwitch}]
 		GetShipInfo:Set[${MyShipInfo.ExecQuery["Select * FROM ShipAmmunitionMissile;"]}]
 		if ${GetShipInfo.NumRows} > 0
 		{
 			do
 			{
-				if ${MyShip.Cargo[${GetShipInfo.GetFieldValue["AmmoType"]}].Quantity} == 0 && !(${Ship.ModuleList_Weapon.ChargeType.Equal[${GetShipInfo.GetFieldValue["AmmoType"]}]} && ${Ship.ModuleList_Weapon.ChargeQuantity} > 0)
+				if ${MyShip.Cargo[${GetShipInfo.GetFieldValue["AmmoType"]}].Quantity} == 0 && !(${Ship.${WeaponSwitch}.ChargeType.Equal[${GetShipInfo.GetFieldValue["AmmoType"]}]} && ${Ship.${WeaponSwitch}.ChargeQuantity} > 0)
 				{
 					MyShipInfo:ExecDML["DELETE From ShipAmmunitionMissile WHERE AmmoType='${GetShipInfo.GetFieldValue["AmmoType"]}';"]
 				}
@@ -225,7 +229,7 @@ objectdef obj_Ship2
 		{
 			do
 			{
-				if ${MyShip.Cargo[${GetShipInfo.GetFieldValue["AmmoType"]}].Quantity} == 0 && !(${Ship.ModuleList_Weapon.ChargeType.Equal[${GetShipInfo.GetFieldValue["AmmoType"]}]} && ${Ship.ModuleList_Weapon.ChargeQuantity} > 0)
+				if ${MyShip.Cargo[${GetShipInfo.GetFieldValue["AmmoType"]}].Quantity} == 0 && !(${Ship.${WeaponSwitch}.ChargeType.Equal[${GetShipInfo.GetFieldValue["AmmoType"]}]} && ${Ship.${WeaponSwitch}.ChargeQuantity} > 0)
 				{
 					MyShipInfo:ExecDML["DELETE From ShipAmmunitionTurret WHERE AmmoType='${GetShipInfo.GetFieldValue["AmmoType"]}';"]
 				}

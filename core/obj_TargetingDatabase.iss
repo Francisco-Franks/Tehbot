@@ -283,7 +283,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 				;;; ADDENDUM - Need two versions for this, one for lasers one for not.
 				if ${Entity[${GetOtherTableInfo.GetFieldValue["EntityID"]}].IsLockedTarget} && (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${Ship.ModuleList_Lasers.Count} == 0
 				{
-					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
+					GetMoreTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND PreferredAmmo='${Ship.JustReturnMyLoadedCharges}' AND Priority>${GetOtherTableInfo.GetFieldValue["Priority", int]};"]}]
 					if ${GetMoreTableInfo.NumRows} > 0
 					{
 						; We have bigger fish to fry, apparently. But do we need to actually free up a lock for this?
@@ -361,7 +361,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 		;;; Addendum, still the same but now we need 2, one for laser ships and everything that isnt a WeaponTargets table, and then one for WeaponTargets table without lasers.
 		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${Ship.ModuleList_Lasers.Count} == 0
 		{
-			GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND PreferredAmmo='${Ship.ModuleList_Weapon.ChargeType}' ORDER BY Priority DESC;"]}]
+			GetOtherTableInfo:Set[${TargetingDatabase.ExecQuery["SELECT * FROM ${TableName} WHERE LockStatus='Unlocked' AND PreferredAmmo='${Ship.JustReturnMyLoadedCharges}' ORDER BY Priority DESC;"]}]
 			echo DEBUG DEBUG DEBUUUUG NON LASER TRIGGER 1
 		}
 		else
@@ -406,7 +406,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 			GetOtherTableInfo:Finalize
 		}
 		echo DEBUG DEBUG DEBUUUUG JUST BEFORE NONLASER (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${Ship.ModuleList_Lasers.Count} == 0 && (${LockedHowMany} <= ${This.TableReservedLocks[${TableName}]})
-		echo DEBUG DEBUG DEBUUUUUG Type ${Ship.ModuleList_Turret.Type} Name ${Ship.ModuleList_Turret.Name} ${Ship.ModuleList_Turret} ${Ship.ModuleList_Turret.Group} CHARGE TYPE ${Ship.ModuleList_Weapon.ChargeType} ${Ship.ModuleList_Turret.ChargeType}
+		echo DEBUG DEBUG DEBUUUUUG Type ${Ship.ModuleList_Turret.Type} Name ${Ship.ModuleList_Turret.Name} ${Ship.ModuleList_Turret} ${Ship.ModuleList_Turret.Group} CHARGE TYPE ${Ship.JustReturnMyLoadedCharges} ${Ship.ModuleList_Turret.ChargeType}
 		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${Ship.ModuleList_Lasers.Count} == 0 && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
 		{
 			GetOtherTableInfo:Finalize

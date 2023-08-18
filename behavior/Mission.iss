@@ -3258,7 +3258,14 @@ objectdef obj_Mission inherits obj_StateQueue
 					secondaryAmmo:Set[""]
 				break
 		}
-		Ship.ModuleList_Weapon:ConfigureAmmo[${ammo}, ${secondaryAmmo}]	
+		if ${Ship.ModuleList_MissileLauncher.Count} > 0
+			Ship.ModuleList_MissileLauncher:ConfigureAmmo[${ammo}, ${secondaryAmmo}]
+		if ${Ship.ModuleList_Lasers.Count} > 0
+			Ship.ModuleList_Lasers:ConfigureAmmo[${ammo}, ${secondaryAmmo}]
+		if ${Ship.ModuleList_Hybrids.Count} > 0
+			Ship.ModuleList_Hybrids:ConfigureAmmo[${ammo}, ${secondaryAmmo}]
+		if ${Ship.ModuleList_Projectiles.Count} > 0
+			Ship.ModuleList_Projectiles:ConfigureAmmo[${ammo}, ${secondaryAmmo}]			
 	}
 	; This method will be for a Mid-Run Information Recovery. Client crashed / you disconnected / etc. This will be called to set the CurrentRun and CurrentAgent variables from values stored in the DBs
 	method MidRunRecovery(string Case)
