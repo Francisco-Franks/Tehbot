@@ -830,13 +830,13 @@ objectdef obj_Module inherits obj_StateQueue
 
 	member:string _pickOptimalScriptTrackingComputerScript(int64 targetID)
 	{
-		if ${targetID.Equal[TARGET_NA]} || !${This._isTargetValid[${targetID}]} || !(${Ship.ModuleList_Turret.Count} > 0)
+		if ${targetID.Equal[TARGET_NA]} || !${This._isTargetValid[${targetID}]} || !(${Ship.${WeaponSwitch}.Count} > 0)
 		{
 			InstructionTargetID:Set[TARGET_NA]
 			return ""
 		}
 
-		if ${Entity[${targetID}].Distance} > ${Ship.ModuleList_Turret.OptimalRange}
+		if ${Entity[${targetID}].Distance} > ${Ship.${WeaponSwitch}.OptimalRange}
 		{
 			; echo need range
 			if !${This.Charge.Type(exists)} || ${This.Charge.Type.Equal["Tracking Speed Script"]}
@@ -852,7 +852,7 @@ objectdef obj_Module inherits obj_StateQueue
 				; }
 			}
 		}
-		elseif ${Ship.ModuleList_Turret.TurretTrackingDecayFactor[${targetID}]} > 0.2 /*roughly 93.3% hit chance*/
+		elseif ${Ship.${WeaponSwitch}.TurretTrackingDecayFactor[${targetID}]} > 0.2 /*roughly 93.3% hit chance*/
 		{
 			; echo need tracking
 			if !${This.Charge.Type(exists)} || ${This.Charge.Type.Equal["Optimal Range Script"]}

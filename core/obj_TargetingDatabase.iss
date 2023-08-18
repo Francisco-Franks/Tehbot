@@ -406,7 +406,7 @@ objectdef obj_TargetingDatabase inherits obj_StateQueue
 			GetOtherTableInfo:Finalize
 		}
 		echo DEBUG DEBUG DEBUUUUG JUST BEFORE NONLASER (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${Ship.ModuleList_Lasers.Count} == 0 && (${LockedHowMany} <= ${This.TableReservedLocks[${TableName}]})
-		echo DEBUG DEBUG DEBUUUUUG Type ${Ship.ModuleList_Turret.Type} Name ${Ship.ModuleList_Turret.Name} ${Ship.ModuleList_Turret} ${Ship.ModuleList_Turret.Group} CHARGE TYPE ${Ship.JustReturnMyLoadedCharges} ${Ship.ModuleList_Turret.ChargeType}
+		echo DEBUG DEBUG DEBUUUUUG Type ${Ship.${WeaponSwitch}.Type} Name ${Ship.${WeaponSwitch}.Name} ${Ship.${WeaponSwitch}} ${Ship.${WeaponSwitch}.Group} CHARGE TYPE ${Ship.JustReturnMyLoadedCharges} ${Ship.${WeaponSwitch}.ChargeType}
 		if (${TableName.Equal[MissionTarget]} || ${TableName.Equal[WeaponTargets]}) && ${Ship.ModuleList_Lasers.Count} == 0 && (${LockedHowMany} <= ${Math.Calc[${This.TableReservedLocks[${TableName}]}-${This.TableOwnedLocks[${TableName}]}]})
 		{
 			GetOtherTableInfo:Finalize

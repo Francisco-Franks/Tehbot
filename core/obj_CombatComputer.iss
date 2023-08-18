@@ -376,7 +376,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 				FinalValue:Concat["Painter"]
 			if ${NPCData.EnemyUsesGuidanceDisruption[${This.NPCTypeID[${EntityID}]}]} && ${Ship.ModuleList_MissileLauncher.Count} > 0
 				FinalValue:Concat["Guidance"]
-			if ${NPCData.EnemyUsesTrackingDisruption[${This.NPCTypeID[${EntityID}]}]} && ${Ship.ModuleList_Turret.Count} > 0
+			if ${NPCData.EnemyUsesTrackingDisruption[${This.NPCTypeID[${EntityID}]}]} && ${Ship.${WeaponSwitch}.Count} > 0 && ${Ship.ModuleList_MissileLauncher.Count} > 0
 				FinalValue:Concat["Tracking"]
 			if ${NPCData.EnemySensorDampRange[${This.NPCTypeID[${EntityID}]}]} > 0
 				FinalValue:Concat["Damp"]
@@ -772,14 +772,14 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		; Are we using missiles? If yes this returns a 0.
 		; Are you a maniac using a drone boat or something like some kind of a fucking monster? It also returns a 0.
 		
-		if ${Ship.ModuleList_Turret.Count} == 0
+		if ${Ship.${WeaponSwitch}.Count} == 0
 			return 0
 		
 		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Tracking%' AND EntityID=${EntityID};"]}]
 		if ${GetCurrentData.NumRows} > 0
 		{
 			; Going to just consider the distance of the tracking disruptor user itself for now. This isn't going to work quite right at the moment.
-			if ${Entity[${EntityID}].Distance} > ${Math.Calc[${Ship.ModuleList_Turret.Range} * 0.75]}
+			if ${Entity[${EntityID}].Distance} > ${Math.Calc[${Ship.${WeaponSwitch}.Range} * 0.75]}
 				FinalValue:Inc[2500]
 			else
 				FinalValue:Inc[2000]
@@ -866,7 +866,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		; If an enemy can be hit (adquately) at any range then this number is 0.
 		; ADDENDUM - Too complicated, we are just going to throw some numbers at the wall and see what sticks.
 		
-		if ${Ship.ModuleList_MissileLauncher.Count} > 0 || (${Ship.ModuleList_MissileLauncher.Count} == 0 && ${Ship.ModuleList_Turret.Count} == 0)
+		if ${Ship.ModuleList_MissileLauncher.Count} > 0 || (${Ship.ModuleList_MissileLauncher.Count} == 0 && ${Ship.${WeaponSwitch}.Count} == 0)
 			return  0
 		if ${Entity[${EntityID}].Group.Find["Frigate"]}
 		{
@@ -954,7 +954,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		; Need these for both the Shots to Kill return and the Time to Kill return. This is seconds between shots.
 		variable float64 TimeBetweenShots
 		echo EXPECTEDSHOTDMG ${EntityID} ${AmmoID} ${ReqInfo}
-		if ${Ship.ModuleList_Turret.Count} > 0
+		if ${Ship.${WeaponSwitch}.Count} > 0
 		{
 			echo EXPECTEDSHOTDMG NOT MISSL
 			GetShipInfo:Set[${Ship2.MyShipInfo.ExecQuery["Select * FROM ShipAmmunitionTurret WHERE AmmoTypeID=${AmmoID};"]}]
