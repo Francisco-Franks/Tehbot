@@ -434,7 +434,7 @@ objectdef obj_Ship inherits obj_StateQueue
 		if ${Ship.ModuleList_Lasers.Count} > 0
 			return "ModuleList_Lasers"
 		if ${Ship.ModuleList_Hybrids.Count} > 0
-			return "$ModuleList_Hybrids"
+			return "ModuleList_Hybrids"
 		if ${Ship.ModuleList_Projectiles.Count} > 0
 			return "ModuleList_Projectiles"		
 	}

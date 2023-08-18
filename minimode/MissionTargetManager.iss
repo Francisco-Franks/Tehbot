@@ -131,6 +131,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		; If we aren't in space we aren't targeting.
 		if !${Client.InSpace}
 			return FALSE
+		WeaponSwitch:Set[${Ship.WeaponSwitch}]
 		; Since this targetmanager is expected SPECIFICALLY for missions, if we aren't in mission mode, return false.
 		if !${CommonConfig.Tehbot_Mode.Equal["Mission"]}
 			return FALSE
