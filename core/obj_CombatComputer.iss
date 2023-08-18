@@ -821,7 +821,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		; That last one is going to be kinda hard to rectify, tbh. Maybe we will leave that off for now. 
 		
 		; We are using missiles, or projectiles (no cap use), and no active reps. If you are using a remote repping rattlesnake or something you can go to hell.
-		if (${Ship.ModuleList_MissileLauncher.Count} > 0 || ${Ship.ModuleList_Weapon.GroupID} == GROUP_PROJECTILEWEAPON) && ( ${Ship.ModuleList_Regen_Armor.Count} == 0 && ${Ship.ModuleList_Regen_Shield.Count} == 0)
+		if (${Ship.ModuleList_MissileLauncher.Count} > 0 || ${Ship.ModuleList_Projectiles.Count} > 0 && ( ${Ship.ModuleList_Regen_Armor.Count} == 0 && ${Ship.ModuleList_Regen_Shield.Count} == 0)
 			return 0
 		
 		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE NeutRng>0 AND EntityID=${EntityID};"]}]

@@ -85,9 +85,9 @@ objectdef obj_Ship2
 		This:SetMinimumAmmoAmount
 		; Turrets. We want the four damage types/amounts, tracking, optimal, and falloff with the ammo. I think thats all.
 		; Ammo Type ID (Integer Primary Key), Ammo Type (String), Ship's Item Type (String), Turret Item Type (String), Turret Tracking (Real), Turret Optimal (Real), Turret Falloff (Real), EM Damage (Real), Explosive Damage (Real), Kinetic Damage (Real), Thermal Damage (Real).
-		if ${Ship.ModuleList_Turret.Count} > 0
+		if ${Ship.${WeaponSwitch}.Count} > 0 && ${Ship.ModuleList_MissileLauncher.Count} == 0
 		{
-			MyShip.Module[${Ship.ModuleList_Turret.ID}]:GetAvailableAmmo[AvailableAmmoIndex]
+			MyShip.Module[${Ship.${WeaponSwitch}.ID}]:GetAvailableAmmo[AvailableAmmoIndex]
 			if ${AvailableAmmoIndex.Size} > 0
 			AvailableAmmoIndex:GetIterator[AvailableAmmoIterator]
 			if ${AvailableAmmoIterator:First(exists)}
@@ -96,35 +96,35 @@ objectdef obj_Ship2
 				{
 					if ${AvailableAmmoIterator.Value.Quantity} < ${CombatComputer.MinAmmoAmount}
 						continue
-					EMDamage:Set[${Math.Calc[${NPCData.PlayerAmmoEM[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
-					ExpDamage:Set[${Math.Calc[${NPCData.PlayerAmmoExp[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
-					KinDamage:Set[${Math.Calc[${NPCData.PlayerAmmoKin[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
-					ThermDamage:Set[${Math.Calc[${NPCData.PlayerAmmoTherm[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
-					TrackingSpd:Set[${Math.Calc[${NPCData.PlayerTrackingMult[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.ModuleList_Turret.TrackingSpeed}]}]
-					OptimalRng:Set[${Math.Calc[${NPCData.PlayerRangeMult[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.ModuleList_Turret.OptimalRange}]}]
-					FalloffRng:Set[${Math.Calc[${NPCData.PlayerRangeMult[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.ModuleList_Turret.AccuracyFalloff}]}]
+					EMDamage:Set[${Math.Calc[${NPCData.PlayerAmmoEM[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.${WeaponSwitch}.DamageModifier}]}]
+					ExpDamage:Set[${Math.Calc[${NPCData.PlayerAmmoExp[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.${WeaponSwitch}.DamageModifier}]}]
+					KinDamage:Set[${Math.Calc[${NPCData.PlayerAmmoKin[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.${WeaponSwitch}.DamageModifier}]}]
+					ThermDamage:Set[${Math.Calc[${NPCData.PlayerAmmoTherm[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.${WeaponSwitch}.DamageModifier}]}]
+					TrackingSpd:Set[${Math.Calc[${NPCData.PlayerTrackingMult[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.${WeaponSwitch}.TrackingSpeed}]}]
+					OptimalRng:Set[${Math.Calc[${NPCData.PlayerRangeMult[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.${WeaponSwitch}.OptimalRange}]}]
+					FalloffRng:Set[${Math.Calc[${NPCData.PlayerRangeMult[${AvailableAmmoIterator.Value.TypeID}]}*${Ship.${WeaponSwitch}.AccuracyFalloff}]}]
 				
 					echo ${EMDamage} ${ExpDamage} ${KinDamage} ${ThermDamage} ${TrackingSpd} ${OptimalRng} ${FalloffRng}
-					DBInsertIndex:Insert["insert into ShipAmmunitionTurret (AmmoTypeID, AmmoType, ShipType, TurretType, EMDamage, ExpDamage, KinDamage, ThermDamage, TrackingSpd, OptimalRng, FalloffRng) values (${AvailableAmmoIterator.Value.TypeID}, '${AvailableAmmoIterator.Value.Type.ReplaceSubstring[','']}', '${MyShip.ToEntity.Type.ReplaceSubstring[','']}', '${Ship.ModuleList_Turret.Type.ReplaceSubstring[','']}', ${EMDamage}, ${ExpDamage}, ${KinDamage}, ${ThermDamage}, ${TrackingSpd}, ${OptimalRng}, ${FalloffRng}) ON CONFLICT (AmmoTypeID) DO UPDATE SET ShipType=excluded.ShipType, TurretType=excluded.TurretType, EMDamage=excluded.EMDamage, ExpDamage=excluded.ExpDamage, KinDamage=excluded.KinDamage, ThermDamage=excluded.ThermDamage, TrackingSpd=excluded.TrackingSpd, OptimalRng=excluded.OptimalRng, FalloffRng=excluded.FalloffRng;"]
+					DBInsertIndex:Insert["insert into ShipAmmunitionTurret (AmmoTypeID, AmmoType, ShipType, TurretType, EMDamage, ExpDamage, KinDamage, ThermDamage, TrackingSpd, OptimalRng, FalloffRng) values (${AvailableAmmoIterator.Value.TypeID}, '${AvailableAmmoIterator.Value.Type.ReplaceSubstring[','']}', '${MyShip.ToEntity.Type.ReplaceSubstring[','']}', '${Ship.${WeaponSwitch}.Type.ReplaceSubstring[','']}', ${EMDamage}, ${ExpDamage}, ${KinDamage}, ${ThermDamage}, ${TrackingSpd}, ${OptimalRng}, ${FalloffRng}) ON CONFLICT (AmmoTypeID) DO UPDATE SET ShipType=excluded.ShipType, TurretType=excluded.TurretType, EMDamage=excluded.EMDamage, ExpDamage=excluded.ExpDamage, KinDamage=excluded.KinDamage, ThermDamage=excluded.ThermDamage, TrackingSpd=excluded.TrackingSpd, OptimalRng=excluded.OptimalRng, FalloffRng=excluded.FalloffRng;"]
 					CombatComputer.AmmoCollection:Set[${AvailableAmmoIterator.Value.Name},${AvailableAmmoIterator.Value.TypeID}]
 				}
 				while ${AvailableAmmoIterator:Next(exists)}
 			}
-			if ${Ship.ModuleList_Turret.Charge.Type.NotNULLOrEmpty}
+			if ${Ship.${WeaponSwitch}.Charge.Type.NotNULLOrEmpty}
 			{
-				if ${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Type}](exists)}
+				if ${MyShip.Cargo[${Ship.${WeaponSwitch}.Charge.Type}](exists)}
 				{
-					EMDamage:Set[${Math.Calc[${NPCData.PlayerAmmoEM[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Type}].TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
-					ExpDamage:Set[${Math.Calc[${NPCData.PlayerAmmoExp[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Type}].TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
-					KinDamage:Set[${Math.Calc[${NPCData.PlayerAmmoKin[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Type}].TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
-					ThermDamage:Set[${Math.Calc[${NPCData.PlayerAmmoTherm[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Type}].TypeID}]}*${Ship.ModuleList_Turret.DamageModifier}]}]
-					TrackingSpd:Set[${Math.Calc[${NPCData.PlayerTrackingMult[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Type}].TypeID}]}*${Ship.ModuleList_Turret.TrackingSpeed}]}]
-					OptimalRng:Set[${Math.Calc[${NPCData.PlayerRangeMult[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Type}].TypeID}]}*${Ship.ModuleList_Turret.OptimalRange}]}]
-					FalloffRng:Set[${Math.Calc[${NPCData.PlayerRangeMult[${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Type}].TypeID}]}*${Ship.ModuleList_Turret.AccuracyFalloff}]}]
+					EMDamage:Set[${Math.Calc[${NPCData.PlayerAmmoEM[${MyShip.Cargo[${Ship.${WeaponSwitch}.Charge.Type}].TypeID}]}*${Ship.${WeaponSwitch}.DamageModifier}]}]
+					ExpDamage:Set[${Math.Calc[${NPCData.PlayerAmmoExp[${MyShip.Cargo[${Ship.${WeaponSwitch}.Charge.Type}].TypeID}]}*${Ship.${WeaponSwitch}.DamageModifier}]}]
+					KinDamage:Set[${Math.Calc[${NPCData.PlayerAmmoKin[${MyShip.Cargo[${Ship.${WeaponSwitch}.Charge.Type}].TypeID}]}*${Ship.${WeaponSwitch}.DamageModifier}]}]
+					ThermDamage:Set[${Math.Calc[${NPCData.PlayerAmmoTherm[${MyShip.Cargo[${Ship.${WeaponSwitch}.Charge.Type}].TypeID}]}*${Ship.${WeaponSwitch}.DamageModifier}]}]
+					TrackingSpd:Set[${Math.Calc[${NPCData.PlayerTrackingMult[${MyShip.Cargo[${Ship.${WeaponSwitch}.Charge.Type}].TypeID}]}*${Ship.${WeaponSwitch}.TrackingSpeed}]}]
+					OptimalRng:Set[${Math.Calc[${NPCData.PlayerRangeMult[${MyShip.Cargo[${Ship.${WeaponSwitch}.Charge.Type}].TypeID}]}*${Ship.${WeaponSwitch}.OptimalRange}]}]
+					FalloffRng:Set[${Math.Calc[${NPCData.PlayerRangeMult[${MyShip.Cargo[${Ship.${WeaponSwitch}.Charge.Type}].TypeID}]}*${Ship.${WeaponSwitch}.AccuracyFalloff}]}]
 				
 					echo ${EMDamage} ${ExpDamage} ${KinDamage} ${ThermDamage} ${TrackingSpd} ${OptimalRng} ${FalloffRng}
-					DBInsertIndex:Insert["insert into ShipAmmunitionTurret (AmmoTypeID, AmmoType, ShipType, TurretType, EMDamage, ExpDamage, KinDamage, ThermDamage, TrackingSpd, OptimalRng, FalloffRng) values (${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Type}].TypeID}, '${AvailableAmmoIterator.Value.Type.ReplaceSubstring[','']}', '${MyShip.ToEntity.Type.ReplaceSubstring[','']}', '${Ship.ModuleList_Turret.Type.ReplaceSubstring[','']}', ${EMDamage}, ${ExpDamage}, ${KinDamage}, ${ThermDamage}, ${TrackingSpd}, ${OptimalRng}, ${FalloffRng}) ON CONFLICT (AmmoTypeID) DO UPDATE SET ShipType=excluded.ShipType, TurretType=excluded.TurretType, EMDamage=excluded.EMDamage, ExpDamage=excluded.ExpDamage, KinDamage=excluded.KinDamage, ThermDamage=excluded.ThermDamage, TrackingSpd=excluded.TrackingSpd, OptimalRng=excluded.OptimalRng, FalloffRng=excluded.FalloffRng;"]
-					CombatComputer.AmmoCollection:Set[${Ship.ModuleList_Turret.Charge.Type},${MyShip.Cargo[${Ship.ModuleList_Turret.Charge.Type}].TypeID}]
+					DBInsertIndex:Insert["insert into ShipAmmunitionTurret (AmmoTypeID, AmmoType, ShipType, TurretType, EMDamage, ExpDamage, KinDamage, ThermDamage, TrackingSpd, OptimalRng, FalloffRng) values (${MyShip.Cargo[${Ship.${WeaponSwitch}.Charge.Type}].TypeID}, '${AvailableAmmoIterator.Value.Type.ReplaceSubstring[','']}', '${MyShip.ToEntity.Type.ReplaceSubstring[','']}', '${Ship.${WeaponSwitch}.Type.ReplaceSubstring[','']}', ${EMDamage}, ${ExpDamage}, ${KinDamage}, ${ThermDamage}, ${TrackingSpd}, ${OptimalRng}, ${FalloffRng}) ON CONFLICT (AmmoTypeID) DO UPDATE SET ShipType=excluded.ShipType, TurretType=excluded.TurretType, EMDamage=excluded.EMDamage, ExpDamage=excluded.ExpDamage, KinDamage=excluded.KinDamage, ThermDamage=excluded.ThermDamage, TrackingSpd=excluded.TrackingSpd, OptimalRng=excluded.OptimalRng, FalloffRng=excluded.FalloffRng;"]
+					CombatComputer.AmmoCollection:Set[${Ship.${WeaponSwitch}.Charge.Type},${MyShip.Cargo[${Ship.${WeaponSwitch}.Charge.Type}].TypeID}]
 				}
 			}
 		}
