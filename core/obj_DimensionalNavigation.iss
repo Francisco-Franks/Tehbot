@@ -175,7 +175,7 @@ objectdef obj_DimensionalNavigation inherits obj_StateQueue
 			CurrentJumpEntityID:Set[${EntityID}]
 			if !${JumpAway}
 			{
-				BeganAligning:Set[${Math.Calc[${LavishScript.RunningTime} + 3000]}]
+				BeganAligning:Set[${Math.Calc[${LavishScript.RunningTime} + 5000]}]
 				Entity[${EntityID}]:AlignTo
 			}
 			else

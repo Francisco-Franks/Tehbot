@@ -202,8 +202,8 @@ objectdef obj_Module inherits obj_StateQueue
 				optimalAmmo:Set[${This._pickOptimalAmmo[${targetID}]}]
 				if ${optimalAmmo.NotNULLOrEmpty} && !${This.Charge.Type.Equal[${optimalAmmo}]} && ((${LavishScript.RunningTime} > ${LastAmmoChange}) || (${Ship.ModuleList_Lasers.Count} > 0))
 				{
-					This:LogDebug["${This.Name} optimalAmmo is ${optimalAmmo} for ${Entity[${targetID}].Name} distance ${Entity[${targetID}].Distance}"]
-					This:LogDebug["Deactivating ${This.Name} to change ammo to ${optimalAmmo}."]
+					echo ["${This.Name} optimalAmmo is ${optimalAmmo} for ${Entity[${targetID}].Name} distance ${Entity[${targetID}].Distance}"]
+					echo ["Deactivating ${This.Name} to change ammo to ${optimalAmmo}."]
 					LastAmmoChange:Set[${Math.Calc[${LavishScript.RunningTime} + 30000]}]
 					This:_deactivate	
 					return

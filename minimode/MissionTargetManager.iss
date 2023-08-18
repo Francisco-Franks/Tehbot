@@ -61,7 +61,8 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	variable int ValidIgnoreTargets
 	
 	; About to do an MJD, disable and inhibit bastion. Recall drones and inhibit drone launch.
-	variable bool PreparingForMJD = FALSE
+	variable bool PreparingForMJD 
+	variable bool DronesRecalled
 	
 	; Going to need this for constructing our Query.
 	variable string DBQueryString
@@ -154,7 +155,11 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			if ((${This.TableWithinDistance[ActiveNPCs,20000]} > 5 || ((${This.TDBRowCount[ActiveNPCs]} > 0) && ${This.TDBRowCount[WeaponTargets]} == 0 && ${This.TDBRowCount[DroneTargets]} > 0)) && !${This.AmIScrammed} && (${DimensionalNavigation.NextMJDTime} < ${LavishScript.RunningTime})) && !${DimensionalNavigation.MJDInProgress}
 			{
 				This:LogInfo["We are preparing for an MJD Activation"]
-				Drones:RecallAll
+				if !${DronesRecalled}
+				{
+					Drones:RecallAll
+					DronesRecalled:Set[TRUE]
+				}
 				PreparingForMJD:Set[TRUE]
 			}
 			; We were preparing for an MJD, and DimensionalNavigation reports it was completed successfully. Set the bool to false
@@ -163,6 +168,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				This:LogInfo["MJD reported as completing successfully, returning to normal"]
 				DimensionalNavigation.JumpCompleted:Set[FALSE]
 				PreparingForMJD:Set[FALSE]
+				DronesRecalled:Set[FALSE]
 				
 			}
 			; We are preparing for MJD and it is ready to be used now, activate the method. This will just be a blind MJD to get away from where we are now, no other purpose.
@@ -721,7 +727,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				if ${GetMTMInfo.NumRows} > 0
 				{
 					; If we have lasers, OR our weapons are NOT CURRENTLY ACTIVE OR we HAVE been shooting this target for at least 30 seconds, an ammo change is authorized.
-					if ((${Ship.ModuleList_Lasers.Count} > 0) || (${Ship.${WeaponSwitch}.ActiveCount} == 0) || ((${CurrentOffenseTarget} == ${AmmoSwapInhibitEntity})  && (${LavishScript.RunningTime} > ${AmmoSwapInhibitTimer})))
+					if (${Ship.ModuleList_Lasers.Count} > 0) || (${Ship.${WeaponSwitch}.ActiveCount} == 0) || ((${CurrentOffenseTarget} == ${AmmoSwapInhibitEntity})  && (${LavishScript.RunningTime} > ${AmmoSwapInhibitTimer}))
 					{
 						AmmoSwapInhibitTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 30000]}]
 						AmmoSwapInhibitEntity:Set[${CurrentOffenseTarget}]
@@ -764,7 +770,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 			if ${GetMTMInfo.NumRows} > 0
 			{
 				; If we have lasers, OR our weapons are NOT CURRENTLY ACTIVE OR we HAVE been shooting this target for at least 30 seconds, an ammo change is authorized.
-				if ((${Ship.ModuleList_Lasers.Count} > 0) || (${Ship.${WeaponSwitch}.ActiveCount} == 0) || ((${CurrentOffenseTarget} == ${AmmoSwapInhibitEntity}) && (${LavishScript.RunningTime} > ${AmmoSwapInhibitTimer})))
+				if (${Ship.ModuleList_Lasers.Count} > 0) || (${Ship.${WeaponSwitch}.ActiveCount} == 0) || ((${CurrentOffenseTarget} == ${AmmoSwapInhibitEntity}) && (${LavishScript.RunningTime} > ${AmmoSwapInhibitTimer}))
 				{
 					AmmoSwapInhibitTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 30000]}]
 					AmmoSwapInhibitEntity:Set[${CurrentOffenseTarget}]
