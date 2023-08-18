@@ -229,6 +229,7 @@ objectdef obj_Module inherits obj_StateQueue
 			if ${optimalAmmo.NotNULLOrEmpty} && !${optimalAmmo.Equal[${This.Charge.Type}]} && (${LavishScript.RunningTime} > ${LastAmmoChange}) || (${Ship.ModuleList_Lasers.Count} > 0)
 			{
 				This:_findAndChangeAmmo[${optimalAmmo}]
+				LastAmmoChange:Set[${Math.Calc[${LavishScript.RunningTime} + 30000]}]
 				return
 			}
 			else
