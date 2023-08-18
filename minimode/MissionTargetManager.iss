@@ -675,14 +675,15 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	; This method will handle distribution of Primary Weapons Systems (guns/launchers)
 	method PrimaryWeapons()
 	{
+		WeaponSwitch:Set[${Ship.WeaponSwitch}]
 		; First up, do we have a weapon active on something it shouldn't be active on? May happen if an enemy changes category in the middle of us shooting it.
 		GetMTMInfo:Set[${MTMDB.ExecQuery["SELECT * FROM Targeting WHERE TargetingCategory='DroneTarget' OR TargetingCategory='IgnoreTarget';"]}]
 		if ${GetMTMInfo.NumRows} > 0
 		{
 			do
 			{
-				if ${Ship.ModuleList_Weapon.IsActiveOn[${GetMTMInfo.GetFieldValue["EntityID"]}]}
-					Ship.ModuleList_Weapon:DeactivateOn[${GetMTMInfo.GetFieldValue["EntityID"]}]
+				if ${Ship.${WeaponSwitch}.IsActiveOn[${GetMTMInfo.GetFieldValue["EntityID"]}]}
+					Ship.${WeaponSwitch}:DeactivateOn[${GetMTMInfo.GetFieldValue["EntityID"]}]
 				GetMTMInfo:NextRow
 			}
 			while !${GetMTMInfo.LastRow}
@@ -716,7 +717,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				if ${GetMTMInfo.NumRows} > 0
 				{
 					; If we have lasers, OR our weapons are NOT CURRENTLY ACTIVE OR we HAVE been shooting this target for at least 30 seconds, an ammo change is authorized.
-					if (${Ship.ModuleList_Lasers.Count} > 0) || (${Ship.ModuleList_Weapon.ActiveCount} == 0) || ((${Ship.ModuleList_Weapon.ActiveCount} > 0) && (${LavishScript.RunningTime} > ${AmmoSwapInhibitTimer}))
+					if (${Ship.ModuleList_Lasers.Count} > 0) || (${Ship.${WeaponSwitch}.ActiveCount} == 0) || ((${Ship.${WeaponSwitch}.ActiveCount} > 0) && (${LavishScript.RunningTime} > ${AmmoSwapInhibitTimer}))
 					{
 						AmmoSwapInhibitTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 30000]}]
 						AmmoOverride:Set[${GetMTMInfo.GetFieldValue["OurNeededAmmo"]}]
@@ -776,9 +777,9 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				Ship.ModuleList_TargetPainter:ActivateAll[${CurrentOffenseTarget}]
 			}
 			; Fourthly, do we have any inactive weapons?
-			if ${Ship.ModuleList_Weapon.InactiveCount} > 0
+			if ${Ship.${WeaponSwitch}.InactiveCount} > 0
 			{
-				Ship.ModuleList_Weapon:ActivateAll[${CurrentOffenseTarget}]		
+				Ship.${WeaponSwitch}:ActivateAll[${CurrentOffenseTarget}]		
 			}
 		}
 	

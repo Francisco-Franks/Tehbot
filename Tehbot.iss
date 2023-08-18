@@ -190,6 +190,8 @@ function main(string Character="")
 	declarevariable TargetManagerInhibited bool global
 	;Global string for AmmoOverride, that is to say, to force a specific ammo.
 	declarevariable AmmoOverride string global
+	;Global string to manage the failings of ModuleList
+	declarevariable WeaponSwitch string global
 
 
 
