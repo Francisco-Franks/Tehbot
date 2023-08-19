@@ -74,7 +74,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 
 	method Initialize()
 	{
-		Turbo 5000
+		Turbo 1000
 		This[parent]:Initialize
 
 		DynamicAddMiniMode("MissionTargetManager", "MissionTargetManager")

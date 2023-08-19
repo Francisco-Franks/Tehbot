@@ -16,7 +16,7 @@ objectdef obj_NPCData
 	
 	method Initialize()
 	{
-		Turbo 5000
+		Turbo 1000
 		LavishSettings[NPCData]:Clear
 		LavishSettings:AddSet[NPCData]
 

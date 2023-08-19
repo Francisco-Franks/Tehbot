@@ -1,7 +1,8 @@
-objectdef obj_CombatComputer inherits obj_StateQueue
+objectdef obj_CombatComputerTaskHelper inherits obj_StateQueue
 {
-	; This will be the DB where our character specific ship info lives.
-	variable sqlitedb CombatData
+	
+	
+	variable queue:int64 ProcessingQueue
 	; This will be our query 
 	variable sqlitequery GetCurrentData
 	; Need another query for our Ship2 DB
@@ -14,228 +15,57 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	variable index:string AmmoTableTransactionIndex
 	; Index for Cache Generation Transactions
 	variable index:string CacheTransactionIndex
-	
-	; This will be a collection containing the available Ammo Type IDs, Key will be the Ammo Name, Value will be Type ID of the ammo
-	variable collection:int64 AmmoCollection
-	; This int will describe the minimum amount of ammo to be considered for the Ammo stuff.
-	variable int MinAmmoAmount
-	; This float is the time it takes to reload your weapon.
-	variable float64 ChangeTime
-	
-	variable queue:int64 ActiveNPCQueue
+	; Queue for entries being processed in the ammo zone
 	variable queue:int64 AmmoTableQueue
 	
-	variable queue:int64 CleanupQueue
-	
-	; To keep track of what entities we have batch processed. An index of int64.
-	variable index:int64 EntriesProcessedIndex
-
-	;;;;;;
-	;;; Here comes the bullshit. Going to try and use LavishMachine and Tasks to get some parallelism in this horseshit. Who knows if it will work.
-	
-
-	variable obj_CombatComputerTaskHelper CCTH1
-	variable obj_CombatComputerTaskHelper CCTH2
-	variable obj_CombatComputerTaskHelper CCTH3
-	variable obj_CombatComputerTaskHelper CCTH4
-	variable obj_CombatComputerTaskHelper CCTH5
-	variable obj_CombatComputerTaskHelper CCTH6
-	variable obj_CombatComputerTaskHelper CCTH7
-	variable obj_CombatComputerTaskHelper CCTH8
-	
-	; Will use this to keep track of if our queues are full or not 
-	variable bool CCTHQueuesFull
-	
-	; Will use this to keep track of how many things at most we want to put in our queues. We will start with 3
-	variable int CCTHQueuesSizeLimit = 3
-	;;;
-	;;;;;
-
-
-	;;; NOT IMPLEMENTED YET, BUT SOON
-	; This int will not be configurable by the user, but just here to make my life simpler.
-	; We use this to decide how many rows to update at a time, doing all of them simultaneously is a real performance killer dontchaknow.
-	; We will start with 10 entities at a time.
-	;;; Addendum, now 6. Also soon to be irrelevant if the CCTH crap pans out.
-	variable int UpdateBatchSize = 6	
-	
-	method Initialize()
-	{
-		Turbo 1000
+     method Initialize()
+    {
 		This[parent]:Initialize
-		This.PulseFrequency:Set[1000]
+		PulseFrequency:Set[2000]
 		;This.NonGameTiedPulse:Set[TRUE]
-		;CombatData:Set[${SQLite.OpenDB["CombatData",":memory:"]}]
-		;;; Going to try making this DB reside in memory instead. We are going to be writing and reading to this fucker a gazillion times a second probably. Also the information is meant to be destroyed at the end
-		;;; not going to be pulling any stats from this specific DB.
-		;;; Addendum, at first I need to see the results of this table, lets see how poorly this goes.
-		CombatData:Set[${SQLite.OpenDB["${Me.Name}CombatData","${Script.CurrentDirectory}/Data/${Me.Name}CombatData.sqlite3"]}]
-		CombatData:ExecDML["PRAGMA journal_mode=WAL;"]
-		CombatData:ExecDML["PRAGMA main.mmap_size=64000000"]
-		CombatData:ExecDML["PRAGMA main.cache_size=-64000;"]
-		CombatData:ExecDML["PRAGMA synchronous = normal;"]
-		CombatData:ExecDML["PRAGMA temp_store = memory;"]	
-		
-		if !${CombatData.TableExists["CurrentData"]}
-		{
-			echo DEBUG - CombatComputer - Creating CurrentData Table
-			CombatData:ExecDML["create table CurrentData (EntityID INTEGER PRIMARY KEY, NPCName TEXT, NPCTypeID INTEGER, CurDist REAL, FtrDist REAL, CurVel REAL, MaxVel REAL, CruiseVel REAL, NeutRng REAL, NeutStr REAL, EWARType TEXT, EWARStr REAL, EWARRng REAL, WebRng REAL, WrpDisRng REAL, WrpScrRng REAL, EffNPCDPS REAL, ThreatLevel INTEGER, LastUpdate INTEGER, UpdateType TEXT);"]
-		}
-		; This table will relate our ammo effectiveness against each NPC. 
-		if !${CombatData.TableExists["AmmoTable"]}
-		{
-			echo DEBUG - CombatComputer - Creating AmmoTable
-			CombatData:ExecDML["create table AmmoTable (EntityID INTEGER NOT NULL, AmmoTypeID INTEGER NOT NULL, AmmoName TEXT, ExpectedShotDmg REAL, ShotsToKill REAL, TimeToKill REAL, OurDamageEff REAL, ChangeTime REAL, LastUpdate INTEGER, PRIMARY KEY(EntityID, AmmoTypeID));"]
-		}
-		; This table will store cached information about NPC types that generally remains static so that we can soften the blow on some of this horseshit.
-		if !${CombatData.TableExists["TypeCache"]}
-		{
-			echo DEBUG - CombatComputer - Creating NPCTypeCache Table
-			CombatData:ExecDML["create table TypeCache (NPCTypeID INTEGER PRIMARY KEY, NPCName TEXT, NeutRng REAL, NeutStr REAL, EWARType TEXT, EWARStr REAL, EWARRng REAL, WebRng REAL, WrpDisRng REAL, WrpScrRng REAL, LastUpdate INTEGER);"]
-		}
-		This:QueueState["CombatComputerHub", 1000]
-	}
- 
-	method Shutdown()
+
+		This:QueueState["CCTaskHelperHub", 2000]
+    }   
+    method Shutdown()
+    {
+
+    }
+
+	member:bool CCTaskHelperHub()
 	{
-		CombatData:ExecDML["Vacuum;"]	
-		CombatData:Close
-	}
+		if !${Client.InSpace} || ${ProcessingQueue.Peek} < 1
+			return FALSE
 	
-	;;; This object (CombatComputer) will exist to crunch some math for us. Numbers derived from obj_NPCData and obj_Ship2 as well as actual real time information will be used to
-	;;; help the new TargetManager make better combat decisions.
-	;;; Basically we will look at the NPCs on grid, do our lookups in NPCData and Ship2, and from that we can quickly formulate a plan after we math out the following:
-	;;; Shots to kill, ability to kill at this moment, ability to kill in the future (in the case of small targets that move too close), ability of the enemy to debilitate us.
-	;;; NPCs are fairly static and predictable things, excepting some abyssal enemies and a few of the more wily new NPCs.
-	;;; Positioning makes that kinda annoying though. ArchiveData idea is shelved for now.
-	;;; We will have a table for Current Enemy Data, this will be about the enemies currently on grid with us.
-	;;; NPC Entity ID, NPC Name, NPC TypeID, Current Distance, Future Distance (this will be where the NPC wants to orbit at), Current Velocity, Maximum Velocity (MWDing/ABing towards its desired orbit), Cruise Velocity (how fast it moves when it gets there),
-	;;; Energy Neut Range (if applicable), Energy Neut Strength (if applicable)
-	;;; EWAR Type (if applicable), EWAR Strength (if relevant), EWAR Range (if applicable), Stasis Web Range (if it does), Warp Disruptor Range (same), Warp Scrambler Range (same), Effective Enemy DPS Output,some kind of number estimating the enemy's overall Threat.
-	;;; The following will be done once per ammo available ammo type. This will reside in a second table.
-	;;; Entity ID, Ammo Type ID, Expected Shot Damage (effective, after resists), Predicted Shots to Kill, Predicted Time to Kill, Estimated % Of our Damage that will Land, Time to change ammo.
-	;;; 
-	;;; This info is going to be a tall order, but I think I can manage.
-
-	; Going to convert this object to use the state queue, so we can go through our processing queue in discreet portions.
-	member:bool CombatComputerHub()
-	{
-		if !${Client.InSpace} || ${MyShip.ToEntity.Mode} == MOVE_WARPING
-			return FALSE
-		if ${ActiveNPCQueue.Peek} < 1
-			return FALSE
-
-		; Lets clean up our tables
-		This:CleanupTables
-		; The argument is how many entities we want to process at a time.
-		This:UpsertCurrentData[${UpdateBatchSize}]
-		;;; Time to attempt to really fuck this up with techniques I don't undersrtand yet.
+		This:UpsertCurrentData
 		
-		;do
-		;{
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH1.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH1.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH1 - CCTH1 has ${CCTH1.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH2.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH2.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH2 - CCTH2 has ${CCTH2.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH3.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH3.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH3 - CCTH3 has ${CCTH3.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH4.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;;	{
-		;		CCTH4.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;	;	echo Sending ${ActiveNPCQueue.Peek} to CCTH4 - CCTH4 has ${CCTH4.ProcessingQueue.Used} entities in queue.
-		;;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH5.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH5.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH5 - CCTH5 has ${CCTH5.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH6.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH6.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH6 - CCTH6 has ${CCTH6.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH7.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH7.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH7 - CCTH7 has ${CCTH7.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH8.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH8.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH8 - CCTH8 has ${CCTH8.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;}
-		;while ${ActiveNPCQueue.Peek} > 0 && !${This.CCTHQueuesFull}
-
 		return FALSE
-		
 	}
-	; This member will tell me if my CCTH queues are full
-	member:bool CCTHQueuesFull()
-	{
-		if (${CCTH1.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH2.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH3.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH4.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH5.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH6.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH7.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH8.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		{
-			return FALSE
-		}
-		else
-		{
-			return TRUE
-		}
 	
-	}
-	; This method will prefill the table with info so we can update in discrete chunks and keep track of when we last touched a given row.
-	; This one will just pass along the BatchCount argument. This prefill shouldnt include anything too resource heavy.
-	method UpsertCurrentData(int BatchCount)
+	method UpsertCurrentData()
 	{
-
-		variable int64 ProcessedCount
-
-		if ${ActiveNPCQueue.Peek} > 0
+		echo DEBUG CHECKPOINT 2
+		if ${ProcessingQueue.Peek} > 0
 		{
 			do
 			{
-				if !${Entity[${ActiveNPCQueue.Peek}](exists)} || ${Entity[${ActiveNPCQueue.Peek}].IsMoribund}
+				echo DEBUG CHECKPOINT 3
+				if !${Entity[${ProcessingQueue.Peek}](exists)} || ${Entity[${ProcessingQueue.Peek}].IsMoribund}
 				{
-					ActiveNPCQueue:Dequeue
+					ProcessingQueue:Dequeue
 					continue
 				}
-				This:GenerateTypeCache[${ActiveNPCQueue.Peek}]
+				This:GenerateTypeCache[${ProcessingQueue.Peek}]
 				
-				CurrentDataTransactionIndex:Insert["insert into CurrentData (EntityID, NPCName, NPCTypeID, CurDist, FtrDist, CurVel, MaxVel, CruiseVel, NeutRng, NeutStr, EWARType, EWARStr, EWARRng, WebRng, WrpDisRng, WrpScrRng, EffNPCDPS, ThreatLevel, LastUpdate, UpdateType) values (${ActiveNPCQueue.Peek}, '${This.NPCName[${ActiveNPCQueue.Peek}].ReplaceSubstring[','']}', ${This.NPCTypeID[${ActiveNPCQueue.Peek}]}, ${This.NPCCurrentDist[${ActiveNPCQueue.Peek}]}, 0, ${This.NPCCurrentVel[${ActiveNPCQueue.Peek}]}, 0, 0, ${This.NPCNeutRange[${ActiveNPCQueue.Peek}]}, ${This.NPCNeutAmount[${ActiveNPCQueue.Peek}]}, '${This.NPCEWARType[${ActiveNPCQueue.Peek}]}', ${This.NPCEWARStrength[${ActiveNPCQueue.Peek}]}, ${This.NPCEWARRange[${ActiveNPCQueue.Peek}]}, ${This.NPCWebRange[${ActiveNPCQueue.Peek}]}, ${This.NPCDisruptRange[${ActiveNPCQueue.Peek}]}, ${This.NPCScramRange[${ActiveNPCQueue.Peek}]}, ${This.NPCDPSOutput[${ActiveNPCQueue.Peek}]}, ${This.NPCThreatLevel[${ActiveNPCQueue.Peek}]}, ${Time.Timestamp}, 'Maintain') ON CONFLICT (EntityID) DO UPDATE SET CurDist=excluded.CurDist, CurVel=excluded.CurVel, EffNPCDps=excluded.EffNPCDPS, ThreatLevel=excluded.ThreatLevel, LastUpdate=excluded.LastUpdate, UpdateType=excluded.UpdateType;"]
-				AmmoTableQueue:Queue[${ActiveNPCQueue.Peek}]
-				ActiveNPCQueue:Dequeue
-				ProcessedCount:Inc[1]
+				CurrentDataTransactionIndex:Insert["insert into CurrentData (EntityID, NPCName, NPCTypeID, CurDist, FtrDist, CurVel, MaxVel, CruiseVel, NeutRng, NeutStr, EWARType, EWARStr, EWARRng, WebRng, WrpDisRng, WrpScrRng, EffNPCDPS, ThreatLevel, LastUpdate, UpdateType) values (${ProcessingQueue.Peek}, '${This.NPCName[${ProcessingQueue.Peek}].ReplaceSubstring[','']}', ${This.NPCTypeID[${ProcessingQueue.Peek}]}, ${This.NPCCurrentDist[${ProcessingQueue.Peek}]}, 0, ${This.NPCCurrentVel[${ProcessingQueue.Peek}]}, 0, 0, ${This.NPCNeutRange[${ProcessingQueue.Peek}]}, ${This.NPCNeutAmount[${ProcessingQueue.Peek}]}, '${This.NPCEWARType[${ProcessingQueue.Peek}]}', ${This.NPCEWARStrength[${ProcessingQueue.Peek}]}, ${This.NPCEWARRange[${ProcessingQueue.Peek}]}, ${This.NPCWebRange[${ProcessingQueue.Peek}]}, ${This.NPCDisruptRange[${ProcessingQueue.Peek}]}, ${This.NPCScramRange[${ProcessingQueue.Peek}]}, ${This.NPCDPSOutput[${ProcessingQueue.Peek}]}, ${This.NPCThreatLevel[${ProcessingQueue.Peek}]}, ${Time.Timestamp}, 'Maintain') ON CONFLICT (EntityID) DO UPDATE SET CurDist=excluded.CurDist, CurVel=excluded.CurVel, EffNPCDps=excluded.EffNPCDPS, ThreatLevel=excluded.ThreatLevel, LastUpdate=excluded.LastUpdate, UpdateType=excluded.UpdateType;"]
+				AmmoTableQueue:Queue[${ProcessingQueue.Peek}]
+				ProcessingQueue:Dequeue
 			}
-			while (${ActiveNPCQueue.Peek} > 0) && (${ProcessedCount} <= ${BatchCount})
+			while (${ProcessingQueue.Peek} > 0)
 		}
 		
 		if ${CurrentDataTransactionIndex.Used} > 0
 		{
-			CombatData:ExecDMLTransaction[CurrentDataTransactionIndex]
+			CombatComputer.CombatData:ExecDMLTransaction[CurrentDataTransactionIndex]
 			CurrentDataTransactionIndex:Clear
 		}
 		
@@ -262,10 +92,10 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 					continue
 				}
 				variable iterator AmmoCollectionIterator
-				echo ${AmmoCollection.Size} AMMO COLLECTION SIZE
-				if ${AmmoCollection.Size} < 1
+				echo ${CombatComputer.AmmoCollection.Size} AMMO COLLECTION SIZE
+				if ${CombatComputer.AmmoCollection.Size} < 1
 					break
-				AmmoCollection:GetIterator[AmmoCollectionIterator]
+				CombatComputer.AmmoCollection:GetIterator[AmmoCollectionIterator]
 				if ${AmmoCollectionIterator:First(exists)}
 				{
 					do
@@ -282,64 +112,10 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		}
 		if ${AmmoTableTransactionIndex.Used} > 0
 		{
-			CombatData:ExecDMLTransaction[AmmoTableTransactionIndex]
+			CombatComputer.CombatData:ExecDMLTransaction[AmmoTableTransactionIndex]
 			AmmoTableTransactionIndex:Clear
 		}
-		This:CleanupTables
 		
-	}
-	
-	; And a method to remove things that don't belong here anymore.
-	; We won't be employing this just yet. Also it isn't built yet.
-	; Addendum, ultimately this DB will reside entirely within memory (after I get everything working) so this doesn't really need to exist at all.
-	;; ADDENDUM - We will clean up.
-	method CleanupTables()
-	{
-		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM AmmoTable;"]}]
-		if ${GetCurrentData.NumRows} > 0
-		{
-			do
-			{
-				if !${Entity[${GetCurrentData.GetFieldValue["EntityID"]}](exists)} 
-					CleanupQueue:Queue[${GetCurrentData.GetFieldValue["EntityID"]}]
-					
-				GetCurrentData:NextRow
-			}
-			while !${GetCurrentData.LastRow}
-			GetCurrentData:Finalize
-		}
-		if ${CleanupQueue.Peek}
-		{
-			do
-			{
-				CombatData:ExecDML["Delete FROM AmmoTable WHERE EntityID=${CleanupQueue.Peek};"]
-				CleanupQueue:Dequeue
-			}
-			while ${CleanupQueue.Peek}
-		}
-		GetCurrentData:Finalize
-		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData;"]}]
-		if ${GetCurrentData.NumRows} > 0
-		{
-			do
-			{
-				if !${Entity[${GetCurrentData.GetFieldValue["EntityID"]}](exists)} 
-					CleanupQueue:Queue[${GetCurrentData.GetFieldValue["EntityID"]}]
-					
-				GetCurrentData:NextRow
-			}
-			while !${GetCurrentData.LastRow}
-			GetCurrentData:Finalize
-		}
-		if ${CleanupQueue.Peek}
-		{
-			do
-			{
-				CombatData:ExecDML["Delete FROM CurrentData WHERE EntityID=${CleanupQueue.Peek};"]
-				CleanupQueue:Dequeue
-			}
-			while ${CleanupQueue.Peek}
-		}
 	}
 	; One more Method. I need to be able to populate that cache of values that are always going to be the same so we can maybe speed this crap up a little.
 	method GenerateTypeCache(int64 EntityID)
@@ -348,7 +124,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		{
 			echo DEBUGDEBUGDEBUG Generate Type CACHED
 			echo ["insert into TypeCache (NPCTypeID, NPCName, NeutRng, NeutStr, EWARType, EWARStr, EWARRng, WebRng, WrpDisRng, WrpScrRng, LastUpdate) values (${This.NPCTypeID[${EntityID}]}, '${This.NPCName[${EntityID}].ReplaceSubstring[','']}', ${This.NPCNeutRange[${EntityID}]}, ${This.NPCNeutAmount[${EntityID}]}, '${This.NPCEWARType[${EntityID}]}', ${This.NPCEWARStrength[${EntityID}]}, ${This.NPCEWARRange[${EntityID}]}, ${This.NPCWebRange[${EntityID}]}, ${This.NPCDisruptRange[${EntityID}]}, ${This.NPCScramRange[${EntityID}]}, ${Time.Timestamp}) ON CONFLICT (NPCTypeID) DO UPDATE SET LastUpdate=excluded.LastUpdate;"]
-			CombatData:ExecDML["insert into TypeCache (NPCTypeID, NPCName, NeutRng, NeutStr, EWARType, EWARStr, EWARRng, WebRng, WrpDisRng, WrpScrRng, LastUpdate) values (${This.NPCTypeID[${EntityID}]}, '${This.NPCName[${EntityID}].ReplaceSubstring[','']}', ${This.NPCNeutRange[${EntityID}]}, ${This.NPCNeutAmount[${EntityID}]}, '${This.NPCEWARType[${EntityID}]}', ${This.NPCEWARStrength[${EntityID}]}, ${This.NPCEWARRange[${EntityID}]}, ${This.NPCWebRange[${EntityID}]}, ${This.NPCDisruptRange[${EntityID}]}, ${This.NPCScramRange[${EntityID}]}, ${Time.Timestamp}) ON CONFLICT (NPCTypeID) DO UPDATE SET LastUpdate=excluded.LastUpdate;"]	
+			CombatComputer.CombatData:ExecDML["insert into TypeCache (NPCTypeID, NPCName, NeutRng, NeutStr, EWARType, EWARStr, EWARRng, WebRng, WrpDisRng, WrpScrRng, LastUpdate) values (${This.NPCTypeID[${EntityID}]}, '${This.NPCName[${EntityID}].ReplaceSubstring[','']}', ${This.NPCNeutRange[${EntityID}]}, ${This.NPCNeutAmount[${EntityID}]}, '${This.NPCEWARType[${EntityID}]}', ${This.NPCEWARStrength[${EntityID}]}, ${This.NPCEWARRange[${EntityID}]}, ${This.NPCWebRange[${EntityID}]}, ${This.NPCDisruptRange[${EntityID}]}, ${This.NPCScramRange[${EntityID}]}, ${Time.Timestamp}) ON CONFLICT (NPCTypeID) DO UPDATE SET LastUpdate=excluded.LastUpdate;"]	
 		}
 		else
 			echo DEBUG DEBUG DEBUG COMBAT COMPUTER ITS ALREADY CACHED 
@@ -356,7 +132,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	; This member will tell me if the NPCType is cached or not for a given ENTITY ID
 	member:bool NPCTypeIsCached(int64 EntityID)
 	{
-		GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+		GetTypeCache:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
 		if ${GetTypeCache.NumRows} > 0
 		{
 			; It is present in the cache
@@ -439,7 +215,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 			FinalValue:Set[${NPCData.EnemyEnergyNeutRange[${This.NPCTypeID[${EntityID}]}]}]
 		else
 		{
-			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			GetTypeCache:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
 			FinalValue:Set[${GetTypeCache.GetFieldValue["NeutRng"]}]
 			GetTypeCache:Finalize
 		}
@@ -454,7 +230,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 			FinalValue:Set[${NPCData.EnemyEnergyNeutPerSecond[${This.NPCTypeID[${EntityID}]}]}]
 		else
 		{
-			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			GetTypeCache:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
 			FinalValue:Set[${GetTypeCache.GetFieldValue["NeutStr"]}]
 			GetTypeCache:Finalize
 		}
@@ -482,7 +258,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		}
 		else
 		{
-			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			GetTypeCache:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
 			FinalValue:Set[${GetTypeCache.GetFieldValue["EWARType"]}]
 			GetTypeCache:Finalize
 		}
@@ -503,7 +279,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		}
 		else
 		{
-			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			GetTypeCache:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
 			FinalValue:Set[${GetTypeCache.GetFieldValue["EWARStr"]}]
 			GetTypeCache:Finalize
 		}
@@ -523,7 +299,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		}
 		else
 		{
-			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			GetTypeCache:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
 			FinalValue:Set[${GetTypeCache.GetFieldValue["EWARRng"]}]
 			GetTypeCache:Finalize
 		}
@@ -538,7 +314,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 			FinalValue:Set[${NPCData.EnemyStasisWebRange[${This.NPCTypeID[${EntityID}]}]}]
 		else
 		{
-			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			GetTypeCache:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
 			FinalValue:Set[${GetTypeCache.GetFieldValue["WebRng"]}]
 			GetTypeCache:Finalize
 		}
@@ -553,7 +329,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 			FinalValue:Set[${NPCData.EnemyWarpDisruptorRange[${This.NPCTypeID[${EntityID}]}]}]
 		else
 		{
-			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			GetTypeCache:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
 			FinalValue:Set[${GetTypeCache.GetFieldValue["WrpDisRng"]}]
 			GetTypeCache:Finalize
 		}
@@ -568,7 +344,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 			FinalValue:Set[${NPCData.EnemyWarpScramblerRange[${This.NPCTypeID[${EntityID}]}]}]
 		else
 		{
-			GetTypeCache:Set[${CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
+			GetTypeCache:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM TypeCache WHERE NPCTypeID=${This.NPCTypeID[${EntityID}]};"]}]
 			FinalValue:Set[${GetTypeCache.GetFieldValue["WrpScrRng"]}]
 			GetTypeCache:Finalize
 		}
@@ -736,7 +512,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		if ${MyShip.ToEntity.Group.Equals[Marauder]}
 			return 0
 			
-		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE WebRng>0 AND EntityID=${EntityID};"]}]
+		GetCurrentData:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM CurrentData WHERE WebRng>0 AND EntityID=${EntityID};"]}]
 		if ${GetCurrentData.NumRows} > 0
 		{
 			; It webs, add some threat. Expect this to get more complicated in the future, if I ever get there.
@@ -755,7 +531,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		; If you are in 0.0 or lowsec or wormholes this is a problem.
 		; Otherwise, this is literally less than nothing. Returns a 0.
 	
-		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE WarpDisRng>0 AND EntityID=${EntityID};"]}]
+		GetCurrentData:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM CurrentData WHERE WarpDisRng>0 AND EntityID=${EntityID};"]}]
 		if ${GetCurrentData.NumRows} > 0
 		{
 			; Are we somewhere that this actually matters?
@@ -782,7 +558,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		if ${MyShip.ToEntity.Group.Equals[Marauder]}
 			return 0
 			
-		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE WarpScrRng>0 AND EntityID=${EntityID};"]}]
+		GetCurrentData:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM CurrentData WHERE WarpScrRng>0 AND EntityID=${EntityID};"]}]
 		if ${GetCurrentData.NumRows} > 0
 		{
 			; Are we somewhere that this actually matters?
@@ -818,7 +594,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 			FinalValue:Inc[0]
 		}
 		
-		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Painter%' AND EntityID=${EntityID};"]}]
+		GetCurrentData:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Painter%' AND EntityID=${EntityID};"]}]
 		if ${GetCurrentData.NumRows} > 0
 		{
 			FinalValue:Inc[20]
@@ -835,7 +611,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		; Does this enemy use ECM? ECM will keep us from killing what we actually want to kill.
 		; This gets the highest threat level except for a couple other edge cases (we literally can't hit this enemy / some other super urgent thing is going on).
 		
-		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%ECM%' AND EntityID=${EntityID};"]}]
+		GetCurrentData:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%ECM%' AND EntityID=${EntityID};"]}]
 		if ${GetCurrentData.NumRows} > 0
 		{
 			FinalValue:Set[1000]
@@ -851,7 +627,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		; Does this enemy use Sensor Damps? Are they particularly strong? Is our sensor range already kinda awful?
 		; This member will be a higher threat gen than most others, sensor damps are really debilitating (usually).
 
-		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Damp%' AND EntityID=${EntityID};"]}]
+		GetCurrentData:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Damp%' AND EntityID=${EntityID};"]}]
 		if ${GetCurrentData.NumRows} > 0
 		{
 			; Are we somewhere that this actually matters?
@@ -872,7 +648,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		if ${Ship.${WeaponSwitch}.Count} == 0
 			return 0
 		
-		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Tracking%' AND EntityID=${EntityID};"]}]
+		GetCurrentData:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Tracking%' AND EntityID=${EntityID};"]}]
 		if ${GetCurrentData.NumRows} > 0
 		{
 			; Going to just consider the distance of the tracking disruptor user itself for now. This isn't going to work quite right at the moment.
@@ -896,7 +672,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		if ${Ship.ModuleList_MissileLauncher.Count} == 0
 			return 0
 		
-		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Guidance%' AND EntityID=${EntityID};"]}]
+		GetCurrentData:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EWARType LIKE '%Guidance%' AND EntityID=${EntityID};"]}]
 		if ${GetCurrentData.NumRows} > 0
 		{
 			if ${Entity[${EntityID}].Distance} > ${Math.Calc[${Ship.ModuleList_MissileLauncher.Range} * 0.75]}
@@ -921,7 +697,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		if (${Ship.ModuleList_MissileLauncher.Count} > 0 || ${Ship.ModuleList_Projectiles.Count} > 0 && ( ${Ship.ModuleList_Regen_Armor.Count} == 0 && ${Ship.ModuleList_Regen_Shield.Count} == 0)
 			return 0
 		
-		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE NeutRng>0 AND EntityID=${EntityID};"]}]
+		GetCurrentData:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM CurrentData WHERE NeutRng>0 AND EntityID=${EntityID};"]}]
 		if ${GetCurrentData.NumRows} > 0
 		{
 			NeutRng:Set[${GetCurrentData.GetFieldValue["NeutRng"]}]
@@ -1022,7 +798,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		; The threat level increases from other sources will generally greatly outweigh these.
 		; There will be minor increases included for existing NPC damage.
 	
-		GetCurrentData:Set[${CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EffNPCDPS>0 AND EntityID=${EntityID};"]}]
+		GetCurrentData:Set[${CombatComputer.CombatData.ExecQuery["SELECT * FROM CurrentData WHERE EffNPCDPS>0 AND EntityID=${EntityID};"]}]
 		if ${GetCurrentData.NumRows} > 0
 		{
 			; If you are curious, we pull these values back out as strings and I don't feel like dealing with Lavishscript nonsense so we will make it a float then use it as such. This is probably pointless.
@@ -1601,4 +1377,5 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 
 		return ${chanceToHit}
 	}
+
 }

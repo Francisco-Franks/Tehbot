@@ -39,7 +39,7 @@
 #include core/obj_Dynamic.iss
 ; want to try and remove
 ;#include core/obj_Busy.iss
-
+#include core/obj_CombatComputerTaskHelper.iss
 #include core/obj_TargetingDatabase.iss
 #include core/obj_DimensionalNavigation.iss
 
@@ -92,7 +92,7 @@ function main(string Character="")
 	ext -require isxSQLite
 
 	echo "${Time} Tehbot: Starting"
-	Turbo 5000
+	Turbo 1000
 
 	declarevariable ConfigManager obj_Configuration_Manager script
 	declarevariable CommonConfig obj_Configuration_Common script
@@ -126,6 +126,7 @@ function main(string Character="")
 	declarevariable RemoteRepManagement obj_RemoteRepManagement script
 	declarevariable TargetManager	obj_TargetManager script
 	declarevariable MissionTargetManager	obj_MissionTargetManager script
+	declarevariable CCTH1 obj_CombatComputerTaskHelper script
 	declarevariable UndockWarp obj_UndockWarp script
 	declarevariable Salvage obj_Salvage script
 	declarevariable DroneControl obj_DroneControl script
@@ -193,7 +194,7 @@ function main(string Character="")
 	;Global string to manage the failings of ModuleList
 	declarevariable WeaponSwitch string global
 
-
+	;declarevariable CCTHTM taskmanager global ${LMAC.NewTaskManager["CCTHTM"]}
 
 	Logger:Log["Tehbot", "Module initialization complete", "y"]
 

@@ -28,7 +28,7 @@ objectdef obj_Ship2
 	
 	method Initialize()
 	{
-		Turbo 5000
+		Turbo 1000
 		; We shouldnt need WAL on this, it is a DB intended to be accessed by a singular client.
 		;;; Addendum, lies, lies, everything is a lie.
 		
