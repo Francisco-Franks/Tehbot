@@ -213,7 +213,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 					TempEntID:Set[${GetActiveNPCs.GetFieldValue["EntityID"]}]
 					if ${TempEntID} > 0
 						CombatComputer.ActiveNPCQueue:Queue[${TempEntID}]
-					CombatComputerTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 10000]}]
+					CombatComputerTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 18000]}]
 					GetActiveNPCs:NextRow
 				}
 				while !${GetActiveNPCs.LastRow}

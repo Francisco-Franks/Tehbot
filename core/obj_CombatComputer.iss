@@ -57,13 +57,13 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	; We use this to decide how many rows to update at a time, doing all of them simultaneously is a real performance killer dontchaknow.
 	; We will start with 10 entities at a time.
 	;;; Addendum, now 6. Also soon to be irrelevant if the CCTH crap pans out.
-	variable int UpdateBatchSize = 6	
+	variable int UpdateBatchSize = 8
 	
 	method Initialize()
 	{
 		Turbo 1000
 		This[parent]:Initialize
-		This.PulseFrequency:Set[1000]
+		This.PulseFrequency:Set[2000]
 		;This.NonGameTiedPulse:Set[TRUE]
 		;CombatData:Set[${SQLite.OpenDB["CombatData",":memory:"]}]
 		;;; Going to try making this DB reside in memory instead. We are going to be writing and reading to this fucker a gazillion times a second probably. Also the information is meant to be destroyed at the end
@@ -93,7 +93,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 			echo DEBUG - CombatComputer - Creating NPCTypeCache Table
 			CombatData:ExecDML["create table TypeCache (NPCTypeID INTEGER PRIMARY KEY, NPCName TEXT, NeutRng REAL, NeutStr REAL, EWARType TEXT, EWARStr REAL, EWARRng REAL, WebRng REAL, WrpDisRng REAL, WrpScrRng REAL, LastUpdate INTEGER);"]
 		}
-		This:QueueState["CombatComputerHub", 1000]
+		This:QueueState["CombatComputerHub", 3000]
 	}
  
 	method Shutdown()
@@ -1296,19 +1296,19 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		if ${Missl} || (${TurretDmgMod} > 0.01)
 		{
 			variable float64 EMDec
-			EMDec:Set[${Math.Calc[${AmmoDmgEMPM}/(${LowestDmgNmbr}/5)]}]
+			EMDec:Set[${Math.Calc[${AmmoDmgEMPM}]}]
 			variable float64 EMDecTurbo
 			EMDecTurbo:Set[${AmmoDmgEMPM}]
 			variable float64 ExpDec 
-			ExpDec:Set[${Math.Calc[${AmmoDmgExpPM}/(${LowestDmgNmbr}/5)]}]
+			ExpDec:Set[${Math.Calc[${AmmoDmgExpPM}]}]
 			variable float64 ExpDecTurbo
 			ExpDecTurbo:Set[${AmmoDmgExpPM}]
 			variable float64 KinDec 
-			KinDec:Set[${Math.Calc[${AmmoDmgKinPM}/(${LowestDmgNmbr}/5)]}]
+			KinDec:Set[${Math.Calc[${AmmoDmgKinPM}]}]
 			variable float64 KinDecTurbo
 			KinDecTurbo:Set[${AmmoDmgKinPM}]
 			variable float64 ThermDec 
-			ThermDec:Set[${Math.Calc[${AmmoDmgThermPM}/(${LowestDmgNmbr}/5)]}]
+			ThermDec:Set[${Math.Calc[${AmmoDmgThermPM}]}]
 			variable float64 ThermDecTurbo
 			ThermDecTurbo:Set[${AmmoDmgThermPM}]
 		}
