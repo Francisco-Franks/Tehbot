@@ -45,6 +45,8 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	; Query for our TargetList Replacement
 	variable sqlitequery GetActiveNPCs
 	variable sqlitequery GetActiveNPCs2
+	; Query for our Pre-Processing
+	variable sqlitequery GetProcessing
 	; Surprise, I want a DB up in this place.
 	variable sqlitedb MTMDB
 
@@ -54,6 +56,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 	
 	; Queue for removal from DB of things that don't exist anymore
 	variable queue:int64 CleanupQueue
+	variable queue:int64 CleanupQueue2
 	
 	variable int ValidPrimaryWeapTargets
 	variable int ValidDroneTargets
@@ -96,9 +99,12 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		{
 			echo DEBUG - MissionTargetManager - Creating Targeting Table
 			MTMDB:ExecDML["create table Targeting (EntityID INTEGER PRIMARY KEY, TargetingCategory TEXT, HullHPPercent REAL, ArmorHPPercent REAL, ShieldHPPercent REAL, EffNPCDPS REAL, OurDamageEff REAL, ExpectedShotDmg REAL, OurNeededAmmo TEXT, ThreatLevel INTEGER);"]
+		}
+		if !${MTMDB.TableExists["Processing"]}
+		{
+			echo DEBUG - MissionTargetManager - Creating Processing Table
+			MTMDB:ExecDML["create table Processing (EntityID INTEGER PRIMARY KEY, Distance REAL, Velocity REAL, SignatureRadius REAL, LastUpdate INTEGER);"]
 		}		
-		
-
 	}
 
 	method Start()
@@ -149,7 +155,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		; This will kick off a series of events which will populate a table in a DB object attached to this mode.
 		This:TargetListPreManagement
 		This:TargetListCleanup
-		
+		This:ProcessingCleanup
 		;;; Going to do some MJD stuff testing here. Basically if we have many enemies within a short distance (15km for now) we will inhibit our bastion, recall our drones, inhibit bastion and drone launch.
 		;;; Then we will use the MJD activation method. When we see that the jump is complete we will remove bastion and drone launch inhibition.
 		;;; So, if there are 5 ore more enemies within 20k, or all we have are drone targets, AND we can actually activate an MJD right now we will prepare for an MJD
@@ -211,7 +217,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				{
 					echo DEBUG TARGET MANAGER INSERT INTO INDEX ${GetActiveNPCs.GetFieldValue["EntityID"]}
 					TempEntID:Set[${GetActiveNPCs.GetFieldValue["EntityID"]}]
-					if ${TempEntID} > 0
+					if ${TempEntID} > 0 && ${This.NeedsProcessing[${TempEntID}]}
 						CombatComputer.ActiveNPCQueue:Queue[${TempEntID}]
 					CombatComputerTimer:Set[${Math.Calc[${LavishScript.RunningTime} + 18000]}]
 					GetActiveNPCs:NextRow
@@ -1070,5 +1076,96 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 		while ${attackerIterator:Next(exists)}	
 		
 		return FALSE
+	}
+	; This member will return to us whether or not a given entity justifies being processed by combat computer.
+	; If the entity has never been processed then it is an automatic pass.
+	; If the entity has changed its distance significantly then it is a pass.
+	; If the entity has changed its velocity significantly then it is a pass.
+	; If the entity has changed its signature radius significantly then it is a pass.
+	; Otherwise we return false and do not process the entity further.
+	member:bool NeedsProcessing(int64 EntityID)
+	{
+		GetProcessing:Set[${MTMDB.ExecQuery["SELECT * FROM Processing WHERE EntityID=${EntityID};"]}]
+		if ${GetProcessing.NumRows} == 0
+		{
+			GetProcessing:Finalize
+			This:ProcessingInsert[${EntityID}, ${Entity[${EntityID}].Distance}, ${Entity[${EntityID}].Velocity}, ${Entity[${EntityID}].Radius}]
+			return TRUE
+		}
+		else
+		{
+			variable float64 OldDistance
+			variable float64 OldVelocity
+			variable float64 OldSigRad
+			variable int64	 OldUpdateTime
+			
+			OldDistance:Set[${GetProcessing.GetFieldValue["Distance"]}]
+			OldVelocity:Set[${GetProcessing.GetFieldValue["Velocity"]}]
+			OldSigRad:Set[${GetProcessing.GetFieldValue["SignatureRadius"]}]
+			OldUpdateTime:Set[${GetProcessing.GetFieldValue["LastUpdate"]}]
+			
+			; This is a failsafe, if it has been more than 2 minutes since it was last processed we will do it again.
+			if ${LavishScript.RunningTime} > ${Math.Calc[${LastUpdate} + 120000]}
+			{
+				This:ProcessingInsert[${EntityID}, ${Entity[${EntityID}].Distance}, ${Entity[${EntityID}].Velocity}, ${Entity[${EntityID}].Radius}]
+				GetProcessing:Finalize
+				return TRUE
+			}
+			; Has this entity moved more than 5km distance from us? (5km closer, 5km further)
+			if ${Math.Abs[${Math.Calc[${OldDistance}-${Entity[${EntityID}].Distance}]}]} > 5000
+			{
+				This:ProcessingInsert[${EntityID}, ${Entity[${EntityID}].Distance}, ${Entity[${EntityID}].Velocity}, ${Entity[${EntityID}].Radius}]
+				GetProcessing:Finalize
+				return TRUE
+			}
+			; Has this entity's velocity changed by more than 20% since it was last checked out?
+			if ${Math.Calc[${Entity[${EntityID}].Velocity}/${OldVelocity}]} > 1.2 || ${Math.Calc[${Entity[${EntityID}].Velocity}/${OldVelocity}]} < 0.8
+			{
+				This:ProcessingInsert[${EntityID}, ${Entity[${EntityID}].Distance}, ${Entity[${EntityID}].Velocity}, ${Entity[${EntityID}].Radius}]
+				GetProcessing:Finalize
+				return TRUE
+			}
+			; Has this entity's signature radius changed by more than 20% since it was last checked out?
+			if ${Math.Calc[${Entity[${EntityID}].Radius}/${OldSigRad}]} > 1.2 || ${Math.Calc[${Entity[${EntityID}].Radius}/${OldSigRad}]} < 0.8
+			{
+				This:ProcessingInsert[${EntityID}, ${Entity[${EntityID}].Distance}, ${Entity[${EntityID}].Radius}, ${Entity[${EntityID}].Radius}]
+				GetProcessing:Finalize
+				return TRUE
+			}
+		}
+		; If we made it here then nothing has significantly changed and this entity can be SKIPPED
+		GetProcessing:Finalize
+		return FALSE	
+	}
+	; Need a method supporting the above
+	method ProcessingInsert(int64 EntityID, float64 Distance, float64 Velocity, float64 SignatureRadius)
+	{
+		MTMDB:ExecDML["Insert into Processing (EntityID, Distance, Velocity, SignatureRadius, LastUpdate) values (${EntityID}, ${Distance}, ${Velocity}, ${SignatureRadius}, ${LavishScript.RunningTime}) ON CONFLICT (EntityID) DO UPDATE SET Distance=excluded.Distance, Velocity=excluded.Velocity, SignatureRadius=excluded.SignatureRadius, LastUpdate=excluded.LastUpdate;"]
+	}
+	; Need a cleanup method for the above
+	method ProcessingCleanup()
+	{
+		GetProcessing:Set[${MTMDB.ExecQuery["SELECT * FROM Processing;"]}]
+		if ${GetProcessing.NumRows} > 0
+		{
+			do
+			{
+				if !${Entity[${GetProcessing.GetFieldValue["EntityID"]}](exists)}
+					CleanupQueue2:Queue[${GetProcessing.GetFieldValue["EntityID"]}]
+					
+				GetProcessing:NextRow
+			}
+			while !${GetProcessing.LastRow}
+		}
+		GetProcessing:Finalize
+		if ${CleanupQueue2.Size} > 0
+		{
+			do
+			{
+				MTMDB:ExecDML["DELETE From Processing WHERE EntityID=${CleanupQueue2.Peek};"]
+				CleanupQueue2:Dequeue
+			}
+			while ${CleanupQueue2.Size} > 0
+		}
 	}
 }

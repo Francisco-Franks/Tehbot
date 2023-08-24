@@ -39,7 +39,7 @@
 #include core/obj_Dynamic.iss
 ; want to try and remove
 ;#include core/obj_Busy.iss
-#include core/obj_CombatComputerTaskHelper.iss
+;#include core/obj_CombatComputerTaskHelper.iss
 #include core/obj_TargetingDatabase.iss
 #include core/obj_DimensionalNavigation.iss
 
@@ -126,7 +126,7 @@ function main(string Character="")
 	declarevariable RemoteRepManagement obj_RemoteRepManagement script
 	declarevariable TargetManager	obj_TargetManager script
 	declarevariable MissionTargetManager	obj_MissionTargetManager script
-	declarevariable CCTH1 obj_CombatComputerTaskHelper script
+	;declarevariable CCTH1 obj_CombatComputerTaskHelper script
 	declarevariable UndockWarp obj_UndockWarp script
 	declarevariable Salvage obj_Salvage script
 	declarevariable DroneControl obj_DroneControl script

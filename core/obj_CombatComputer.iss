@@ -29,25 +29,6 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	
 	; To keep track of what entities we have batch processed. An index of int64.
 	variable index:int64 EntriesProcessedIndex
-
-	;;;;;;
-	;;; Here comes the bullshit. Going to try and use LavishMachine and Tasks to get some parallelism in this horseshit. Who knows if it will work.
-	
-
-	variable obj_CombatComputerTaskHelper CCTH1
-	variable obj_CombatComputerTaskHelper CCTH2
-	variable obj_CombatComputerTaskHelper CCTH3
-	variable obj_CombatComputerTaskHelper CCTH4
-	variable obj_CombatComputerTaskHelper CCTH5
-	variable obj_CombatComputerTaskHelper CCTH6
-	variable obj_CombatComputerTaskHelper CCTH7
-	variable obj_CombatComputerTaskHelper CCTH8
-	
-	; Will use this to keep track of if our queues are full or not 
-	variable bool CCTHQueuesFull
-	
-	; Will use this to keep track of how many things at most we want to put in our queues. We will start with 3
-	variable int CCTHQueuesSizeLimit = 3
 	;;;
 	;;;;;
 
@@ -129,83 +110,9 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		This:CleanupTables
 		; The argument is how many entities we want to process at a time.
 		This:UpsertCurrentData[${UpdateBatchSize}]
-		;;; Time to attempt to really fuck this up with techniques I don't undersrtand yet.
-		
-		;do
-		;{
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH1.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH1.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH1 - CCTH1 has ${CCTH1.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH2.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH2.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH2 - CCTH2 has ${CCTH2.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH3.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH3.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH3 - CCTH3 has ${CCTH3.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH4.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;;	{
-		;		CCTH4.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;	;	echo Sending ${ActiveNPCQueue.Peek} to CCTH4 - CCTH4 has ${CCTH4.ProcessingQueue.Used} entities in queue.
-		;;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH5.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH5.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH5 - CCTH5 has ${CCTH5.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH6.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH6.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH6 - CCTH6 has ${CCTH6.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH7.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH7.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH7 - CCTH7 has ${CCTH7.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;	if ${ActiveNPCQueue.Peek} > 0 && (${CCTH8.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		;	{
-		;		CCTH8.ProcessingQueue:Queue[${ActiveNPCQueue.Peek}]
-		;		echo Sending ${ActiveNPCQueue.Peek} to CCTH8 - CCTH8 has ${CCTH8.ProcessingQueue.Used} entities in queue.
-		;		ActiveNPCQueue:Dequeue
-		;	}
-		;}
-		;while ${ActiveNPCQueue.Peek} > 0 && !${This.CCTHQueuesFull}
 
 		return FALSE
 		
-	}
-	; This member will tell me if my CCTH queues are full
-	member:bool CCTHQueuesFull()
-	{
-		if (${CCTH1.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH2.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH3.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH4.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH5.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH6.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH7.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit}) || \
-		(${CCTH8.ProcessingQueue.Used} < ${CCTHQueuesSizeLimit})
-		{
-			return FALSE
-		}
-		else
-		{
-			return TRUE
-		}
-	
 	}
 	; This method will prefill the table with info so we can update in discrete chunks and keep track of when we last touched a given row.
 	; This one will just pass along the BatchCount argument. This prefill shouldnt include anything too resource heavy.
