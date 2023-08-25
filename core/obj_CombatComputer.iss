@@ -38,7 +38,7 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 	; We use this to decide how many rows to update at a time, doing all of them simultaneously is a real performance killer dontchaknow.
 	; We will start with 10 entities at a time.
 	;;; Addendum, now 6. Also soon to be irrelevant if the CCTH crap pans out.
-	variable int UpdateBatchSize = 8
+	variable int UpdateBatchSize = 15
 	
 	method Initialize()
 	{
