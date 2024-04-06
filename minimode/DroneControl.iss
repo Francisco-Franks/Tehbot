@@ -414,7 +414,7 @@ objectdef obj_DroneControl inherits obj_StateQueue
 
 		variable int range = ${Math.Calc[${MyShip.MaxTargetRange} * .95]}
 
-		if ${CommonConfig.Tehbot_Mode.Equal["Mission"]}
+		if ${CommonConfig.Tehbot_Mode.Equal["Mission"]} || ${CommonConfig.Tehbot_Mode.Equal["Mining"]}
 		{
 			ActiveNPCs:AddTargetExceptionByPartOfName["EDENCOM"]
 			ActiveNPCs:AddTargetExceptionByPartOfName["Tyrannos"]

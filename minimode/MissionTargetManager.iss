@@ -280,6 +280,7 @@ objectdef obj_MissionTargetManager inherits obj_StateQueue
 				Ship.ModuleList_TargetPainter:ActivateAll[${This.GetFirstRowEntity[DroneTargets]}]
 			}
 			Ship.ModuleList_TrackingComputer:ActivateFor[${This.GetFirstRowEntity[DroneTargets]}]
+			EVE:Execute[CmdDronesEngage]
 		}
 		if ${ValidDroneTargets} > 0 && ${DroneControl.CurrentTarget} == 0
 			DroneControl.CurrentTarget:Set[${This.GetFirstRowEntity[DroneTargets]}]
