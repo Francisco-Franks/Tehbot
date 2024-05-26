@@ -1599,8 +1599,8 @@ objectdef obj_NPCData
 
 		MissileTypeID:Set[${TypeID}]
 		; These numbers will be lies until I get what I need from amadeus.
-		PlayerFlightTimeBonus:Set[2]
-		PlayerMaxVelocityBonus:Set[3.5]
+		PlayerFlightTimeBonus:Set[1.5]
+		PlayerMaxVelocityBonus:Set[2.5]
 
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${MissileTypeID} AND attributeID=281;"]}]
 		if ${GetNPCInfo.NumRows} > 0
