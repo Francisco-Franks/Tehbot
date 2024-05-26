@@ -406,7 +406,7 @@ objectdef obj_Mining inherits obj_StateQueue
 
 	member:bool Repair()
 	{
-		if ${Config.HomeStructure.NotNULLOrEmpty}
+		if ${Config.HomeStructureIsCitadel}
 		{
 			This:LogInfo["We are in a citadel, bypassing repair, it is broken."]
 			return TRUE
