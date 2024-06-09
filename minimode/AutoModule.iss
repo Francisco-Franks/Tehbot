@@ -240,7 +240,7 @@ objectdef obj_AutoModule inherits obj_StateQueue
 			Ship.ModuleList_Repair_Armor:DeactivateAll
 		}
 
-		if ${Ship.ModuleList_ActiveResists.Count} && ${Config.ActiveHardeners}
+		if ${Ship.ModuleList_ActiveResists.Count} && ${Config.ActiveHardeners} && !${Me.ToEntity.IsCloaked}
 		{
 			Ship.ModuleList_ActiveResists:ActivateAll
 		}
@@ -250,22 +250,22 @@ objectdef obj_AutoModule inherits obj_StateQueue
 			Ship.ModuleList_GangLinks:ActivateAll
 		}
 
-		if ${Ship.ModuleList_SensorBoost.ActiveCount} < ${Ship.ModuleList_SensorBoost.Count} && ${Config.SensorBoosters}
+		if ${Ship.ModuleList_SensorBoost.ActiveCount} < ${Ship.ModuleList_SensorBoost.Count} && ${Config.SensorBoosters} && !${Me.ToEntity.IsCloaked}
 		{
 			Ship.ModuleList_SensorBoost:ActivateAll
 		}
 
-		if ${Ship.ModuleList_AutoTarget.ActiveCount} < ${Ship.ModuleList_AutoTarget.Count} && ${Config.AutoTarget}
+		if ${Ship.ModuleList_AutoTarget.ActiveCount} < ${Ship.ModuleList_AutoTarget.Count} && ${Config.AutoTarget} && !${Me.ToEntity.IsCloaked}
 		{
 			Ship.ModuleList_AutoTarget:ActivateAll
 		}
 
-		if ${Ship.ModuleList_TrackingComputer.ActiveCount} < ${Ship.ModuleList_TrackingComputer.Count} && ${Config.TrackingComputers}
+		if ${Ship.ModuleList_TrackingComputer.ActiveCount} < ${Ship.ModuleList_TrackingComputer.Count} && ${Config.TrackingComputers} && !${Me.ToEntity.IsCloaked}
 		{
 			Ship.ModuleList_TrackingComputer:ActivateFor[TARGET_ANY]
 		}
 
-		if ${Ship.ModuleList_ECCM.ActiveCount} < ${Ship.ModuleList_ECCM.Count} && ${Config.ECCM}
+		if ${Ship.ModuleList_ECCM.ActiveCount} < ${Ship.ModuleList_ECCM.Count} && ${Config.ECCM} && !${Me.ToEntity.IsCloaked}
 		{
 			Ship.ModuleList_ECCM:ActivateAll
 		}
