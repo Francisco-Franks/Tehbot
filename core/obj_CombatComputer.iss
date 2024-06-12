@@ -784,9 +784,9 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		{
 			; Going to just consider the distance of the tracking disruptor user itself for now. This isn't going to work quite right at the moment.
 			if ${Entity[${EntityID}].Distance} > ${Math.Calc[${Ship.${WeaponSwitch}.Range} * 0.75]}
-				FinalValue:Inc[2500]
+				FinalValue:Inc[600]
 			else
-				FinalValue:Inc[2000]
+				FinalValue:Inc[400]
 			GetCurrentData:Finalize
 		}
 		return ${FinalValue}	
@@ -807,9 +807,9 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		if ${GetCurrentData.NumRows} > 0
 		{
 			if ${Entity[${EntityID}].Distance} > ${Math.Calc[${Ship.ModuleList_MissileLauncher.Range} * 0.75]}
-				FinalValue:Inc[1000]
-			else
 				FinalValue:Inc[500]
+			else
+				FinalValue:Inc[250]
 			GetCurrentData:Finalize
 		}
 		return ${FinalValue}	
