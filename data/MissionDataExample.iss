@@ -2,15 +2,9 @@
 
 function main()
 {
-	;
-	; First you need to add agents to your agent list, the bot will switch between them to manage the decline timer
-	; to try to ensure you always have available missions.
-	;
+	; One agent only, please
 	Script[Tehbot].VariableScope.Mission.AgentList:Insert["Guy"]
-	Script[Tehbot].VariableScope.Mission.AgentList:Insert["Dude"]
-	Script[Tehbot].VariableScope.Mission.AgentList:Insert["Bro"]
 
-	;
 	; Add the factions you don't want to fight against so missions with their logos will be declined.
 	; Missions without faction logo won't be declined because they don't hurt faction standing.
 	; The names don't need to be full names as long as they are not ambiguious.
@@ -38,14 +32,14 @@ function main()
 	; This collection requires the mission name and a search string. Most of these use the Name member. Note the single equal and the \ escaped quotes!
 	;
 	Script[Tehbot].VariableScope.Mission.DamageType:Set["The Right Hand Of Zazzmatazz", "Kinetic"]
-	Script[Tehbot].VariableScope.Mission.TargetToDestroy:Set["The Right Hand Of Zazzmatazz", "Name = \"Outpost Headquarters\""]
+	Script[Tehbot].VariableScope.Mission.TargetToDestroy:Set["The Right Hand Of Zazzmatazz", "Outpost Headquarters"]
 
 	;
 	; For some missions, you must loot an item. To configure these, use the ContainerToLoot collections.
 	; This collection requires the mission name and a search string. Most of these use the Name member, but also empty wrecks need to be excluded. Note the single equal and the \ escaped quotes!
 	;
 	Script[Tehbot].VariableScope.Mission.DamageType:Set["Worlds Collide", "EM"]
-	Script[Tehbot].VariableScope.Mission.ContainerToLoot:Set["Worlds Collide", "Name = \"Damaged Heron\" && !IsWreckEmpty"]
+	Script[Tehbot].VariableScope.Mission.ContainerToLoot:Set["Worlds Collide", "Damaged Heron"]
 	; Script[Tehbot].VariableScope.Mission.AquireItem:Set["Worlds Collide", "Ship's Crew"]	<-- Not required anymore
 
 	;
@@ -55,31 +49,7 @@ function main()
 	;
 	Script[Tehbot].VariableScope.Mission.DamageType:Set["Dread Pirate Scarlet", "Kinetic"]
 	Script[Tehbot].VariableScope.Mission.GateKey:Set["Dread Pirate Scarlet", "Gate Key"]
-	Script[Tehbot].VariableScope.Mission.GateKeyContainer:Set["Dread Pirate Scarlet", "Name = \"Cargo Container\""]
-
-	;
-	; Setting example of multistep mission 'The Anomaly'.
-	;
-	Script[Tehbot].VariableScope.Mission.DamageType:Set["The Anomaly (1 of 3)", "EM"]
-	Script[Tehbot].VariableScope.Mission.GateKey:Set["The Anomaly (1 of 3)", "Oura Madusaari"]
-	; 'Type' attribute tells the real Life Pod from the 3 fakes.
-	Script[Tehbot].VariableScope.Mission.GateKeyContainer:Set["The Anomaly (1 of 3)", "Type = \"Life Pod\""]
-	Script[Tehbot].VariableScope.Mission.TargetToDestroy:Set["The Anomaly (1 of 3)", "Name = \"Pressure Silo Debris\""]
-	Script[Tehbot].VariableScope.Mission.ContainerToLoot:Set["The Anomaly (1 of 3)", "Name = \"Cargo Container\""]
-	; Script[Tehbot].VariableScope.Mission.AquireItem:Set["The Anomaly (1 of 3)", "Fajah Ateshi"]	<-- Not required anymore
-
-	;
-	; For some missions, you need to deliver an item to a container.
-	; Set the delivery as below.
-	;
-	Script[Tehbot].VariableScope.Mission.DamageType:Set["The Anomaly (2 of 3)", "EM"]
-	; Script[Tehbot].VariableScope.Mission.DeliverItem:Set["The Anomaly (2 of 3)", "Neurowave Pattern Scanner"]	<-- Not required anymore
-	Script[Tehbot].VariableScope.Mission.DeliverItemContainer:Set["The Anomaly (2 of 3)", "Name = \"The Anomaly\""]
-
-	Script[Tehbot].VariableScope.Mission.DamageType:Set["The Anomaly (3 of 3)", "EM"]
-	; Script[Tehbot].VariableScope.Mission.DeliverItem:Set["The Anomaly (3 of 3)", "Fajah Ateshi"]	<-- Not required anymore
-	Script[Tehbot].VariableScope.Mission.DeliverItemContainer:Set["The Anomaly (3 of 3)", "Name = \"The Anomaly\""]
-
+	Script[Tehbot].VariableScope.Mission.GateKeyContainer:Set["Dread Pirate Scarlet", "Cargo Container"]
 	;
 	; Finally, use the BlackListedMission set to specify mission the bot should skip. TAKE NOTE, this is NOT a collection like all the above tools.
 	; It only takes one argument (the name of the mission) and uses the "Add" method instead of the "Set" method.
