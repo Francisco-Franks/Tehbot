@@ -1,3 +1,4 @@
 Never fear, the missioneer is here.
 
-4/6/24 - Fixing drone weirdness, hopefully.
+Requires ISXSqlite for most functions these days. Grab the 7z from here and extract it to the same folder that isxeve lives in.
+https://github.com/isxGames/isxSQLite/releases/download/20200812.0001/Release.x64.7z
