@@ -1614,6 +1614,11 @@ objectdef obj_Mission inherits obj_StateQueue
 				This:InsertState["DatabasifyNPCs",1500]
 				return TRUE
 			}
+			; Needed for Smash the Supplier in a non-marauder
+			if ${Entity[Name == "Amarr Shipyard Control Tower"](exists)} && ${Me.ToEntity.Mode} != MOVE_ORBITING
+			{
+				Move:Orbit[${Entity[Name == "Amarr Shipyard Control Tower"]}, 30000]
+			}
 			;This:MissionLogCombatUpdate[${CurrentRunNumber},${CurrentRunRoomNumber},${CurrentRunKilledTarget},${CurrentRunVanquisher},${CurrentRunContainerLooted},${CurrentRunHaveItems},${CurrentRunTechnicalComplete},${CurrentRunTrueComplete},${Time.Timestamp},0]
 			This:UpdateWatchDog
 			; Guess we should stay here in the interim

@@ -617,9 +617,9 @@ objectdef obj_Cargo inherits obj_StateQueue
 		This:QueueState["Traveling"]
 		This:QueueState["WarpFleetMember"]
 		This:QueueState["Traveling"]
-		This:QueueState["Activate"]
+		This:QueueState["Activate", 3000]
 		This:QueueState["${This.CargoQueue.Peek.Action}"]
-		This:QueueState["Stack"]
+		This:QueueState["Stack", 3000]
 		This:QueueState["Dequeue"]
 		This:QueueState["Process"]
 		return TRUE
