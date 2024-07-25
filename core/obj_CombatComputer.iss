@@ -625,6 +625,8 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		FinalValue:Inc[${This.NPCThreatLevelNeuts[${EntityID}]}]
 		FinalValue:Inc[${This.NPCThreatLevelBaseline[${EntityID}]}]
 		FinalValue:Inc[${This.NPCThreatLevelProximityHitChance[${EntityID}]}]
+		if ${FinalValue} > 0
+			FinalValue:Inc[${Math.Calc[${FinalValue}/(((.01)+(${Entity[${EntityID}].StructurePct})+(${Entity[${EntityID}].ArmorPct})+(${Entity[${EntityID}].ShieldPct}))/300)]}]
 		
 		return ${FinalValue}
 		
