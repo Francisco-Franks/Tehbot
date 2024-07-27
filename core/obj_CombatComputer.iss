@@ -606,6 +606,8 @@ objectdef obj_CombatComputer inherits obj_StateQueue
 		FinalValue:Set[${Math.Calc[${NPCTurretEMPR}+${NPCTurretExpPR}+${NPCTurretKinPR}+${NPCTurretThermPR}+${NPCMslEMPR}+${NPCMslExpPR}+${NPCMslKinPR}+${NPCMslThermPR}]}]
 		echo FinalValue:Set${NPCTurretEMPR}+${NPCTurretExpPR}+${NPCTurretKinPR}+${NPCTurretThermPR}+${NPCMslEMPR}+${NPCMslExpPR}+${NPCMslKinPR}+${NPCMslThermPR}
 		 echo DEBUG - CombatComputer - Entity ${EntityID} DPS Output ${FinalValue}
+		if ${FinalValue} > 0 && ${FinalValue} < 1
+			FinalValue:Set[1]
 		return ${FinalValue}
 	}
 	
