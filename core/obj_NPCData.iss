@@ -13,7 +13,77 @@ objectdef obj_NPCData
 	variable sqlitequery GetTypeIDByName
 	
 	
-	
+	; Back in the hellzone again. Ok so we have a few lookups that can be eliminated by caching their results to memory.
+	; So what we will do for these lookups is make a shitload more Collections, we will look to see if the value for the
+	; TypeID exists in the proper collection, if it does not we look it up from the SQL DB and also put it in the collection.
+	; Next time we go to look it up we should retrieve it from memory which will hopefully be less resource intensive.
+	; For all of these collections, the Key will be the TypeID and the Value will be whatever value the original lookup resolved to.
+	; Cached Hull Tanky Values
+	variable collection:float64 CacheEnemyHullHP
+	variable collection:float64 CacheEnemyHullEMRes
+	variable collection:float64 CacheEnemyHullExpRes
+	variable collection:float64 CacheEnemyHullKinRes
+	variable collection:float64 CacheEnemyHullThermRes
+	; Cached Armor Tanky Values
+	variable collection:float64 CacheEnemyArmorHP
+	variable collection:float64 CacheEnemyArmorEMRes
+	variable collection:float64 CacheEnemyArmorExpRes
+	variable collection:float64 CacheEnemyArmorKinRes
+	variable collection:float64 CacheEnemyArmorThermRes
+	variable collection:float64 CacheEnemyArmorRepSecond
+	; Cached Shield Tanky Values
+	variable collection:float64 CacheEnemyShieldHP
+	variable collection:float64 CacheEnemyShieldEMRes
+	variable collection:float64 CacheEnemyShieldExpRes
+	variable collection:float64 CacheEnemyShieldKinRes
+	variable collection:float64 CacheEnemyShieldThermRes
+	variable collection:float64 CacheEnemyShieldRepSecond
+	; Cached Enemy Offensive Values (Turrets)
+	variable collection:float64 CacheEnemyTurretOptimalRange
+	variable collection:float64 CacheEnemyTurretFalloffRange
+	variable collection:float64 CacheEnemyTurretTrackingSpeed
+
+	variable collection:float64 CacheEnemyTurretEMDamage
+	variable collection:float64 CacheEnemyTurretEMDPS
+
+	variable collection:float64 CacheEnemyTurretExplosiveDamage
+	variable collection:float64 CacheEnemyTurretExplosiveDPS
+
+	variable collection:float64 CacheEnemyTurretKineticDamage
+	variable collection:float64 CacheEnemyTurretKineticDPS
+
+	variable collection:float64 CacheEnemyTurretThermalDamage
+	variable collection:float64 CacheEnemyTurretThermalDPS
+	; Cached Enemy Offensive Values (Missiles)
+	variable collection:float64 CacheEnemyMissileExplosionVelocity
+	variable collection:float64 CacheEnemyMissileExplosionRadius
+	variable collection:float64 CacheEnemyMissileDRF
+
+	variable collection:float64 CacheEnemyMissileEMDamage
+	variable collection:float64 CacheEnemyMissileEMDPS
+
+	variable collection:float64 CacheEnemyMissileExplosiveDamage
+	variable collection:float64 CacheEnemyMissileExplosiveDPS
+
+	variable collection:float64 CacheEnemyMissileKineticDamage
+	variable collection:float64 CacheEnemyMissileKineticDPS
+
+	variable collection:float64 CacheEnemyMissileThermalDamage
+	variable collection:float64 CacheEnemyMissileThermalDPS
+	; Caching Player Offensive Values (Missiles)
+	variable collection:float64 CachePlayerMissileExplosionRadius
+	variable collection:float64 CachePlayerMissileExplosionVelocity
+	variable collection:float64 CachePlayerMissileMaxRange
+	variable collection:float64 CachePlayerMissileDRF
+	; Caching Player Offensive Values (Shared)
+	variable collection:float64 CachePlayerAmmoEM
+	variable collection:float64 CachePlayerAmmoExp
+	variable collection:float64 CachePlayerAmmoKin
+	variable collection:float64 CachePlayerAmmoTherm
+	; Caching Player Offensive Values (Turret)
+	variable collection:float64 CachePlayerTrackingMult
+	variable collection:float64 CachePlayerRangeMult
+
 	method Initialize()
 	{
 		Turbo 1000
@@ -143,17 +213,24 @@ objectdef obj_NPCData
 	member:float64 EnemyHullHP(int64 TypeID)
 	{
 		variable float64 HullHP
-		
+
+		if ${CacheEnemyHullHP.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyHullHP ${CacheEnemyHullHP.Element[${TypeID}]}
+			return ${CacheEnemyHullHP.Element[${TypeID}]}
+		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=9;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			HullHP:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyHullHP:Set[${TypeID},${HullHP}]
 			GetNPCInfo:Finalize
 			return ${HullHP}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyHullHP:Set[${TypeID},0]
 			return 0
 		}
 	}
@@ -161,17 +238,24 @@ objectdef obj_NPCData
 	member:float64 EnemyHullEMRes(int64 TypeID)
 	{
 		variable float64 HullEM
-		
+
+		if ${CacheEnemyHullEMRes.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyHullEMRes ${CacheEnemyHullEMRes.Element[${TypeID}]}
+			return ${CacheEnemyHullEMRes.Element[${TypeID}]}
+		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=113;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			HullEM:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyHullEMRes:Set[${TypeID},${HullEM}]
 			GetNPCInfo:Finalize
 			return ${HullEM}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyHullEMRes:Set[${TypeID},1]
 			return 1
 		}
 	}
@@ -179,17 +263,24 @@ objectdef obj_NPCData
 	member:float64 EnemyHullExpRes(int64 TypeID)
 	{
 		variable float64 HullExp
-		
+
+		if ${CacheEnemyHullExpRes.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyHullExpRes ${CacheEnemyHullExpRes.Element[${TypeID}]}
+			return ${CacheEnemyHullExpRes.Element[${TypeID}]}
+		}		
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=111;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			HullExp:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyHullExpRes:Set[${TypeID},${HullExp}]
 			GetNPCInfo:Finalize
 			return ${HullExp}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyHullExpRes:Set[${TypeID},1]
 			return 1
 		}
 	}
@@ -197,17 +288,24 @@ objectdef obj_NPCData
 	member:float64 EnemyHullKinRes(int64 TypeID)
 	{
 		variable float64 HullKin
-		
+
+		if ${CacheEnemyHullKinRes.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyHullKinRes ${CacheEnemyHullKinRes.Element[${TypeID}]}
+			return ${CacheEnemyHullKinRes.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=109;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			HullKin:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyHullKinRes:Set[${TypeID},${HullKin}]
 			GetNPCInfo:Finalize
 			return ${HullKin}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyHullKinRes:Set[${TypeID},1]
 			return 1
 		}
 	}
@@ -215,17 +313,24 @@ objectdef obj_NPCData
 	member:float64 EnemyHullThermRes(int64 TypeID)
 	{
 		variable float64 HullTherm
-		
+
+		if ${CacheEnemyHullThermRes.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyHullThermRes ${CacheEnemyHullThermRes.Element[${TypeID}]}
+			return ${CacheEnemyHullThermRes.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=110;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			HullTherm:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyHullThermRes:Set[${TypeID},${HullTherm}]
 			GetNPCInfo:Finalize
 			return ${HullTherm}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyHullThermRes:Set[${TypeID},1]
 			return 1
 		}
 	}
@@ -234,17 +339,24 @@ objectdef obj_NPCData
 	member:float64 EnemyArmorHP(int64 TypeID)
 	{
 		variable float64 ArmorHP
-		
+
+		if ${CacheEnemyArmorHP.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyArmorHP ${CacheEnemyArmorHP.Element[${TypeID}]}
+			return ${CacheEnemyArmorHP.Element[${TypeID}]}
+		}		
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=265;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			ArmorHP:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyArmorHP:Set[${TypeID},${ArmorHP}]
 			GetNPCInfo:Finalize
 			return ${ArmorHP}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyArmorHP:Set[${TypeID},0]
 			return 0
 		}
 	}
@@ -252,17 +364,24 @@ objectdef obj_NPCData
 	member:float64 EnemyArmorEMRes(int64 TypeID)
 	{
 		variable float64 ArmorEM
-		
+
+		if ${CacheEnemyArmorEMRes.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyArmorEMRes ${CacheEnemyArmorEMRes.Element[${TypeID}]}
+			return ${CacheEnemyArmorEMRes.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=267;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			ArmorEM:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyArmorEMRes:Set[${TypeID},${ArmorEM}]
 			GetNPCInfo:Finalize
 			return ${ArmorEM}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyArmorEMRes:Set[${TypeID},1]
 			return 1
 		}
 	}
@@ -270,17 +389,24 @@ objectdef obj_NPCData
 	member:float64 EnemyArmorExpRes(int64 TypeID)
 	{
 		variable float64 ArmorExp
-		
+
+		if ${CacheEnemyArmorExpRes.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyArmorExpRes ${CacheEnemyArmorExpRes.Element[${TypeID}]}
+			return ${CacheEnemyArmorExpRes.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=268;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			ArmorExp:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyArmorExpRes:Set[${TypeID},${ArmorExp}]
 			GetNPCInfo:Finalize
 			return ${ArmorExp}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyArmorExpRes:Set[${TypeID},1]
 			return 1
 		}
 	}
@@ -288,17 +414,24 @@ objectdef obj_NPCData
 	member:float64 EnemyArmorKinRes(int64 TypeID)
 	{
 		variable float64 ArmorKin
-		
+	
+		if ${CacheEnemyArmorKinRes.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyArmorKinRes ${CacheEnemyArmorKinRes.Element[${TypeID}]}
+			return ${CacheEnemyArmorKinRes.Element[${TypeID}]}
+		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=269;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			ArmorKin:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyArmorKinRes:Set[${TypeID},${ArmorKin}]
 			GetNPCInfo:Finalize
 			return ${ArmorKin}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyArmorKinRes:Set[${TypeID},1]
 			return 1
 		}
 	}
@@ -306,17 +439,24 @@ objectdef obj_NPCData
 	member:float64 EnemyArmorThermRes(int64 TypeID)
 	{
 		variable float64 ArmorTherm
-		
+
+		if ${CacheEnemyArmorThermRes.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyArmorThermRes ${CacheEnemyArmorThermRes.Element[${TypeID}]}
+			return ${CacheEnemyArmorThermRes.Element[${TypeID}]}
+		}		
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=270;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			ArmorTherm:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyArmorThermRes:Set[${TypeID},${ArmorTherm}]
 			GetNPCInfo:Finalize
 			return ${ArmorTherm}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyArmorThermRes:Set[${TypeID},1]
 			return 1
 		}
 	}
@@ -327,7 +467,12 @@ objectdef obj_NPCData
 		variable float64 RepAmount
 		variable float64 RepDuration
 		variable float64 RepChance
-		
+
+		if ${CacheEnemyArmorRepSecond.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyArmorRepSecond ${CacheEnemyArmorRepSecond.Element[${TypeID}]}
+			return ${CacheEnemyArmorRepSecond.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=631;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -337,6 +482,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyArmorRepSecond:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=630;"]}]
@@ -348,6 +494,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyArmorRepSecond:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=638;"]}]
@@ -359,9 +506,11 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyArmorRepSecond:Set[${TypeID},0]
 			return 0
 		}
 		ArmorReps:Set[${Math.Calc[(${RepAmount}/${RepDuration})*${RepChance}]}]
+		CacheEnemyArmorRepSecond:Set[${TypeID},${ArmorReps}]
 		return ${ArmorReps}
 	}
 	;;; Shield Tank of NPC
@@ -369,17 +518,24 @@ objectdef obj_NPCData
 	member:float64 EnemyShieldHP(int64 TypeID)
 	{
 		variable float64 ShieldHP
-		
+
+		if ${CacheEnemyShieldHP.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyShieldHP ${CacheEnemyShieldHP.Element[${TypeID}]}
+			return ${CacheEnemyShieldHP.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=263;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			ShieldHP:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyShieldHP:Set[${TypeID},${ShieldHP}]
 			GetNPCInfo:Finalize
 			return ${ShieldHP}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyShieldHP:Set[${TypeID},0]
 			return 0
 		}
 	}
@@ -387,17 +543,24 @@ objectdef obj_NPCData
 	member:float64 EnemyShieldEMRes(int64 TypeID)
 	{
 		variable float64 ShieldEM
-		
+
+		if ${CacheEnemyShieldEMRes.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyShieldEMRes ${CacheEnemyShieldEMRes.Element[${TypeID}]}
+			return ${CacheEnemyShieldEMRes.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=271;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			ShieldEM:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyShieldEMRes:Set[${TypeID},${ShieldEM}]
 			GetNPCInfo:Finalize
 			return ${ShieldEM}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyShieldEMRes:Set[${TypeID},1]
 			return 1
 		}
 	}
@@ -405,17 +568,24 @@ objectdef obj_NPCData
 	member:float64 EnemyShieldExpRes(int64 TypeID)
 	{
 		variable float64 ShieldExp
-		
+
+		if ${CacheEnemyShieldExpRes.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyShieldExpRes ${CacheEnemyShieldExpRes.Element[${TypeID}]}
+			return ${CacheEnemyShieldExpRes.Element[${TypeID}]}
+		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=272;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			ShieldExp:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyShieldExpRes:Set[${TypeID},${ShieldExp}]
 			GetNPCInfo:Finalize
 			return ${ShieldExp}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyShieldExpRes:Set[${TypeID},1]
 			return 1
 		}
 	}
@@ -423,17 +593,24 @@ objectdef obj_NPCData
 	member:float64 EnemyShieldKinRes(int64 TypeID)
 	{
 		variable float64 ShieldKin
-		
+
+		if ${CacheEnemyShieldKinRes.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyShieldKinRes ${CacheEnemyShieldKinRes.Element[${TypeID}]}
+			return ${CacheEnemyShieldKinRes.Element[${TypeID}]}
+		}		
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=273;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			ShieldKin:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyShieldKinRes:Set[${TypeID},${ShieldKin}]
 			GetNPCInfo:Finalize
 			return ${ShieldKin}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyShieldKinRes:Set[${TypeID},1]
 			return 1
 		}
 	}
@@ -441,17 +618,24 @@ objectdef obj_NPCData
 	member:float64 EnemyShieldThermRes(int64 TypeID)
 	{
 		variable float64 ShieldTherm
-		
+
+		if ${CacheEnemyShieldThermRes.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyShieldThermRes ${CacheEnemyShieldThermRes.Element[${TypeID}]}
+			return ${CacheEnemyShieldThermRes.Element[${TypeID}]}
+		}		
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=274;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			ShieldTherm:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyShieldThermRes:Set[${TypeID},${ShieldTherm}]
 			GetNPCInfo:Finalize
 			return ${ShieldTherm}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyShieldThermRes:Set[${TypeID},1]
 			return 1
 		}
 	}
@@ -462,7 +646,12 @@ objectdef obj_NPCData
 		variable float64 RepAmount
 		variable float64 RepDuration
 		variable float64 RepChance
-		
+
+		if ${CacheEnemyShieldRepSecond.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyShieldRepSecond ${CacheEnemyShieldRepSecond.Element[${TypeID}]}
+			return ${CacheEnemyShieldRepSecond.Element[${TypeID}]}
+		}		
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=637;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -472,6 +661,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyShieldRepSecond:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=636;"]}]
@@ -483,6 +673,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyShieldRepSecond:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=639;"]}]
@@ -494,9 +685,11 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyShieldRepSecond:Set[${TypeID},0]
 			return 0
 		}
 		ShieldReps:Set[${Math.Calc[(${RepAmount}/${RepDuration})*${RepChance}]}]
+		CacheEnemyShieldRepSecond:Set[${TypeID},${ShieldReps}]
 		return ${ShieldReps}
 	}
 	;;; These following members will be for Offensive EWAR capabilities.
@@ -766,17 +959,24 @@ objectdef obj_NPCData
 	member:float64 EnemyTurretOptimalRange(int64 TypeID)
 	{
 		variable float64 TurretOptimal
-		
+
+		if ${CacheEnemyTurretOptimalRange.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyTurretOptimalRange ${CacheEnemyTurretOptimalRange.Element[${TypeID}]}
+			return ${CacheEnemyTurretOptimalRange.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=54;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			TurretOptimal:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyTurretOptimalRange:Set[${TypeID},${TurretOptimal}]
 			GetNPCInfo:Finalize
 			return ${TurretOptimal}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyTurretOptimalRange:Set[${TypeID},0]
 			return 0
 		}
 	}
@@ -784,17 +984,24 @@ objectdef obj_NPCData
 	member:float64 EnemyTurretFalloffRange(int64 TypeID)
 	{
 		variable float64 TurretFalloff
-		
+
+		if ${CacheEnemyTurretFalloffRange.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyTurretFalloffRange ${CacheEnemyTurretFalloffRange.Element[${TypeID}]}
+			return ${CacheEnemyTurretFalloffRange.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=158;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			TurretFalloff:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyTurretFalloffRange:Set[${TypeID},${TurretFalloff}]
 			GetNPCInfo:Finalize
 			return ${TurretFalloff}
 		}
 		else
 		{
 			; TypeID not found.
+			CacheEnemyTurretFalloffRange:Set[${TypeID},0]
 			return 0
 		}
 	}
@@ -806,7 +1013,12 @@ objectdef obj_NPCData
 		variable float64 OptimalSig
 		variable float64 TurretTrackingOld
 		variable float64 TurretTracking
-		
+
+		if ${CacheEnemyTurretTrackingSpeed.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyTurretTrackingSpeed ${CacheEnemyTurretTrackingSpeed.Element[${TypeID}]}
+			return ${CacheEnemyTurretTrackingSpeed.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=160;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -822,10 +1034,14 @@ objectdef obj_NPCData
 		if ${OptimalSig} > 0
 		{
 			TurretTracking:Set[${Math.Calc[(${TurretTrackingOld}*40000)/${OptimalSig}]}]
+			CacheEnemyTurretTrackingSpeed:Set[${TypeID},${TurretTracking}]
 			return ${TurretTracking}
 		}
 		else
+		{
+			CacheEnemyTurretTrackingSpeed:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the Turret EM Damage Alpha for the NPC. Attribute 114 (em damage), attribute 64 (damage multiplier).
 	member:float64 EnemyTurretEMDamage(int64 TypeID)
@@ -833,7 +1049,12 @@ objectdef obj_NPCData
 		variable float64 TurretEM
 		variable float64 TurretMult
 		variable float64 TurretDamage
-		
+
+		if ${CacheEnemyTurretEMDamage.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyTurretEMDamage ${CacheEnemyTurretEMDamage.Element[${TypeID}]}
+			return ${CacheEnemyTurretEMDamage.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=114;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -848,9 +1069,15 @@ objectdef obj_NPCData
 		}
 		TurretDamage:Set[${Math.Calc[${TurretEM}*${TurretMult}]}]
 		if ${TurretDamage} > 0
+		{
+			CacheEnemyTurretEMDamage:Set[${TypeID},${TurretDamage}]
 			return ${TurretDamage}
+		}
 		else
+		{
+			CacheEnemyTurretEMDamage:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the Turret EM Damage PER SECOND for the NPC. Attribute 114 (em damage), attribute 64 (damage multiplier), attribute 51 (rate of fire).
 	member:float64 EnemyTurretEMDPS(int64 TypeID)
@@ -860,6 +1087,11 @@ objectdef obj_NPCData
 		variable float64 TurretROF
 		variable float64 TurretDamage
 		
+		if ${CacheEnemyTurretEMDPS.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyTurretEMDPS ${CacheEnemyTurretEMDPS.Element[${TypeID}]}
+			return ${CacheEnemyTurretEMDPS.Element[${TypeID}]}
+		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=114;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -882,9 +1114,15 @@ objectdef obj_NPCData
 		{
 			TurretDamage:Set[${Math.Calc[(${TurretEM}*${TurretMult})/${TurretROF}]}]
 			if ${TurretDamage} > 0
+			{
+				CacheEnemyTurretEMDPS:Set[${TypeID},${TurretDamage}]
 				return ${TurretDamage}
+			}
 			else
+			{
+				CacheEnemyTurretEMDPS:Set[${TypeID},0]
 				return 0
+			}
 		}
 	}
 	; This member will return the Turret Explosive Damage Alpha for the NPC. Attribute 116 (Explosive damage), attribute 64 (damage multiplier).
@@ -893,7 +1131,12 @@ objectdef obj_NPCData
 		variable float64 TurretExp
 		variable float64 TurretMult
 		variable float64 TurretDamage
-		
+
+		if ${CacheEnemyTurretExplosiveDamage.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyTurretExplosiveDamage ${CacheEnemyTurretExplosiveDamage.Element[${TypeID}]}
+			return ${CacheEnemyTurretExplosiveDamage.Element[${TypeID}]}
+		}		
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=116;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -908,9 +1151,15 @@ objectdef obj_NPCData
 		}
 		TurretDamage:Set[${Math.Calc[${TurretExp}*${TurretMult}]}]
 		if ${TurretDamage} > 0
+		{
+			CacheEnemyTurretExplosiveDamage:Set[${TypeID},${TurretDamage}]
 			return ${TurretDamage}
+		}
 		else
+		{
+			CacheEnemyTurretExplosiveDamage:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the Turret Explosive Damage PER SECOND for the NPC. Attribute 116 (Explosive damage), attribute 64 (damage multiplier), attribute 51 (rate of fire).
 	member:float64 EnemyTurretExplosiveDPS(int64 TypeID)
@@ -919,7 +1168,12 @@ objectdef obj_NPCData
 		variable float64 TurretMult
 		variable float64 TurretROF
 		variable float64 TurretDamage
-		
+
+		if ${CacheEnemyTurretExplosiveDPS.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyTurretExplosiveDPS ${CacheEnemyTurretExplosiveDPS.Element[${TypeID}]}
+			return ${CacheEnemyTurretExplosiveDPS.Element[${TypeID}]}
+		}		
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=116;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -942,9 +1196,15 @@ objectdef obj_NPCData
 		{
 			TurretDamage:Set[${Math.Calc[(${TurretExp}*${TurretMult})/${TurretROF}]}]
 			if ${TurretDamage} > 0
+			{
+				CacheEnemyTurretExplosiveDPS:Set[${TypeID},${TurretDamage}]
 				return ${TurretDamage}
+			}
 			else
+			{
+				CacheEnemyTurretExplosiveDPS:Set[${TypeID},0]
 				return 0
+			}
 		}
 	}
 	; This member will return the Turret Kinetic Damage Alpha for the NPC. Attribute 117 (Kinetic damage), attribute 64 (damage multiplier).
@@ -954,6 +1214,11 @@ objectdef obj_NPCData
 		variable float64 TurretMult
 		variable float64 TurretDamage
 		
+		if ${CacheEnemyTurretKineticDamage.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyTurretKineticDamage ${CacheEnemyTurretKineticDamage.Element[${TypeID}]}
+			return ${CacheEnemyTurretKineticDamage.Element[${TypeID}]}
+		}		
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=117;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -968,9 +1233,15 @@ objectdef obj_NPCData
 		}
 		TurretDamage:Set[${Math.Calc[${TurretKin}*${TurretMult}]}]
 		if ${TurretDamage} > 0
+		{
+			CacheEnemyTurretKineticDamage:Set[${TypeID},${TurretDamage}]
 			return ${TurretDamage}
+		}
 		else
+		{
+			CacheEnemyTurretKineticDamage:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the Turret Kinetic Damage PER SECOND for the NPC. Attribute 117 (Kinetic damage), attribute 64 (damage multiplier), attribute 51 (rate of fire).
 	member:float64 EnemyTurretKineticDPS(int64 TypeID)
@@ -979,7 +1250,12 @@ objectdef obj_NPCData
 		variable float64 TurretMult
 		variable float64 TurretROF
 		variable float64 TurretDamage
-		
+
+		if ${CacheEnemyTurretKineticDPS.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyTurretKineticDPS ${CacheEnemyTurretKineticDPS.Element[${TypeID}]}
+			return ${CacheEnemyTurretKineticDPS.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=117;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1002,9 +1278,15 @@ objectdef obj_NPCData
 		{
 			TurretDamage:Set[${Math.Calc[(${TurretKin}*${TurretMult})/${TurretROF}]}]
 			if ${TurretDamage} > 0
+			{
+				CacheEnemyTurretKineticDPS:Set[${TypeID},${TurretDamage}]
 				return ${TurretDamage}
+			}
 			else
+			{
+				CacheEnemyTurretKineticDPS:Set[${TypeID},0]
 				return 0
+			}
 		}
 	}
 	; This member will return the Turret Thermal Damage Alpha for the NPC. Attribute 118 (Thermal damage), attribute 64 (damage multiplier).
@@ -1013,7 +1295,12 @@ objectdef obj_NPCData
 		variable float64 TurretTherm
 		variable float64 TurretMult
 		variable float64 TurretDamage
-		
+
+		if ${CacheEnemyTurretThermalDamage.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyTurretThermalDamage ${CacheEnemyTurretThermalDamage.Element[${TypeID}]}
+			return ${CacheEnemyTurretThermalDamage.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=118;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1028,9 +1315,15 @@ objectdef obj_NPCData
 		}
 		TurretDamage:Set[${Math.Calc[${TurretTherm}*${TurretMult}]}]
 		if ${TurretDamage} > 0
+		{
+			CacheEnemyTurretThermalDamage:Set[${TypeID},${TurretDamage}]
 			return ${TurretDamage}
+		}
 		else
+		{
+			CacheEnemyTurretThermalDamage:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the Turret Thermal Damage PER SECOND for the NPC. Attribute 118 (Thermal damage), attribute 64 (damage multiplier), attribute 51 (rate of fire).
 	member:float64 EnemyTurretThermalDPS(int64 TypeID)
@@ -1039,7 +1332,12 @@ objectdef obj_NPCData
 		variable float64 TurretMult
 		variable float64 TurretROF
 		variable float64 TurretDamage
-		
+
+		if ${CacheEnemyTurretThermalDPS.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyTurretThermalDPS ${CacheEnemyTurretThermalDPS.Element[${TypeID}]}
+			return ${CacheEnemyTurretThermalDPS.Element[${TypeID}]}
+		}		
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=118;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1062,9 +1360,15 @@ objectdef obj_NPCData
 		{
 			TurretDamage:Set[${Math.Calc[(${TurretTherm}*${TurretMult})/${TurretROF}]}]
 			if ${TurretDamage} > 0
+			{
+				CacheEnemyTurretThermalDPS:Set[${TypeID},${TurretDamage}]
 				return ${TurretDamage}
+			}
 			else
+			{
+				CacheEnemyTurretThermalDPS:Set[${TypeID},0]
 				return 0
+			}
 		}
 	}
 	;;; Missiles now.
@@ -1077,7 +1381,12 @@ objectdef obj_NPCData
 		variable float64 NPCExpVelBonus
 		variable float64 MissileExpVel
 		variable float64 FinalValue
-		
+
+		if ${CacheEnemyMissileExplosionVelocity.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyMissileExplosionVelocity ${CacheEnemyMissileExplosionVelocity.Element[${TypeID}]}
+			return ${CacheEnemyMissileExplosionVelocity.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=507;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1087,6 +1396,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyMissileExplosionVelocity:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=859;"]}]
@@ -1102,6 +1412,7 @@ objectdef obj_NPCData
 			GetNPCInfo:Finalize
 		}
 		FinalValue:Set[${Math.Calc[${NPCExpVelBonus}*${MissileExpVel}]}]
+		CacheEnemyMissileExplosionVelocity:Set[${TypeID},${FinalValue}]
 		return ${FinalValue}
 	}
 	; This member will return the Explosion Radius of the enemy Missile. Missile type is attribute 507. Explosion Radius NPC Modifier is 858. I have to assume that bonus is a Multiplier, so 1.05 is just Whatever * 1.05.
@@ -1112,7 +1423,12 @@ objectdef obj_NPCData
 		variable float64 NPCExpRadBonus
 		variable float64 MissileExpRad
 		variable float64 FinalValue
-		
+
+		if ${CacheEnemyMissileExplosionRadius.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyMissileExplosionRadius ${CacheEnemyMissileExplosionRadius.Element[${TypeID}]}
+			return ${CacheEnemyMissileExplosionRadius.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=507;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1122,6 +1438,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyMissileExplosionRadius:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=858;"]}]
@@ -1137,6 +1454,7 @@ objectdef obj_NPCData
 			GetNPCInfo:Finalize
 		}
 		FinalValue:Set[${Math.Calc[${NPCExpRadBonus}*${MissileExpRad}]}]
+		CacheEnemyMissileExplosionRadius:Set[${TypeID},${FinalValue}]
 		return ${FinalValue}
 	}
 	; This member will return the DRF of the NPC's missile.
@@ -1145,7 +1463,12 @@ objectdef obj_NPCData
 	{
 		variable float64 MissileTypeID
 		variable float64 FinalValue
-		
+
+		if ${CacheEnemyMissileDRF.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyMissileDRF ${CacheEnemyMissileDRF.Element[${TypeID}]}
+			return ${CacheEnemyMissileDRF.Element[${TypeID}]}
+		}		
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=507;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1155,12 +1478,14 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyMissileDRF:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=1353;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CacheEnemyMissileDRF:Set[${TypeID},${FinalValue}]
 			GetNPCInfo:Finalize
 			return ${FinalValue}
 		}
@@ -1172,7 +1497,12 @@ objectdef obj_NPCData
 		variable float64 NPCMissileDmgBonus
 		variable float64 MissileEMDmg
 		variable float64 FinalValue
-		
+
+		if ${CacheEnemyMissileEMDamage.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyMissileEMDamage ${CacheEnemyMissileEMDamage.Element[${TypeID}]}
+			return ${CacheEnemyMissileEMDamage.Element[${TypeID}]}
+		}		
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=507;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1182,6 +1512,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyMissileEMDamage:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=212;"]}]
@@ -1198,9 +1529,15 @@ objectdef obj_NPCData
 		}
 		FinalValue:Set[${Math.Calc[${NPCMissileDmgBonus}*${MissileEMDmg}]}]
 		if ${FinalValue} > 0
+		{
+			CacheEnemyMissileEMDamage:Set[${TypeID},${FinalValue}]
 			return ${FinalValue}
+		}
 		else
+		{
+			CacheEnemyMissileEMDamage:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the Missile EM Damage PER SECOND for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile EM damage is 114, ROF is 506.
 	member:float64 EnemyMissileEMDPS(int64 TypeID)
@@ -1210,7 +1547,12 @@ objectdef obj_NPCData
 		variable float64 NPCMissileROF
 		variable float64 MissileEMDmg
 		variable float64 FinalValue
-		
+
+		if ${CacheEnemyMissileEMDPS.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyMissileEMDPS ${CacheEnemyMissileEMDPS.Element[${TypeID}]}
+			return ${CacheEnemyMissileEMDPS.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=507;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1220,6 +1562,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyMissileEMDPS:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=506;"]}]
@@ -1244,12 +1587,21 @@ objectdef obj_NPCData
 		{
 			FinalValue:Set[${Math.Calc[(${NPCMissileDmgBonus}*${MissileEMDmg})/${NPCMissileROF}]}]
 			if ${FinalValue} > 0
+			{
+				CacheEnemyMissileEMDPS:Set[${TypeID},${FinalValue}]
 				return ${FinalValue}
+			}
 			else
+			{
+				CacheEnemyMissileEMDPS:Set[${TypeID},0]
 				return 0
+			}
 		}
 		else
+		{
+			CacheEnemyMissileEMDPS:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the Missile Explosive Damage output for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile Exp damage is 116.
 	member:float64 EnemyMissileExplosiveDamage(int64 TypeID)
@@ -1258,7 +1610,12 @@ objectdef obj_NPCData
 		variable float64 NPCMissileDmgBonus
 		variable float64 MissileEMDmg
 		variable float64 FinalValue
-		
+
+		if ${CacheEnemyMissileExplosiveDamage.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyMissileExplosiveDamage ${CacheEnemyMissileExplosiveDamage.Element[${TypeID}]}
+			return ${CacheEnemyMissileExplosiveDamage.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=507;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1268,6 +1625,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyMissileExplosiveDamage:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=212;"]}]
@@ -1284,9 +1642,15 @@ objectdef obj_NPCData
 		}
 		FinalValue:Set[${Math.Calc[${NPCMissileDmgBonus}*${MissileEMDmg}]}]
 		if ${FinalValue} > 0
+		{
+			CacheEnemyMissileExplosiveDamage:Set[${TypeID},${FinalValue}]
 			return ${FinalValue}
+		}
 		else
+		{
+			CacheEnemyMissileExplosiveDamage:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the Missile Exp Damage PER SECOND for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile Exp damage is 116, ROF is 506.
 	member:float64 EnemyMissileExplosiveDPS(int64 TypeID)
@@ -1296,7 +1660,12 @@ objectdef obj_NPCData
 		variable float64 NPCMissileROF
 		variable float64 MissileExpDmg
 		variable float64 FinalValue
-		
+
+		if ${CacheEnemyMissileExplosiveDPS.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyMissileExplosiveDPS ${CacheEnemyMissileExplosiveDPS.Element[${TypeID}]}
+			return ${CacheEnemyMissileExplosiveDPS.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=507;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1306,6 +1675,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyMissileExplosiveDPS:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=506;"]}]
@@ -1330,12 +1700,21 @@ objectdef obj_NPCData
 		{
 			FinalValue:Set[${Math.Calc[(${NPCMissileDmgBonus}*${MissileExpDmg})/${NPCMissileROF}]}]
 			if ${FinalValue} > 0
+			{
+				CacheEnemyMissileExplosiveDPS:Set[${TypeID},${FinalValue}]
 				return ${FinalValue}
+			}
 			else
+			{
+				CacheEnemyMissileExplosiveDPS:Set[${TypeID},0]
 				return 0
+			}
 		}
 		else
+		{
+			CacheEnemyMissileExplosiveDPS:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the Missile Kinetic Damage output for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile Kinetic damage is 117.
 	member:float64 EnemyMissileKineticDamage(int64 TypeID)
@@ -1344,7 +1723,12 @@ objectdef obj_NPCData
 		variable float64 NPCMissileDmgBonus
 		variable float64 MissileEMDmg
 		variable float64 FinalValue
-		
+
+		if ${CacheEnemyMissileKineticDamage.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyMissileKineticDamage ${CacheEnemyMissileKineticDamage.Element[${TypeID}]}
+			return ${CacheEnemyMissileKineticDamage.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=507;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1354,6 +1738,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyMissileKineticDamage:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=212;"]}]
@@ -1370,9 +1755,15 @@ objectdef obj_NPCData
 		}
 		FinalValue:Set[${Math.Calc[${NPCMissileDmgBonus}*${MissileEMDmg}]}]
 		if ${FinalValue} > 0
+		{
+			CacheEnemyMissileKineticDamage:Set[${TypeID},${FinalValue}]
 			return ${FinalValue}
+		}
 		else
+		{
+			CacheEnemyMissileKineticDamage:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the Missile Kinetic Damage PER SECOND for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile Kinetic damage is 117, ROF is 506.
 	member:float64 EnemyMissileKineticDPS(int64 TypeID)
@@ -1382,7 +1773,12 @@ objectdef obj_NPCData
 		variable float64 NPCMissileROF
 		variable float64 MissileKinDmg
 		variable float64 FinalValue
-		
+
+		if ${CacheEnemyMissileKineticDPS.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyMissileKineticDPS ${CacheEnemyMissileKineticDPS.Element[${TypeID}]}
+			return ${CacheEnemyMissileKineticDPS.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=507;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1392,6 +1788,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyMissileKineticDPS:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=506;"]}]
@@ -1416,12 +1813,21 @@ objectdef obj_NPCData
 		{
 			FinalValue:Set[${Math.Calc[(${NPCMissileDmgBonus}*${MissileKinDmg})/${NPCMissileROF}]}]
 			if ${FinalValue} > 0
+			{
+				CacheEnemyMissileKineticDPS:Set[${TypeID},${FinalValue}]
 				return ${FinalValue}
+			}
 			else
+			{
+				CacheEnemyMissileKineticDPS:Set[${TypeID},0]
 				return 0
+			}
 		}
 		else
+		{
+			CacheEnemyMissileKineticDPS:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the Missile Thermal Damage output for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile Thermal damage is 118.
 	member:float64 EnemyMissileThermalDamage(int64 TypeID)
@@ -1430,7 +1836,12 @@ objectdef obj_NPCData
 		variable float64 NPCMissileDmgBonus
 		variable float64 MissileEMDmg
 		variable float64 FinalValue
-		
+
+		if ${CacheEnemyMissileThermalDamage.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyMissileThermalDamage ${CacheEnemyMissileThermalDamage.Element[${TypeID}]}
+			return ${CacheEnemyMissileThermalDamage.Element[${TypeID}]}
+		}		
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=507;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1440,6 +1851,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyMissileThermalDamage:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=212;"]}]
@@ -1456,9 +1868,15 @@ objectdef obj_NPCData
 		}
 		FinalValue:Set[${Math.Calc[${NPCMissileDmgBonus}*${MissileEMDmg}]}]
 		if ${FinalValue} > 0
+		{
+			CacheEnemyMissileThermalDamage:Set[${TypeID},${FinalValue}]
 			return ${FinalValue}
+		}
 		else
+		{
+			CacheEnemyMissileThermalDamage:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the Missile Thermal Damage PER SECOND for the NPC. Missile type is 507, NPC Damage Bonus is 212, Missile Thermal damage is 118, ROF is 506.
 	member:float64 EnemyMissileThermalDPS(int64 TypeID)
@@ -1468,7 +1886,12 @@ objectdef obj_NPCData
 		variable float64 NPCMissileROF
 		variable float64 MissileKinDmg
 		variable float64 FinalValue
-		
+
+		if ${CacheEnemyMissileThermalDPS.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CacheEnemyMissileThermalDPS ${CacheEnemyMissileThermalDPS.Element[${TypeID}]}
+			return ${CacheEnemyMissileThermalDPS.Element[${TypeID}]}
+		}			
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=507;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
@@ -1478,6 +1901,7 @@ objectdef obj_NPCData
 		else
 		{
 			; TypeID not found.
+			CacheEnemyMissileThermalDPS:Set[${TypeID},0]
 			return 0
 		}
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${TypeID} AND attributeID=506;"]}]
@@ -1502,12 +1926,21 @@ objectdef obj_NPCData
 		{
 			FinalValue:Set[${Math.Calc[(${NPCMissileDmgBonus}*${MissileKinDmg})/${NPCMissileROF}]}]
 			if ${FinalValue} > 0
+			{
+				CacheEnemyMissileThermalDPS:Set[${TypeID},${FinalValue}]
 				return ${FinalValue}
+			}
 			else
+			{
+				CacheEnemyMissileThermalDPS:Set[${TypeID},0]
 				return 0
+			}
 		}
 		else
+		{
+			CacheEnemyMissileThermalDPS:Set[${TypeID},0]
 			return 0
+		}
 	}
 	;;; Ugh, some enemies can do remote reps, either shield or armour, we should probably figure that out at some point. The following members will be for determining if an NPC does remote reps
 	;;; and exactly how strong they will be.
@@ -1529,7 +1962,11 @@ objectdef obj_NPCData
 		variable float64 MissileExpRad
 		variable float64 FinalValue
 		
-
+		if ${CachePlayerMissileExplosionRadius.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CachePlayerMissileExplosionRadius ${CachePlayerMissileExplosionRadius.Element[${TypeID}]}
+			return ${CachePlayerMissileExplosionRadius.Element[${TypeID}]}
+		}	
 		MissileTypeID:Set[${TypeID}]
 
 		; Going to assume you have Guided Missile Precision 4
@@ -1550,6 +1987,7 @@ objectdef obj_NPCData
 			GetNPCInfo:Finalize
 		}
 		FinalValue:Set[${Math.Calc[${PlayerShipExpRadBonus}*${PlayerExpRadBonus}*${MissileExpRad}*${PlayerGuidanceComputerBonus}]}]
+		CachePlayerMissileExplosionRadius:Set[${TypeID},${FinalValue}]
 		return ${FinalValue}
 	}
 	; This member will return the explosion velocity of whatever missile we feed into it.
@@ -1563,7 +2001,11 @@ objectdef obj_NPCData
 		variable float64 MissileExpVel
 		variable float64 FinalValue
 		
-
+		if ${CachePlayerMissileExplosionVelocity.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CachePlayerMissileExplosionVelocity ${CachePlayerMissileExplosionVelocity.Element[${TypeID}]}
+			return ${CachePlayerMissileExplosionVelocity.Element[${TypeID}]}
+		}	
 		MissileTypeID:Set[${TypeID}]
 
 		; Going to assume you have Target Nav Prediction 4
@@ -1584,6 +2026,7 @@ objectdef obj_NPCData
 			GetNPCInfo:Finalize
 		}
 		FinalValue:Set[${Math.Calc[${PlayerShipExpVelBonus}*${PlayerExpVelBonus}*${MissileExpVel}*${PlayerGuidanceComputerBonus}]}]
+		CachePlayerMissileExplosionVelocity:Set[${TypeID},${FinalValue}]
 		return ${FinalValue}
 	}
 	; This member will return the approximate expected range of the typeID given.
@@ -1596,7 +2039,11 @@ objectdef obj_NPCData
 		variable float64 MissileMaxVelocity
 		variable float64 FinalValue
 		
-
+		if ${CachePlayerMissileMaxRange.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CachePlayerMissileMaxRange ${CachePlayerMissileMaxRange.Element[${TypeID}]}
+			return ${CachePlayerMissileMaxRange.Element[${TypeID}]}
+		}
 		MissileTypeID:Set[${TypeID}]
 		; These numbers will be lies until I get what I need from amadeus.
 		PlayerFlightTimeBonus:Set[1.5]
@@ -1615,6 +2062,7 @@ objectdef obj_NPCData
 			GetNPCInfo:Finalize
 		}
 		FinalValue:Set[${Math.Calc[((${PlayerFlightTimeBonus}*${MissileFlightTime})/1000)*(${PlayerMaxVelocityBonus}*${MissileMaxVelocity})]}]
+		CachePlayerMissileMaxRange:Set[${TypeID},${FinalValue}]
 		return ${FinalValue}
 	}
 	; This member will return the Damage Reduction Factor for a given input missile typeid. I don't really know what the DRF does.
@@ -1623,18 +2071,26 @@ objectdef obj_NPCData
 		variable float64 MissileTypeID
 		variable float64 FinalValue
 		
-
+		if ${CachePlayerMissileDRF.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CachePlayerMissileDRF ${CachePlayerMissileDRF.Element[${TypeID}]}
+			return ${CachePlayerMissileDRF.Element[${TypeID}]}
+		}
 		MissileTypeID:Set[${TypeID}]
 
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${MissileTypeID} AND attributeID=1353;"]}]
 		if ${GetNPCInfo.NumRows} > 0
 		{
 			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
+			CachePlayerMissileDRF:Set[${TypeID},${FinalValue}]
 			GetNPCInfo:Finalize
 			return ${FinalValue}
 		}
 		else
+		{
+			CachePlayerMissileDRF:Set[${TypeID},1]
 			return 1
+		}
 		
 	}
 	; This member will return the base EM Damage for an input typeID.
@@ -1643,7 +2099,11 @@ objectdef obj_NPCData
 		variable float64 AmmoTypeID
 		variable float64 FinalValue
 		
-
+		if ${CachePlayerAmmoEM.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CachePlayerAmmoEM ${CachePlayerAmmoEM.Element[${TypeID}]}
+			return ${CachePlayerAmmoEM.Element[${TypeID}]}
+		}
 		AmmoTypeID:Set[${TypeID}]
 
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${AmmoTypeID} AND attributeID=114;"]}]
@@ -1651,10 +2111,14 @@ objectdef obj_NPCData
 		{
 			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
 			GetNPCInfo:Finalize
+			CachePlayerAmmoEM:Set[${TypeID},${FinalValue}]
 			return ${FinalValue}
 		}
 		else
+		{
+			CachePlayerAmmoEM:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the base Exp Damage for an input typeID.
 	member:float64 PlayerAmmoExp(int64 TypeID)
@@ -1662,7 +2126,11 @@ objectdef obj_NPCData
 		variable float64 AmmoTypeID
 		variable float64 FinalValue
 		
-
+		if ${CachePlayerAmmoExp.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CachePlayerAmmoExp ${CachePlayerAmmoExp.Element[${TypeID}]}
+			return ${CachePlayerAmmoExp.Element[${TypeID}]}
+		}
 		AmmoTypeID:Set[${TypeID}]
 
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${AmmoTypeID} AND attributeID=116;"]}]
@@ -1670,10 +2138,14 @@ objectdef obj_NPCData
 		{
 			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
 			GetNPCInfo:Finalize
+			CachePlayerAmmoExp:Set[${TypeID},${FinalValue}]
 			return ${FinalValue}
 		}
 		else
+		{
+			CachePlayerAmmoExp:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the base Kin Damage for an input typeID.
 	member:float64 PlayerAmmoKin(int64 TypeID)
@@ -1681,7 +2153,11 @@ objectdef obj_NPCData
 		variable float64 AmmoTypeID
 		variable float64 FinalValue
 		
-
+		if ${CachePlayerAmmoKin.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CachePlayerAmmoKin ${CachePlayerAmmoKin.Element[${TypeID}]}
+			return ${CachePlayerAmmoKin.Element[${TypeID}]}
+		}
 		AmmoTypeID:Set[${TypeID}]
 
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${AmmoTypeID} AND attributeID=117;"]}]
@@ -1689,10 +2165,14 @@ objectdef obj_NPCData
 		{
 			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
 			GetNPCInfo:Finalize
+			CachePlayerAmmoKin:Set[${TypeID},${FinalValue}]
 			return ${FinalValue}
 		}
 		else
+		{
+			CachePlayerAmmoKin:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the base Therm Damage for an input typeID.
 	member:float64 PlayerAmmoTherm(int64 TypeID)
@@ -1700,7 +2180,11 @@ objectdef obj_NPCData
 		variable float64 AmmoTypeID
 		variable float64 FinalValue
 		
-
+		if ${CachePlayerAmmoTherm.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CachePlayerAmmoTherm ${CachePlayerAmmoTherm.Element[${TypeID}]}
+			return ${CachePlayerAmmoTherm.Element[${TypeID}]}
+		}
 		AmmoTypeID:Set[${TypeID}]
 
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${AmmoTypeID} AND attributeID=118;"]}]
@@ -1708,10 +2192,14 @@ objectdef obj_NPCData
 		{
 			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
 			GetNPCInfo:Finalize
+			CachePlayerAmmoTherm:Set[${TypeID},${FinalValue}]
 			return ${FinalValue}
 		}
 		else
+		{
+			CachePlayerAmmoTherm:Set[${TypeID},0]
 			return 0
+		}
 	}
 	; This member will return the Tracking speed bonus/penalty for an input typeID.
 	member:float64 PlayerTrackingMult(int64 TypeID)
@@ -1719,7 +2207,11 @@ objectdef obj_NPCData
 		variable float64 AmmoTypeID
 		variable float64 FinalValue
 		
-
+		if ${CachePlayerTrackingMult.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CachePlayerTrackingMult ${CachePlayerTrackingMult.Element[${TypeID}]}
+			return ${CachePlayerTrackingMult.Element[${TypeID}]}
+		}
 		AmmoTypeID:Set[${TypeID}]
 
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${AmmoTypeID} AND attributeID=244;"]}]
@@ -1727,10 +2219,14 @@ objectdef obj_NPCData
 		{
 			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
 			GetNPCInfo:Finalize
+			CachePlayerTrackingMult:Set[${TypeID},${FinalValue}]
 			return ${FinalValue}
 		}
 		else
+		{
+			CachePlayerTrackingMult:Set[${TypeID},1]
 			return 1
+		}
 	}
 	; This member will return the Range bonus/penalty for an input typeID.
 	member:float64 PlayerRangeMult(int64 TypeID)
@@ -1738,7 +2234,11 @@ objectdef obj_NPCData
 		variable float64 AmmoTypeID
 		variable float64 FinalValue
 		
-
+		if ${CachePlayerRangeMult.Element[${TypeID}](exists)}
+		{
+			echo DEBUG CACHED VALUE CachePlayerRangeMult ${CachePlayerRangeMult.Element[${TypeID}]}
+			return ${CachePlayerRangeMult.Element[${TypeID}]}
+		}
 		AmmoTypeID:Set[${TypeID}]
 
 		GetNPCInfo:Set[${NPCInfoDB.ExecQuery["SELECT * FROM dogmaTypeAttributes WHERE typeID=${AmmoTypeID} AND attributeID=120;"]}]
@@ -1746,10 +2246,14 @@ objectdef obj_NPCData
 		{
 			FinalValue:Set[${GetNPCInfo.GetFieldValue["value"]}]
 			GetNPCInfo:Finalize
+			CachePlayerRangeMult:Set[${TypeID},${FinalValue}]
 			return ${FinalValue}
 		}
 		else
+		{
+			CachePlayerRangeMult:Set[${TypeID},1]
 			return 1
+		}
 	}
 	
 	;;; Next up, derived information about NPC defenses, so that we can use those numbers for comparison elsewhere.
