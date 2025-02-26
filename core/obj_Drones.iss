@@ -132,7 +132,7 @@ objectdef obj_Configuration_DroneData
 			     ${Drones.Value.FindAttribute[Type].String.Find[${affix}]}) || \
 			    ((${isNavy} && \
 			     (${Drones.Value.FindAttribute[Type].String.Find[Navy]} || \
-			      ${Drones.Value.FindAttribute[Type].String.Find[Fleet]})))
+			      ${Drones.Value.FindAttribute[Type].String.Find[Fleet]}))))
 			{
 				return ${Drones.Value.FindAttribute[Type].String}
 			}
